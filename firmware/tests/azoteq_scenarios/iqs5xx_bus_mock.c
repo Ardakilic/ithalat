@@ -25,6 +25,7 @@ static struct {
     bool     two_tap_pending;
     int      hold_reads;
     int      fail_base_reads;
+    bool     vanish_on_reset; // the next soft reset leaves the pad NACKing (connector bounce during a re-init)
     uint16_t x_res, y_res;
     // window model
     uint32_t win_open_at; // time at which the next window opens
@@ -47,6 +48,8 @@ void iqs_mock_tap(void) { m.tap_pending = true; }
 void iqs_mock_two_finger_tap(void) { m.two_tap_pending = true; }
 void iqs_mock_hold(int reads) { m.hold_reads = reads; }
 void iqs_mock_fail_base_reads(int n) { m.fail_base_reads = n; }
+void iqs_mock_vanish_on_reset(bool on) { m.vanish_on_reset = on; }
+void iqs_mock_raise_show_reset(void) { m.show_reset = true; } // reset flag only, gestures in progress go on
 uint16_t iqs_mock_x_res(void) { return m.x_res; }
 uint16_t iqs_mock_y_res(void) { return m.y_res; }
 bool     iqs_mock_show_reset(void) { return m.show_reset; }
@@ -179,6 +182,7 @@ i2c_status_t i2c_write_register16(uint8_t devaddr, uint16_t regaddr, const uint8
             if (data[0] & 0x02) {
                 m.soft_resets++;
                 iqs_mock_power_cycle();
+                if (m.vanish_on_reset) m.present = false;
             }
             break;
         case 0x0431: // system control 0: bit7 ACK_RESET

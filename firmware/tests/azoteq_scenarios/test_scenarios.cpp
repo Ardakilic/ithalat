@@ -1,11 +1,12 @@
 // Scenario tests: real pointing_device.c + real azoteq_iqs5xx.c + simulated IQS5xx with a
 // communication-window / RDY model (iqs5xx_bus_mock.c). Run with firmware/test.sh, which builds:
 //   stock     - QMK master as is (informational)
-//   control   - + the trackpad block of ardakilic_trackpad/keymap.c with TRACKPAD_NO_TAP_LATCH_FIX
+//   control   - + the trackpad block of ithalat/keymap.c with TRACKPAD_NO_TAP_LATCH_FIX
 //               (informational: shows what the tap-latch workaround fixes)
 //   fixed     - + the trackpad block, polled every 11 ms (no RDY wire)          -> must pass
 //   fixed_rdy - + the trackpad block with POINTING_DEVICE_MOTION_PIN (RDY wire) -> must pass
 #include <cstdio>
+#include <vector>
 #include "gtest/gtest.h"
 #include "mouse_report_util.hpp"
 #include "test_common.hpp"
@@ -22,6 +23,8 @@ void     iqs_mock_tap(void);
 void     iqs_mock_two_finger_tap(void);
 void     iqs_mock_hold(int reads);
 void     iqs_mock_fail_base_reads(int n);
+void     iqs_mock_vanish_on_reset(bool on);
+void     iqs_mock_raise_show_reset(void);
 uint16_t iqs_mock_x_res(void);
 uint16_t iqs_mock_y_res(void);
 bool     iqs_mock_show_reset(void);
@@ -68,10 +71,27 @@ static void count_buttons(::testing::NiceMock<TestDriver>& driver, ButtonCounter
     }));
 }
 
+// Records every change of the button state seen by the host.
+static void record_buttons(::testing::NiceMock<TestDriver>& driver, std::vector<uint8_t>& seen) {
+    ON_CALL(driver, send_mouse_mock(_)).WillByDefault(Invoke([&seen](report_mouse_t& r) {
+        if (seen.empty() || seen.back() != r.buttons) seen.push_back(r.buttons);
+    }));
+}
+static int count_edges(const std::vector<uint8_t>& seen, uint8_t mask, bool pressed) {
+    int     n    = 0;
+    uint8_t last = 0;
+    for (uint8_t b : seen) {
+        if (pressed ? ((b & mask) && !(last & mask)) : (!(b & mask) && (last & mask))) n++;
+        last = b;
+    }
+    return n;
+}
+
 class Azoteq : public TestFixture {
    protected:
     void SetUp() override {
         ::testing::NiceMock<TestDriver> d; // a live TestDriver is needed whenever the scan loop runs
+        iqs_mock_vanish_on_reset(false);
         iqs_mock_set_present(true);
         if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
             pointing_device_init();
@@ -240,5 +260,93 @@ TEST_F(Azoteq, OneFailedReadDuringHoldReleasesOnce) {
     run_ms(500);
     EXPECT_EQ(c.presses, 2);
     EXPECT_EQ(c.releases, 2);
+}
+
+// An MS_BTNx key pressed and released during a drag sends reports of its own (register_mouse() ->
+// pointing_device_keycode_handler()). None of them may release the pad's button 1: the host sees it
+// released only once, when the pad reports the lift. Key events land on every phase of the driver's
+// read cycle (13 ms key period vs. 10/11 ms reads).
+TEST_F(Azoteq, MouseKeyDuringDragKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       btn2 = KeymapKey(0, 0, 0, MS_BTN2);
+    set_keymap({btn2});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    iqs_mock_hold(100); // ~1 s of press-and-hold reports
+    run_ms(50);
+    const int key_taps = 40; // 520 ms, all inside the hold
+    for (int i = 0; i < key_taps; i++) {
+        btn2.press();
+        run_ms(7);
+        btn2.release();
+        run_ms(6);
+    }
+    run_ms(700); // the hold ends: the pad reports the lift
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 1);
+    EXPECT_EQ(count_edges(seen, 2, true), key_taps);
+    EXPECT_EQ(count_edges(seen, 2, false), key_taps);
+    EXPECT_EQ(seen.back(), 0);
+}
+
+// The pad resets during a drag (watchdog or quick re-plug, SHOW_RESET) and stops answering during
+// the re-init that follows: pointing_device_init() fails and pointing_device_task() sends no more
+// reports. The pad's button must still be released on the host; a mouse button held by a key stays.
+TEST_F(Azoteq, FailedReinitReleasesTheDragButKeepsKeyButtons) {
+    TestDriver driver;
+    KeymapKey  btn2 = KeymapKey(0, 0, 0, MS_BTN2);
+    set_keymap({btn2});
+    InSequence s;
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 2)).Times(1); // MS_BTN2 key
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 3)).Times(1); // + pad drag (button 1)
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 2)).Times(1); // re-init failed: drag released, key kept
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 0)).Times(1); // key up
+    btn2.press();
+    run_ms(20);
+    iqs_mock_hold(1000);
+    run_ms(100);
+    iqs_mock_vanish_on_reset(true);
+    iqs_mock_raise_show_reset();
+    // The next presence check (<= TRACKPAD_HOTPLUG_RETRY_MS after an earlier test's failed init)
+    // sees SHOW_RESET and re-initialises.
+    for (int i = 0; i < 6000 && pointing_device_get_status() == POINTING_DEVICE_STATUS_SUCCESS; i++) {
+        run_ms(1);
+    }
+    run_ms(100);
+    EXPECT_EQ(pointing_device_get_status(), POINTING_DEVICE_STATUS_INIT_FAILED);
+    btn2.release();
+    run_ms(20);
+    VERIFY_AND_CLEAR(driver);
+    iqs_mock_vanish_on_reset(false);
+}
+
+// Same, with a pad button 2 (a two-finger tap in every report cycle) and MS_BTN1 held by a key.
+TEST_F(Azoteq, FailedReinitReleasesPadButtonKeepsKeyButton1) {
+    TestDriver driver;
+    KeymapKey  btn1 = KeymapKey(0, 0, 0, MS_BTN1);
+    set_keymap({btn1});
+    InSequence s;
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 1)).Times(1); // MS_BTN1 key
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 3)).Times(1); // + pad button 2
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 1)).Times(1); // re-init failed: pad button released, MS_BTN1 kept
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 0)).Times(1); // key up
+    btn1.press();
+    run_ms(20);
+    for (int i = 0; i < 50; i++) {
+        iqs_mock_two_finger_tap();
+        run_ms(1);
+    }
+    iqs_mock_vanish_on_reset(true);
+    iqs_mock_raise_show_reset();
+    for (int i = 0; i < 6000 && pointing_device_get_status() == POINTING_DEVICE_STATUS_SUCCESS; i++) {
+        iqs_mock_two_finger_tap();
+        run_ms(1);
+    }
+    run_ms(100);
+    EXPECT_EQ(pointing_device_get_status(), POINTING_DEVICE_STATUS_INIT_FAILED);
+    btn1.release();
+    run_ms(20);
+    VERIFY_AND_CLEAR(driver);
+    iqs_mock_vanish_on_reset(false);
 }
 #endif

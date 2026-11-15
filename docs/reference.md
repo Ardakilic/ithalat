@@ -74,7 +74,7 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
   - The USB-C connector does not break away, so you unplug it first.
   - The cable leaves at the top of the back face, so it is never pinched between the rest and the keyboard.
 - **Dock in place of two keys, no case modification**
-  - The two centre front-row keys (`MS_BTN1`/`MS_BTN2` in the current keymap) sit right in front of the OLED/Pico block.
+  - The two centre front-row keys (Scroll Lock and right click in the stock keymap) sit right in front of the OLED/Pico block.
   - A printed dock clips into their switch cut-outs. It needs no drilling, filing or PCB change, and you can remove it again.
   - Its wires come from the OLED header, the switchplate TB1 socket or the Pico pins.
   - The wires lie flat on the switchplate under the OLED cover. Only the cover comes off.
@@ -1129,7 +1129,7 @@ The short version. The full steps and pinout are in [wiring.md](../wiring.md), t
      - [ ] Run the beep test once more with the closed grip before you power it (see [wiring.md, Step 4](../wiring.md#step-4-test-before-power-up)). Both plug orientations were checked with the bare board in step 5.
      - [ ] Label both halves "NOT USB".
 8. **Firmware** (full steps: [firmware/README.md](../firmware/README.md))
-   - [ ] Build and flash the `ardakilic_trackpad` keymap.
+   - [ ] Build and flash the `ithalat` keymap.
    - [ ] Plug the pad in before the first power-up: unplug USB, connect the pad, plug USB back in.
    - [ ] Wait for `Pad: on` on the OLED.
    - [ ] Calibrate the axes ([calibration](../firmware/README.md#calibration-30-seconds)).

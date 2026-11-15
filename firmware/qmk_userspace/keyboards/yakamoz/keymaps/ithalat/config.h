@@ -1,13 +1,13 @@
-/* Yakamoz 'ardakilic_trackpad' keymap configuration.
+/* Yakamoz 'ithalat' keymap configuration.
  *
- * = the original 'ardakilic' keymap configuration (unchanged block below: SH1107 64x128 OLED,
- *   caps-lock LED, Rick Roll startup song)
+ * = ozkan's stock 'default' keymap configuration (unchanged block below: SH1107 64x128 OLED,
+ *   caps-lock LED)
  * + an Azoteq TPS65 trackpad (IQS550 controller) in the "ithalat" wrist rest, connected through a
  *   pluggable cable and sharing the OLED's I2C bus. See firmware/README.md in the ithalat repo.
  */
 
 /* ---------------------------------------------------------------------------------------------
- * Original 'ardakilic' configuration (verbatim)
+ * Stock 'default' configuration (verbatim, github.com/ozkan/Yakamoz-qmk yakamoz/keymaps/default)
  * ------------------------------------------------------------------------------------------- */
 
 #ifdef OLED_ENABLE
@@ -26,13 +26,6 @@
 #define LED_CAPS_LOCK_PIN GP25
 #define LED_PIN_ON_STATE 1
 
-
-#ifdef AUDIO_ENABLE
-  #define RICK_ROLL Q__NOTE(_F4), Q__NOTE(_G4), Q__NOTE(_BF4), Q__NOTE(_G4), HD_NOTE(_D5), HD_NOTE(_D5), W__NOTE(_C5), S__NOTE(_REST), Q__NOTE(_F4), Q__NOTE(_G4), Q__NOTE(_BF4), Q__NOTE(_G4), HD_NOTE(_C5), HD_NOTE(_C5), W__NOTE(_BF4), S__NOTE(_REST), Q__NOTE(_F4), Q__NOTE(_G4), Q__NOTE(_BF4), Q__NOTE(_G4), W__NOTE(_BF4), H__NOTE(_C5), H__NOTE(_A4), H__NOTE(_A4), H__NOTE(_G4), H__NOTE(_F4), H__NOTE(_F4), W__NOTE(_C5), W__NOTE(_BF4)
-  #undef STARTUP_SONG
-  #define STARTUP_SONG SONG(RICK_ROLL)
-#endif
-
 /* ---------------------------------------------------------------------------------------------
  * Azoteq TPS65 trackpad
  * ------------------------------------------------------------------------------------------- */
@@ -45,9 +38,9 @@
  * These three lines repeat keyboards/yakamoz/config.h on purpose. They are plain #defines, so if
  * the keyboard definition ever moves the bus, the build fails with a "redefined" error instead of
  * silently using other pins.
- * Do NOT copy cost_crafter40's I2C1_SDA_PIN GP18 / I2C1_SCL_PIN GP19: on Yakamoz GP18/GP19 are
- * matrix columns 8 and 9. The keyboard-level mcuconf.h already enables RP_I2C_USE_I2C1, so no
- * keymap-level mcuconf.h is needed (unlike cost_crafter40). */
+ * Do NOT copy I2C1_SDA_PIN GP18 / I2C1_SCL_PIN GP19 from other RP2040 trackpad keymaps: on
+ * Yakamoz GP18/GP19 are matrix columns 8 and 9. The keyboard-level mcuconf.h already enables
+ * RP_I2C_USE_I2C1, so no keymap-level mcuconf.h is needed. */
 #define I2C_DRIVER I2CD1
 #define I2C1_SDA_PIN GP2
 #define I2C1_SCL_PIN GP3
@@ -87,17 +80,16 @@
 // #define AZOTEQ_IQS5XX_ROTATION_270
 
 /* Pointer speed, applied after every (re)initialisation of the pad (pointing_device_init_user()).
- * 500 is what the cost_crafter40 README intends. Note: on cost_crafter40 that value never took
- * effect (its #ifdef POINTING_DEVICE_DRIVER guard is always false), so that board has been running
- * at the pad's native ~1200 CPI. Raise this if 500 feels slow; 0 keeps the native resolution. */
+ * 500 is a calm starting point. Raise it if 500 feels slow; 0 keeps the pad's native ~1200 CPI. */
 #define TRACKPAD_CPI 500
 
 /* Hot-plug: how often keymap.c checks whether the pad is present / was reset (milliseconds). */
 #define TRACKPAD_HOTPLUG_INTERVAL_MS 1000
 
 /* Gestures: driver defaults (1-finger tap = left click, 2-finger tap = right click, 2-finger
- * scroll) plus press-and-hold. The two thumb keys that used to send MS_BTN1/MS_BTN2 are removed
- * for the connector dock, so there is no physical button left to hold for drag-and-drop.
+ * scroll) plus press-and-hold. The stock keymap has no left-click key, and its right-click key
+ * [3,7] is removed for the connector dock, so there is no physical button to hold for
+ * drag-and-drop.
  * Press-and-hold replaces it: rest one finger on the pad without moving for ~450 ms (the IQS5xx
  * fires it after Tap time + Hold time, datasheet 6.2; driver defaults AZOTEQ_IQS5XX_TAP_TIME 150 ms
  * + AZOTEQ_IQS5XX_HOLD_TIME 300 ms), then move: the left button stays held until you lift the

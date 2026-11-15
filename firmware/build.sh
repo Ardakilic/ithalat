@@ -3,20 +3,18 @@
 #
 # What it does (everything except the final copy runs inside ghcr.io/qmk/qmk_cli):
 #   1. clones/updates qmk/qmk_firmware (shallow, with submodules) into $WORK_DIR/qmk_firmware
-#   2. fetches keyboards/yakamoz from the Ardakilic/qmk_firmware fork (pinned commit)
-#      -> the fork is NOT used as the build tree (its ChibiOS submodules are stale, see README)
-#   3. fetches the original 'ardakilic' keymap from Ardakilic/qmk_userspace (pinned commit) as baseline
-#   4. copies this repo's keymap(s) from firmware/qmk_userspace/keyboards/yakamoz/keymaps/
-#   5. runs `qmk compile -kb yakamoz -km <keymap>` for every keymap in $KEYMAPS
-#   6. copies the resulting .uf2 files to $OUT_DIR and prints the firmware sizes
+#   2. fetches the Yakamoz keyboard definition from ozkan's Yakamoz-qmk repo (pinned commit) and
+#      copies it to keyboards/yakamoz (Yakamoz is not in upstream QMK)
+#   3. copies this repo's keymap(s) from firmware/qmk_userspace/keyboards/yakamoz/keymaps/
+#   4. runs `qmk compile -kb yakamoz -km <keymap>` for every keymap in $KEYMAPS
+#   5. copies the resulting .uf2 files to $OUT_DIR and prints the firmware sizes
 #
 # Idempotent: re-running reuses the clone, resets it to $QMK_REF, re-copies the keyboard and keymaps.
 # Nothing is installed on the host; the only host requirements are bash and docker.
 #
 # Usage:
-#   ./build.sh                                   # build both keymaps against upstream master
+#   ./build.sh                                   # build the ithalat keymap against upstream master
 #   QMK_REF=<sha|branch|tag> ./build.sh           # pin QMK (recommended for reproducibility)
-#   KEYMAPS=ardakilic_trackpad ./build.sh         # only the trackpad keymap
 #   WORK_DIR=/some/scratch OUT_DIR=/some/out ./build.sh
 set -euo pipefail
 
@@ -29,11 +27,10 @@ USERSPACE_DIR="${USERSPACE_DIR:-$SCRIPT_DIR/qmk_userspace}"   # this repo's user
 QMK_IMAGE="${QMK_IMAGE:-ghcr.io/qmk/qmk_cli:latest}"
 QMK_REPO="${QMK_REPO:-https://github.com/qmk/qmk_firmware.git}"
 QMK_REF="${QMK_REF:-master}"
-FORK_REPO="${FORK_REPO:-https://github.com/Ardakilic/qmk_firmware.git}"
-FORK_REF="${FORK_REF:-7bed308a04e06ea586efa9d9b6ec553903594edb}"            # fork master, 2026-09-24
-USERSPACE_REPO="${USERSPACE_REPO:-https://github.com/Ardakilic/qmk_userspace.git}"
-USERSPACE_REF="${USERSPACE_REF:-021ecc16318e3b847276e954fd82da7f152aebd6}"  # userspace main, 2026-11-15
-KEYMAPS="${KEYMAPS:-ardakilic ardakilic_trackpad}"
+KB_REPO="${KB_REPO:-https://github.com/ozkan/Yakamoz-qmk.git}"            # ozkan's own QMK repo
+KB_REF="${KB_REF:-d6b621203df789b1e4e60b1fd6343ee378c649f3}"              # its master, 2024-06-30
+KB_PATH="${KB_PATH:-yakamoz}"                                              # keyboard folder in KB_REPO
+KEYMAPS="${KEYMAPS:-ithalat}"
 DOCKER_PULL="${DOCKER_PULL:-missing}"   # always | missing | never
 
 command -v docker >/dev/null 2>&1 || { echo "error: docker is required" >&2; exit 1; }
@@ -55,8 +52,7 @@ echo "== image:     $QMK_IMAGE"
 echo "== work dir:  $WORK_DIR"
 echo "== out dir:   $OUT_DIR"
 echo "== qmk:       $QMK_REPO @ $QMK_REF"
-echo "== keyboard:  $FORK_REPO @ $FORK_REF (keyboards/yakamoz)"
-echo "== baseline:  $USERSPACE_REPO @ $USERSPACE_REF (keyboards/yakamoz/keymaps/ardakilic)"
+echo "== keyboard:  $KB_REPO @ $KB_REF ($KB_PATH)"
 echo "== keymaps:   $KEYMAPS"
 
 # The container runs as the calling user so that files in the bind mounts stay owned by them.
@@ -64,8 +60,7 @@ docker run --rm \
     --user "$(id -u):$(id -g)" \
     -e HOME=/tmp/home \
     -e QMK_REPO="$QMK_REPO" -e QMK_REF="$QMK_REF" \
-    -e FORK_REPO="$FORK_REPO" -e FORK_REF="$FORK_REF" \
-    -e USERSPACE_REPO="$USERSPACE_REPO" -e USERSPACE_REF="$USERSPACE_REF" \
+    -e KB_REPO="$KB_REPO" -e KB_REF="$KB_REF" -e KB_PATH="$KB_PATH" \
     -e KEYMAPS="$KEYMAPS" \
     -v "$WORK_DIR":/work \
     -v "$USERSPACE_DIR":/userspace:ro \
@@ -80,11 +75,14 @@ git config --global init.defaultBranch main
 # fetch_ref <dir> <repo> <ref> [sparse paths...]: shallow checkout of one commit (sha, branch or tag)
 fetch_ref() {
     local dir="$1" repo="$2" ref="$3"; shift 3
+    # Another repo than last time: start over (a partial clone cannot switch its promisor remote).
+    if [ -d "$dir/.git" ] && [ "$(git -C "$dir" remote get-url origin 2>/dev/null)" != "$repo" ]; then
+        rm -rf "$dir"
+    fi
     if [ ! -d "$dir/.git" ]; then
         git init -q "$dir"
         git -C "$dir" remote add origin "$repo"
     fi
-    git -C "$dir" remote set-url origin "$repo"
     if [ "$#" -gt 0 ]; then
         git -C "$dir" sparse-checkout set --no-cone "$@"
         git -C "$dir" fetch -q --depth 1 --filter=blob:none origin "$ref"
@@ -95,7 +93,7 @@ fetch_ref() {
     git -C "$dir" clean -ffdq
 }
 
-echo "== [1/5] qmk_firmware"
+echo "== [1/4] qmk_firmware"
 fetch_ref /work/qmk_firmware "$QMK_REPO" "$QMK_REF"
 git -C /work/qmk_firmware submodule sync -q --recursive
 git -C /work/qmk_firmware submodule update -q --init --recursive --depth 1 --jobs 8
@@ -103,38 +101,31 @@ QMK_SHA="$(git -C /work/qmk_firmware rev-parse HEAD)"
 echo "   qmk_firmware HEAD: $QMK_SHA ($(git -C /work/qmk_firmware log -1 --format=%cs))"
 git -C /work/qmk_firmware submodule status | sed "s/^/   /"
 
-echo "== [2/5] keyboards/yakamoz from the fork"
-fetch_ref /work/src_fork "$FORK_REPO" "$FORK_REF" "/keyboards/yakamoz/"
+echo "== [2/4] keyboards/yakamoz from $KB_REPO"
+fetch_ref /work/src_keyboard "$KB_REPO" "$KB_REF" "/$KB_PATH/"
 rm -rf /work/qmk_firmware/keyboards/yakamoz
-cp -R /work/src_fork/keyboards/yakamoz /work/qmk_firmware/keyboards/yakamoz
-# The fork already ships keyboard.json (current QMK only detects keyboards that have one,
-# lib/python/qmk/path.py). Fall back to renaming info.json if an older definition is used.
+cp -R "/work/src_keyboard/$KB_PATH" /work/qmk_firmware/keyboards/yakamoz
+# Current QMK only detects keyboards that have a keyboard.json (lib/python/qmk/path.py).
+# The definition in ozkan/Yakamoz-qmk still uses info.json (same schema), so rename it in the build copy.
 if [ ! -f /work/qmk_firmware/keyboards/yakamoz/keyboard.json ] && [ -f /work/qmk_firmware/keyboards/yakamoz/info.json ]; then
-    echo "   NOTE: renaming info.json -> keyboard.json in the build copy"
+    echo "   renaming info.json -> keyboard.json in the build copy"
     mv /work/qmk_firmware/keyboards/yakamoz/info.json /work/qmk_firmware/keyboards/yakamoz/keyboard.json
 fi
-# The fork keymaps (default, default_trackball, vial) are not built here; drop them so that only the
-# keymaps under test exist in the build tree.
+# The stock keymaps there (default, default_trackball, vial*) still use keycodes that current QMK
+# removed (RGB_xxx, KC_MS_BTN2), so they do not build any more. Drop them so that only the keymaps
+# of this repo exist in the build tree.
 rm -rf /work/qmk_firmware/keyboards/yakamoz/keymaps
 mkdir -p /work/qmk_firmware/keyboards/yakamoz/keymaps
 
-echo "== [3/5] baseline keymap ardakilic from qmk_userspace"
-fetch_ref /work/src_userspace "$USERSPACE_REPO" "$USERSPACE_REF" "/keyboards/yakamoz/keymaps/ardakilic/"
-cp -R /work/src_userspace/keyboards/yakamoz/keymaps/ardakilic /work/qmk_firmware/keyboards/yakamoz/keymaps/ardakilic
-
-echo "== [4/5] keymaps from this repo"
+echo "== [3/4] keymaps from this repo"
 for km in /userspace/keyboards/yakamoz/keymaps/*/; do
     [ -d "$km" ] || continue
     name="$(basename "$km")"
-    if [ "$name" = "ardakilic" ]; then
-        echo "   WARNING: local keymaps/ardakilic overrides the fetched baseline"
-        rm -rf /work/qmk_firmware/keyboards/yakamoz/keymaps/ardakilic
-    fi
     cp -R "$km" "/work/qmk_firmware/keyboards/yakamoz/keymaps/$name"
     echo "   + $name"
 done
 
-echo "== [5/5] compile"
+echo "== [4/4] compile"
 cd /work/qmk_firmware
 export QMK_HOME=/work/qmk_firmware
 qmk config user.qmk_home=/work/qmk_firmware >/dev/null

@@ -267,7 +267,7 @@ The full table is in [docs/reference.md, Printing](docs/reference.md#printing).
 - [ ] **4. Print** the rest variant that matches your trackpad, plus the parts for your connector ([What to print](#what-to-print)).
 - [ ] **5. Wire it:** keyboard side, connector half and dock, then the pigtail in the rest. Follow [wiring.md](wiring.md). The short version is the [assembly order](docs/reference.md#assembly-order).
 - [ ] **6. Beep-test before you power anything** ([Step 4: Test before power-up](wiring.md#step-4-test-before-power-up)).
-- [ ] **7. Flash the firmware:** the `ardakilic_trackpad` QMK keymap ([Firmware](#firmware)).
+- [ ] **7. Flash the firmware:** the `ithalat` QMK keymap ([Firmware](#firmware)).
 - [ ] **8. Plug the pad in before the first power-up:** unplug USB, connect the trackpad, then plug USB back in.
 - [ ] **9. Wait for `Pad: on`** on the OLED.
 - [ ] **10. Calibrate:** do the [30-second calibration](firmware/README.md#calibration-30-seconds).
@@ -306,7 +306,7 @@ The full table is in [docs/reference.md, Printing](docs/reference.md#printing).
 
 ## Firmware
 
-The firmware is a QMK keymap, `ardakilic_trackpad`, in [`firmware/`](firmware/). It is the same for both connectors. Details, calibration and the test checklist are in **[firmware/README.md](firmware/README.md)**.
+The firmware is a QMK keymap, `ithalat`, in [`firmware/`](firmware/): the stock Yakamoz `default` keymap plus the trackpad, nothing else. It is the same for both connectors. Details, calibration and the test checklist are in **[firmware/README.md](firmware/README.md)**.
 
 ### What it adds
 
@@ -314,15 +314,14 @@ The firmware is a QMK keymap, `ardakilic_trackpad`, in [`firmware/`](firmware/).
 - **Tap to click:** a one-finger tap is a left click, a two-finger tap a right click.
 - **Drag:** press and hold.
 - **Scroll:** two fingers.
-- **Mouse buttons:** the pad takes over the mouse buttons (`MS_BTN1`/`MS_BTN2`) of the two removed switches. Their SODA-layer functions are copied to other keys.
+- **Removed keys:** the two centre switches carried Scroll Lock and right click on the base layers, and `QK_BOOT` and `DB_TOGG` on Adjust. Right click is now a two-finger tap; the other three get copies on the Adjust layer ([details](firmware/README.md#removed-keys)).
 - **Hot-plug:** the keymap notices when the pad is plugged in or out and re-initialises it ([details](firmware/README.md#hot-plug-behaviour-and-limits)).
 
 ### Flash a prebuilt image
 
-- [`firmware/build/yakamoz_ardakilic_trackpad.uf2`](firmware/build/yakamoz_ardakilic_trackpad.uf2): with the trackpad.
-- [`firmware/build/yakamoz_ardakilic.uf2`](firmware/build/yakamoz_ardakilic.uf2): the baseline `ardakilic` keymap, without it.
+- [`firmware/build/yakamoz_ithalat.uf2`](firmware/build/yakamoz_ithalat.uf2): the stock keymap with the trackpad. It also works on an unmodified Yakamoz without a pad.
 
-1. Double-tap reset (or use `QK_BOOT` on the SODA layer).
+1. Double-tap reset, or press Adjust + `Tab` (`QK_BOOT`; Adjust = hold `Lower` and `Raise`).
 2. Drop the `.uf2` onto the `RPI-RP2` drive.
 
 ### Build it yourself (Docker only)
@@ -334,9 +333,7 @@ cd firmware
 ```
 
 - **Image:** it builds inside the official `ghcr.io/qmk/qmk_cli` image, against upstream QMK.
-- **Keyboard:** `keyboards/yakamoz` comes from [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware).
-- **Baseline keymap:** comes from [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace).
-- **Also in the owner's QMK userspace:** the same keymap is in [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace) as `yakamoz:yakamoz_ithalat_trackpad` ([details](firmware/README.md#the-keymap-in-qmk_userspace)).
+- **Keyboard and stock keymap:** both come from ozkan's [Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk), pinned to a commit ([details](firmware/README.md#keyboard-source)).
 
 > [!NOTE]
 > **Not yet tested on hardware.** The firmware compiles cleanly and passes the simulated scenario tests, but it has not run on a real Yakamoz with a real TPS65 yet. Work through the [test checklist](firmware/README.md#test-checklist-after-flashing) after the first flash.
@@ -508,7 +505,7 @@ Python 3.14, numpy 2.5.3, shapely 2.1.2, trimesh 5.1.0, manifold3d 3.5.3, mapbox
 | [docs/bom.md](docs/bom.md) | bill of materials and costs, per connector |
 | [docs/where-to-buy.md](docs/where-to-buy.md) | example shops with links, prices and stock (checked 2026-11-15), Turkish shops first |
 | [docs/reference.md](docs/reference.md) | the detailed reference (sections below) |
-| [firmware/README.md](firmware/README.md) | QMK keymap `ardakilic_trackpad`: azoteq_iqs5xx driver, hot-plug, calibration; same for both connectors |
+| [firmware/README.md](firmware/README.md) | QMK keymap `ithalat` (stock keymap + trackpad): azoteq_iqs5xx driver, hot-plug, calibration; same for both connectors |
 | [preview/index.html](preview/index.html), [online](https://ardakilic.github.io/ithalat/) | interactive 3D preview of the assembly; switch between glass/bare and the two connectors |
 
 **docs/reference.md sections:** [design rationale](docs/reference.md#design-rationale) · [outputs](docs/reference.md#outputs) · [verification](docs/reference.md#verification) · [variants](docs/reference.md#variants) · [the docks](docs/reference.md#the-docks) · [configuration reference](docs/reference.md#configuration-reference) · [printing](docs/reference.md#printing) · [assembly order](docs/reference.md#assembly-order) · [ballast and bumpers](docs/reference.md#ballast-and-bumpers) · [glass handling](docs/reference.md#glass-handling) · [troubleshooting](docs/reference.md#troubleshooting)
@@ -537,7 +534,7 @@ Python 3.14, numpy 2.5.3, shapely 2.1.2, trimesh 5.1.0, manifold3d 3.5.3, mapbox
 | `docs/where-to-buy.md` | example shop listings with prices and stock |
 | `docs/preview.png` | screenshot of the live preview, shown at the top of this README (not regenerated by the build) |
 | `docs/reference.md` | detailed reference (design, verification, config, printing, assembly, troubleshooting) |
-| `firmware/` | QMK keymap `ardakilic_trackpad`, `build.sh`, `test.sh`, scenario tests, prebuilt `.uf2` images in `firmware/build/` |
+| `firmware/` | QMK keymap `ithalat`, `build.sh`, `test.sh`, scenario tests, prebuilt `firmware/build/yakamoz_ithalat.uf2` |
 | `.github/workflows/pages.yml` | GitHub Actions workflow that builds and deploys the online preview |
 | `Dockerfile`, `requirements.txt`, `Makefile` | pinned build environment |
 | `LICENSE` | the MIT License text |
@@ -573,9 +570,9 @@ ithalat is released under the **[MIT License](LICENSE)**. Copyright (c) 2026 Ard
 ### Exceptions and third-party parts
 
 - **`firmware/` stays [GPL-2.0-or-later](https://github.com/qmk/qmk_firmware/blob/master/LICENSE).**
-  - The keymap is based on ozkan's GPL keymap. Its `keymap.c` header says "Copyright 2023 ozkan" (QMK keymap code, Copyright ozkan and contributors).
-  - It builds into QMK, and the prebuilt `.uf2` images are built from QMK.
-  - So the MIT license does not cover `firmware/` or the `.uf2` images. The GPL governs their use, including commercial use.
+  - The keymap is ozkan's GPL stock keymap plus the trackpad code. Its `keymap.c` header says "Copyright 2023 ozkan" (QMK keymap code, Copyright ozkan and contributors).
+  - It builds into QMK, and the prebuilt `.uf2` image is built from QMK.
+  - So the MIT license does not cover `firmware/` or the `.uf2` image. The GPL governs their use, including commercial use.
 - **Yakamoz keyboard:** the design is ozkan's.
   - It is licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), per the [Yakamoz Readme](https://github.com/ozkan/Yakamoz).
   - The MIT license covers only ithalat's own files, not the keyboard.

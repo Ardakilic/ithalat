@@ -316,7 +316,7 @@ Tick off what you have. Details for each part are in the sections below.
 
 **100 kΩ resistor (RDY pull-down, pogo)**
 
-- **Not needed with `ardakilic_trackpad`.** It enables the RP2040's internal pull-down on GP15.
+- **Not needed with the `ithalat` keymap.** It enables the RP2040's internal pull-down on GP15.
 - **Only for** other firmware that leaves RDY floating.
 
 **4.7 kΩ resistors (extra SDA/SCL pull-ups to 3V3)**
