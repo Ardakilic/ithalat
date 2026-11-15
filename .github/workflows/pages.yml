@@ -1,0 +1,89 @@
+# Builds the ithalat 3D preview from source and publishes it to GitHub Pages
+# (https://ardakilic.github.io/ithalat/) on every push to main.
+#
+# The build job runs the same Docker-wrapped make targets as a local build:
+# `make image`, then `make generate verify preview site`. If the self-test
+# (tools/verify.py) fails, make exits non-zero, the job fails and nothing is
+# deployed. The site is the standalone preview as index.html plus the STLs
+# under stl/.
+#
+# One-time setup: Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One Pages deployment at a time. A newer run waits for the one in progress
+# instead of cancelling it, so a deploy is never cut off halfway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: read # actions/configure-pages reads the site settings
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v6
+
+      - name: Build the Docker image
+        run: make image
+
+      - name: Generate STLs, verify them, build the preview
+        run: make generate verify preview
+
+      - name: Compare with the committed files
+        run: |
+          {
+            echo "### Generated files vs. the committed copies"
+            if git diff --quiet -- stl preview/index.html; then
+              echo "The regenerated STLs and preview/index.html match the committed files byte for byte."
+            else
+              echo "These regenerated files differ from the committed copies:"
+              echo '```'
+              git diff --stat -- stl preview/index.html
+              echo '```'
+              echo "A few re-split triangles are normal when the committed files were made on an arm64 machine (this runner is x86_64)."
+              echo "Bigger changes usually mean the regenerated files were not committed: run \`make all\` and commit stl/ and preview/index.html."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assemble the site
+        run: |
+          make site
+          ls -la _site _site/stl
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          include-hidden-files: true # keep .nojekyll
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

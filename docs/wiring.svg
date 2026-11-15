@@ -1,0 +1,261 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="842" viewBox="0 0 1280 842" font-family="'Liberation Sans', Arial, Helvetica, sans-serif">
+<title>ithalat trackpad wiring (magnetic pogo)</title>
+<desc>Azoteq TPS65 trackpad joins the Yakamoz OLED I2C1 bus (GP2/GP3). Recommended, with no case modification: 4-5 x 30 AWG wires from tap A (the OLED module header joints or the switchplate TB1 socket, same nets as Pico pins 4, 5, 36, 38) or tap B (the Pico pins themselves; RDY always from Pico pin 20) run flat over the switchplate, under the OLED cover, into the printed dock's rear channel and a 5-pin magnetic pogo receptacle (1 SDA, 2 3V3, 3 GND, 4 SCL, 5 RDY). The magnetic plug on a short pigtail goes to the TPS65 2.0 mm solder pads. Alternative that modifies the case: the main-PCB OL1 holes under the switchplate, which need a notch filed in an internal acrylic bar. The USB-C connector variant is drawn in wiring-usbc.svg.</desc>
+<rect x="0" y="0" width="1280" height="842" fill="#ffffff"/>
+<text x="24" y="38" font-size="24" text-anchor="start" font-weight="bold" fill="#1a1a1a">ithalat trackpad wiring, magnetic pogo: TPS65 on the OLED's I2C1 bus</text>
+<text x="1256" y="38" font-size="13" text-anchor="end" font-weight="normal" fill="#555" font-style="italic">USB-C variant: wiring-usbc.svg</text>
+<text x="24" y="63" font-size="14" text-anchor="start" font-weight="normal" fill="#333">4 wires required (SDA, SCL, 3V3, GND) + optional RDY.   Connector pinout, identical on both halves:  1 SDA · 2 3V3 · 3 GND · 4 SCL · 5 RDY</text>
+<rect x="16" y="80" width="812" height="476" rx="10" fill="#f3f6fa" stroke="#c4cfdc" stroke-width="1.2"/>
+<rect x="848" y="80" width="416" height="476" rx="10" fill="#f8f5ef" stroke="#d9cdb8" stroke-width="1.2"/>
+<text x="30" y="104" font-size="15" text-anchor="start" font-weight="bold" fill="#2d4a6b">YAKAMOZ · keyboard side</text>
+<text x="862" y="104" font-size="15" text-anchor="start" font-weight="bold" fill="#6b4f2d">ITHALAT · wrist-rest side</text>
+<rect x="30" y="140" width="200" height="370" rx="6" fill="#e8f1e4" stroke="#4f7a43" stroke-width="1.6"/>
+<text x="130" y="166" font-size="15" text-anchor="middle" font-weight="bold" fill="#1a1a1a">Raspberry Pi Pico</text>
+<text x="130" y="184" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">U1 · socketed, under OLED cover</text>
+<text x="218" y="255" font-size="13.5" text-anchor="end" font-weight="bold" fill="#1a1a1a">pin 4 · GP2 · SDA</text>
+<text x="218" y="301" font-size="13.5" text-anchor="end" font-weight="bold" fill="#1a1a1a">pin 5 · GP3 · SCL</text>
+<text x="218" y="347" font-size="13.5" text-anchor="end" font-weight="bold" fill="#1a1a1a">pin 36 · 3V3(OUT)</text>
+<text x="218" y="393" font-size="13.5" text-anchor="end" font-weight="bold" fill="#1a1a1a">pin 38 · GND</text>
+<text x="218" y="471" font-size="13.5" text-anchor="end" font-weight="normal" fill="#1a1a1a">pin 20 · GP15 · RDY</text>
+<text x="218" y="409" font-size="11" text-anchor="end" font-weight="normal" fill="#555">(digital GND: 3 8 13 18 23 28)</text>
+<text x="218" y="487" font-size="11" text-anchor="end" font-weight="normal" fill="#555">optional, on no header</text>
+<text x="130" y="214" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">I2C1 = RP2040 I2CD1</text>
+<polyline points="234,250 636,250" fill="none" stroke="#1565c0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="234,296 636,296" fill="none" stroke="#f2b705" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="234,342 636,342" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="234,388 636,388" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="280" y1="186" x2="280" y2="250" stroke="#333" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="274" y="205" width="12" height="26" rx="1" fill="#ffffff" stroke="#333" stroke-width="1.6"/>
+<text x="291" y="222" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">R1 4.7 kΩ</text>
+<line x1="268" y1="186" x2="292" y2="186" stroke="#d32f2f" stroke-width="2.6" stroke-linecap="round"/>
+<text x="280" y="178" font-size="12.5" text-anchor="middle" font-weight="bold" fill="#d32f2f">3V3</text>
+<circle cx="280" cy="250" r="3.6" fill="#1a1a1a"/>
+<line x1="322" y1="296" x2="322" y2="342" stroke="#333" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="316" y="306" width="12" height="26" rx="1" fill="#ffffff" stroke="#333" stroke-width="1.6"/>
+<text x="333" y="324" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">R2 4.7 kΩ</text>
+<circle cx="322" cy="296" r="3.6" fill="#1a1a1a"/>
+<circle cx="322" cy="342" r="3.6" fill="#1a1a1a"/>
+<text x="246" y="420" font-size="12" text-anchor="start" font-weight="normal" fill="#444" font-style="italic">R1/R2: pull-ups on the main PCB (bottom side)</text>
+<rect x="400" y="126" width="196" height="64" rx="6" fill="#eceefe" stroke="#5c6bc0" stroke-width="1.6"/>
+<text x="498" y="152" font-size="14.5" text-anchor="middle" font-weight="bold" fill="#1a1a1a">OLED · 0x3C</text>
+<text x="498" y="172" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">switchplate OL2, via J2↔TB1</text>
+<polyline points="424,190 424,250" fill="none" stroke="#1565c0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="424" cy="250" r="3.6" fill="#1a1a1a"/>
+<polyline points="462,190 462,296" fill="none" stroke="#f2b705" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="462" cy="296" r="3.6" fill="#1a1a1a"/>
+<polyline points="500,190 500,342" fill="none" stroke="#d32f2f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="500" cy="342" r="3.6" fill="#1a1a1a"/>
+<polyline points="538,190 538,388" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="538" cy="388" r="3.6" fill="#1a1a1a"/>
+<text x="392" y="146" font-size="11.5" text-anchor="end" font-weight="normal" fill="#555" font-style="italic">same bus,</text>
+<text x="392" y="162" font-size="11.5" text-anchor="end" font-weight="normal" fill="#555" font-style="italic">same 4 nets</text>
+<rect x="226" y="245.5" width="9" height="9" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<rect x="226" y="291.5" width="9" height="9" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<rect x="226" y="337.5" width="9" height="9" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<rect x="226" y="383.5" width="9" height="9" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<rect x="226" y="461.5" width="9" height="9" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<rect x="598" y="228" width="58" height="182" rx="4" fill="#fbfbfb" stroke="#555" stroke-width="1.4"/>
+<text x="628" y="205" font-size="14" text-anchor="middle" font-weight="bold" fill="#1a1a1a">Tap A</text>
+<text x="628" y="221" font-size="11.5" text-anchor="middle" font-weight="normal" fill="#333">OLED header / TB1</text>
+<circle cx="636" cy="250" r="6.5" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="636" cy="250" r="2.6" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="614" y="254" font-size="10" text-anchor="middle" font-weight="bold" fill="#1a1a1a">SDA</text>
+<circle cx="636" cy="296" r="6.5" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="636" cy="296" r="2.6" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="614" y="300" font-size="10" text-anchor="middle" font-weight="bold" fill="#1a1a1a">SCL</text>
+<circle cx="636" cy="342" r="6.5" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="636" cy="342" r="2.6" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="614" y="346" font-size="10" text-anchor="middle" font-weight="bold" fill="#1a1a1a">3V3</text>
+<circle cx="636" cy="388" r="6.5" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="636" cy="388" r="2.6" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="614" y="392" font-size="10" text-anchor="middle" font-weight="bold" fill="#1a1a1a">GND</text>
+<polyline points="643,250 792,250" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="643,250 792,250" fill="none" stroke="#1565c0" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="643,296 668,296 716,388 792,388" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="643,296 668,296 716,388 792,388" fill="none" stroke="#f2b705" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="643,342 680,342 704,296 792,296" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="643,342 680,342 704,296 792,296" fill="none" stroke="#d32f2f" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="643,388 690,388 714,342 792,342" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="643,388 690,388 714,342 792,342" fill="none" stroke="#1a1a1a" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="236,466 760,466 760,434 792,434" fill="none" stroke="#2e9e48" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="9 6"/>
+<text x="736" y="440" font-size="12.5" text-anchor="end" font-weight="bold" fill="#1a1a1a">4–5 × 30 AWG, flat over the switchplate,</text>
+<text x="736" y="456" font-size="12" text-anchor="end" font-weight="normal" fill="#333">under the OLED cover → dock rear channel</text>
+<text x="246" y="489" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1f6b32">RDY (optional): solder at Pico pin 20 / GP15, not on any header</text>
+<text x="246" y="512" font-size="12" text-anchor="start" font-weight="normal" fill="#333">Tap B: or solder the four wires to Pico pins 4, 5, 36, 38</text>
+<text x="246" y="528" font-size="12" text-anchor="start" font-weight="bold" fill="#2d4a6b">No case modification either way: only the OLED cover comes off.</text>
+<rect x="744" y="204" width="80" height="270" rx="6" fill="#fff1dc" stroke="#e08a00" stroke-width="1.6"/>
+<text x="784" y="182" font-size="14" text-anchor="middle" font-weight="bold" fill="#1a1a1a">DOCK</text>
+<text x="784" y="198" font-size="11.5" text-anchor="middle" font-weight="normal" fill="#333">SW44 + SW43</text>
+<rect x="792" y="222" width="26" height="240" rx="3" fill="#2b2b2b" stroke="#111" stroke-width="1"/>
+<circle cx="805" cy="233" r="6.5" fill="#9aa0a6" stroke="#555" stroke-width="1.2"/>
+<text x="805" y="237" font-size="9.5" text-anchor="middle" font-weight="bold" fill="#111">N</text>
+<circle cx="805" cy="451" r="6.5" fill="#9aa0a6" stroke="#555" stroke-width="1.2"/>
+<text x="805" y="455" font-size="9.5" text-anchor="middle" font-weight="bold" fill="#111">S</text>
+<rect x="811" y="246" width="7" height="8" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="778" y="243" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">1</text>
+<rect x="811" y="292" width="7" height="8" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="778" y="289" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">2</text>
+<rect x="811" y="338" width="7" height="8" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="778" y="335" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">3</text>
+<rect x="811" y="384" width="7" height="8" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="778" y="381" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">4</text>
+<rect x="811" y="430" width="7" height="8" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="778" y="427" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">5</text>
+<line x1="838" y1="212" x2="838" y2="470" stroke="#888" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="4 4"/>
+<rect x="866" y="222" width="26" height="240" rx="3" fill="#2b2b2b" stroke="#111" stroke-width="1"/>
+<circle cx="879" cy="233" r="6.5" fill="#9aa0a6" stroke="#555" stroke-width="1.2"/>
+<text x="879" y="237" font-size="9.5" text-anchor="middle" font-weight="bold" fill="#111">S</text>
+<circle cx="879" cy="451" r="6.5" fill="#9aa0a6" stroke="#555" stroke-width="1.2"/>
+<text x="879" y="455" font-size="9.5" text-anchor="middle" font-weight="bold" fill="#111">N</text>
+<rect x="856" y="247.5" width="10" height="5" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="906" y="243" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">1</text>
+<rect x="856" y="293.5" width="10" height="5" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="906" y="289" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">2</text>
+<rect x="856" y="339.5" width="10" height="5" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="906" y="335" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">3</text>
+<rect x="856" y="385.5" width="10" height="5" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="906" y="381" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">4</text>
+<rect x="856" y="431.5" width="10" height="5" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="906" y="427" font-size="12" text-anchor="middle" font-weight="bold" fill="#1a1a1a">5</text>
+<text x="879" y="182" font-size="14" text-anchor="middle" font-weight="bold" fill="#1a1a1a">PLUG</text>
+<text x="879" y="198" font-size="11.5" text-anchor="middle" font-weight="normal" fill="#333">pogo half</text>
+<text x="822" y="496" font-size="12" text-anchor="end" font-weight="bold" fill="#1a1a1a">pad half (receptacle)</text>
+<text x="822" y="513" font-size="11.5" text-anchor="end" font-weight="normal" fill="#333">pressed into the dock</text>
+<text x="858" y="496" font-size="12" text-anchor="start" font-weight="bold" fill="#1a1a1a">pogo half (plug)</text>
+<text x="858" y="513" font-size="11.5" text-anchor="start" font-weight="normal" fill="#333">magnetic 5-pin 2.54 mm, keyed N↔S</text>
+<polyline points="894,250 1056,250" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,250 1056,250" fill="none" stroke="#1565c0" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,296 1056,296" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,296 1056,296" fill="none" stroke="#d32f2f" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,342 1056,342" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,342 1056,342" fill="none" stroke="#1a1a1a" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,388 1056,388" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,388 1056,388" fill="none" stroke="#f2b705" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="894,434 1056,434" fill="none" stroke="#2e9e48" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="9 6"/>
+<text x="985" y="222" font-size="13" text-anchor="middle" font-weight="bold" fill="#1a1a1a">short pigtail</text>
+<text x="985" y="238" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">5 × 28 AWG · ≈ 50 mm</text>
+<text x="975" y="140" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">S-groove → tunnel → riser,</text>
+<text x="975" y="156" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">then up through the plug bay</text>
+<text x="975" y="172" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">into the plug's back</text>
+<rect x="1060" y="140" width="192" height="400" rx="6" fill="#efefef" stroke="#333" stroke-width="1.6"/>
+<text x="1156" y="166" font-size="15" text-anchor="middle" font-weight="bold" fill="#1a1a1a">Azoteq TPS65</text>
+<text x="1156" y="184" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">IQS550 · 0x74 (QMK 0xE8)</text>
+<text x="1156" y="202" font-size="12" text-anchor="middle" font-weight="normal" fill="#333">2.0 mm solder pads</text>
+<rect x="1056" y="245" width="10" height="10" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<text x="1074" y="255" font-size="13.5" text-anchor="start" font-weight="bold" fill="#1a1a1a">SDA · J1-6</text>
+<rect x="1056" y="291" width="10" height="10" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<text x="1074" y="301" font-size="13.5" text-anchor="start" font-weight="bold" fill="#1a1a1a">VDDHI (3V3) · J1-4</text>
+<rect x="1056" y="337" width="10" height="10" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<text x="1074" y="347" font-size="13.5" text-anchor="start" font-weight="bold" fill="#1a1a1a">GND · J1-3</text>
+<rect x="1056" y="383" width="10" height="10" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<text x="1074" y="393" font-size="13.5" text-anchor="start" font-weight="bold" fill="#1a1a1a">SCL · J1-5</text>
+<rect x="1056" y="429" width="10" height="10" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<text x="1074" y="439" font-size="13.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">RDY · J1-1</text>
+<rect x="1056" y="475" width="10" height="10" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="1"/>
+<text x="1074" y="485" font-size="13.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">NRST · J1-2 · NC</text>
+<line x1="1036" y1="472" x2="1050" y2="488" stroke="#b00020" stroke-width="2" stroke-linecap="round"/>
+<line x1="1036" y1="488" x2="1050" y2="472" stroke="#b00020" stroke-width="2" stroke-linecap="round"/>
+<text x="1074" y="498" font-size="11" text-anchor="start" font-weight="normal" fill="#555">internal pull-up, leave open</text>
+<text x="1074" y="522" font-size="11" text-anchor="start" font-weight="normal" fill="#555">likely 4.7 kΩ pull-ups on module</text>
+<rect x="16" y="572" width="380" height="256" rx="8" fill="#ffffff" stroke="#9aa7b5" stroke-width="1.2"/>
+<text x="30" y="596" font-size="14" text-anchor="start" font-weight="bold" fill="#1a1a1a">Tap A, top view: OLED header · TB1 socket</text>
+<text x="30" y="620" font-size="11.5" text-anchor="start" font-weight="normal" fill="#333">OLED header joints, Y 24.2 (X, mm)</text>
+<rect x="38" y="650" width="158.3" height="36" rx="4" fill="#e9f2e6" stroke="#7a9a6e" stroke-width="1"/>
+<circle cx="60" cy="668" r="9" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="60" cy="668" r="4" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="60" y="644" font-size="13" text-anchor="middle" font-weight="bold" fill="#1565c0">SDA</text>
+<text x="60" y="701" font-size="11" text-anchor="middle" font-weight="normal" fill="#555">131.6</text>
+<circle cx="98.1" cy="668" r="9" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="98.1" cy="668" r="4" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="98.1" y="644" font-size="13" text-anchor="middle" font-weight="bold" fill="#7a5c00">SCL</text>
+<text x="98.1" y="701" font-size="11" text-anchor="middle" font-weight="normal" fill="#555">134.2</text>
+<circle cx="136.2" cy="668" r="9" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="136.2" cy="668" r="4" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="136.2" y="644" font-size="13" text-anchor="middle" font-weight="bold" fill="#d32f2f">3V3</text>
+<text x="136.2" y="701" font-size="11" text-anchor="middle" font-weight="normal" fill="#555">136.7</text>
+<circle cx="174.3" cy="668" r="9" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="174.3" cy="668" r="4" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="174.3" y="644" font-size="13" text-anchor="middle" font-weight="bold" fill="#1a1a1a">GND</text>
+<text x="174.3" y="701" font-size="11" text-anchor="middle" font-weight="normal" fill="#555">139.3</text>
+<text x="326" y="620" font-size="11.5" text-anchor="middle" font-weight="normal" fill="#333">TB1 socket, X 148.1</text>
+<rect x="314" y="627" width="24" height="104" rx="4" fill="#e9f2e6" stroke="#7a9a6e" stroke-width="1"/>
+<circle cx="326" cy="639" r="7" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="326" cy="639" r="3" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="308" y="643" font-size="11.5" text-anchor="end" font-weight="bold" fill="#1a1a1a">GND</text>
+<circle cx="326" cy="659" r="7" fill="#dddddd" stroke="#999" stroke-width="1.2"/>
+<circle cx="326" cy="659" r="3" fill="#ffffff" stroke="#999" stroke-width="0.8"/>
+<text x="308" y="663" font-size="11.5" text-anchor="end" font-weight="bold" fill="#999">INT n/c</text>
+<circle cx="326" cy="679" r="7" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="326" cy="679" r="3" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="308" y="683" font-size="11.5" text-anchor="end" font-weight="bold" fill="#7a5c00">SCL</text>
+<circle cx="326" cy="699" r="7" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="326" cy="699" r="3" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="308" y="703" font-size="11.5" text-anchor="end" font-weight="bold" fill="#1565c0">SDA</text>
+<circle cx="326" cy="719" r="7" fill="#c9a227" stroke="#7a5c00" stroke-width="1.2"/>
+<circle cx="326" cy="719" r="3" fill="#ffffff" stroke="#7a5c00" stroke-width="0.8"/>
+<text x="308" y="723" font-size="11.5" text-anchor="end" font-weight="bold" fill="#d32f2f">VDD 3V3</text>
+<circle cx="344" cy="639" r="3.5" fill="#ffffff" stroke="#b00020" stroke-width="1.6"/>
+<text x="352" y="643" font-size="10" text-anchor="start" font-weight="normal" fill="#b00020">mark</text>
+<text x="342" y="723" font-size="10" text-anchor="start" font-weight="normal" fill="#555">front ↓</text>
+<text x="30" y="744" font-size="12" text-anchor="start" font-weight="bold" fill="#1a1a1a">TB1: plug in a 5-pin male header, no soldering.</text>
+<text x="30" y="761" font-size="12" text-anchor="start" font-weight="normal" fill="#b00020">Not keyed: mark the GND end. Before power-up,</text>
+<text x="30" y="778" font-size="12" text-anchor="start" font-weight="normal" fill="#b00020">red must beep to Pico 36 and black to Pico 38.</text>
+<text x="30" y="800" font-size="12" text-anchor="start" font-weight="normal" fill="#444" font-style="italic">Alternative (modifies the case): main-PCB OL1,</text>
+<text x="30" y="817" font-size="12" text-anchor="start" font-weight="normal" fill="#444" font-style="italic">same order below the OLED; acrylic bar must be filed.</text>
+<rect x="412" y="572" width="436" height="256" rx="8" fill="#ffffff" stroke="#9aa7b5" stroke-width="1.2"/>
+<text x="426" y="596" font-size="14" text-anchor="start" font-weight="bold" fill="#1a1a1a">TPS65 back (solder side)</text>
+<rect x="436" y="652" width="208" height="156.8" rx="12.8" fill="#3d6b4a" stroke="#1f3d29" stroke-width="1.4"/>
+<rect x="477.6" y="666.08" width="125.12" height="85.12" rx="0" fill="none" stroke="#d7e6db" stroke-width="1" stroke-dasharray="4 3"/>
+<rect x="511.2" y="720.48" width="23.36" height="22.72" rx="0" fill="#1b1b1b" stroke="#000" stroke-width="0.8"/>
+<rect x="548.96" y="680.16" width="27.2" height="17.28" rx="0" fill="#f0f0f0" stroke="#999" stroke-width="0.8"/>
+<text x="562.72" y="694.24" font-size="9" text-anchor="middle" font-weight="bold" fill="#333">J1</text>
+<text x="480.8" y="762.08" font-size="9.5" text-anchor="start" font-weight="normal" fill="#e8f2ea">components ≤ 1.1 mm</text>
+<rect x="545.6" y="667.68" width="2.88" height="8.32" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.5"/>
+<line x1="442" y1="632" x2="547.04" y2="667.68" stroke="#666" stroke-width="0.9" stroke-linecap="round"/>
+<text x="442" y="628" font-size="11.5" text-anchor="middle" font-weight="bold" fill="#2e9e48">RDY</text>
+<rect x="552" y="667.68" width="2.88" height="8.32" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.5"/>
+<line x1="478" y1="632" x2="553.44" y2="667.68" stroke="#666" stroke-width="0.9" stroke-linecap="round"/>
+<text x="478" y="628" font-size="11.5" text-anchor="middle" font-weight="bold" fill="#b00020">NRST</text>
+<rect x="558.4" y="667.68" width="2.88" height="8.32" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.5"/>
+<line x1="514" y1="632" x2="559.84" y2="667.68" stroke="#666" stroke-width="0.9" stroke-linecap="round"/>
+<text x="514" y="628" font-size="11.5" text-anchor="middle" font-weight="bold" fill="#1a1a1a">GND</text>
+<rect x="564.48" y="667.68" width="2.88" height="8.32" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.5"/>
+<line x1="550" y1="632" x2="565.92" y2="667.68" stroke="#666" stroke-width="0.9" stroke-linecap="round"/>
+<text x="550" y="628" font-size="11.5" text-anchor="middle" font-weight="bold" fill="#d32f2f">3V3</text>
+<rect x="570.88" y="667.68" width="2.88" height="8.32" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.5"/>
+<line x1="586" y1="632" x2="572.32" y2="667.68" stroke="#666" stroke-width="0.9" stroke-linecap="round"/>
+<text x="586" y="628" font-size="11.5" text-anchor="middle" font-weight="bold" fill="#7a5c00">SCL</text>
+<rect x="577.28" y="667.68" width="2.88" height="8.32" rx="0" fill="#c9a227" stroke="#7a5c00" stroke-width="0.5"/>
+<line x1="622" y1="632" x2="578.72" y2="667.68" stroke="#666" stroke-width="0.9" stroke-linecap="round"/>
+<text x="622" y="628" font-size="11.5" text-anchor="middle" font-weight="bold" fill="#1565c0">SDA</text>
+<text x="660" y="648" font-size="12" text-anchor="start" font-weight="normal" fill="#1a1a1a">Top edge = connector edge;</text>
+<text x="660" y="666" font-size="12" text-anchor="start" font-weight="normal" fill="#1a1a1a">it faces the keyboard</text>
+<text x="660" y="684" font-size="12" text-anchor="start" font-weight="normal" fill="#1a1a1a">(touch side up in the rest).</text>
+<text x="660" y="702" font-size="12" text-anchor="start" font-weight="normal" fill="#1a1a1a">6 pads, 2.0 mm pitch,</text>
+<text x="660" y="720" font-size="12" text-anchor="start" font-weight="normal" fill="#1a1a1a">0.9 × 2.6 mm each.</text>
+<text x="660" y="738" font-size="12" text-anchor="start" font-weight="normal" fill="#1a1a1a">Back view, left → right:</text>
+<text x="660" y="756" font-size="12" text-anchor="start" font-weight="bold" fill="#1a1a1a">RDY NRST GND 3V3 SCL SDA</text>
+<text x="660" y="774" font-size="12" text-anchor="start" font-weight="normal" fill="#1a1a1a">Leave NRST empty.</text>
+<rect x="864" y="572" width="400" height="256" rx="8" fill="#ffffff" stroke="#9aa7b5" stroke-width="1.2"/>
+<text x="878" y="596" font-size="14" text-anchor="start" font-weight="bold" fill="#1a1a1a">Legend and rules</text>
+<polyline points="880,622 914,622" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="880,622 914,622" fill="none" stroke="#1565c0" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="924" y="626.5" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">SDA (blue)</text>
+<polyline points="1070,622 1104,622" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1070,622 1104,622" fill="none" stroke="#f2b705" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1114" y="626.5" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">SCL (yellow)</text>
+<polyline points="880,644 914,644" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="880,644 914,644" fill="none" stroke="#d32f2f" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="924" y="648.5" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">3V3 (red)</text>
+<polyline points="1070,644 1104,644" fill="none" stroke="#3a3a3a" stroke-width="6.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1070,644 1104,644" fill="none" stroke="#1a1a1a" stroke-width="4.0" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1114" y="648.5" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">GND (black)</text>
+<polyline points="880,666 914,666" fill="none" stroke="#2e9e48" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 5"/>
+<text x="924" y="670.5" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">RDY (green, optional)</text>
+<text x="880" y="700" font-size="11.5" text-anchor="start" font-weight="normal" fill="#555" font-style="italic">thin line = PCB trace · thick line = wire</text>
+<text x="880" y="726" font-size="12.5" text-anchor="start" font-weight="bold" fill="#b00020">•  3.3 V only, never 5 V / VBUS (TPS65 max 3.6 V)</text>
+<text x="880" y="746" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">•  OLED 0x3C + TPS65 0x74 share I2C1: no clash</text>
+<text x="880" y="766" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">•  Pull-ups: 4.7 k (main) || 4.7 k (module) ≈ 2.35 k</text>
+<text x="880" y="786" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">•  Tap B: Pico pins · alt.: main-PCB OL1 (case mod)</text>
+<text x="880" y="806" font-size="12.5" text-anchor="start" font-weight="normal" fill="#1a1a1a">•  Safest: (un)plug the pad with USB disconnected</text>
+</svg>
