@@ -407,9 +407,9 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 | Variant | What it is | Must pass? | Result on `33292390974c` |
 |---|---|---|---|
 | **stock** | QMK as is | no (informational) | 1 of 3 pass (the 2 tap tests fail, as expected) |
-| **control** | the block with `TRACKPAD_NO_TAP_LATCH_FIX`; shows what the workaround fixes | no (informational) | 7 of 15 pass |
-| **block, no RDY** | polled every 11 ms | yes | 15 of 15 pass |
-| **block + RDY** | with `POINTING_DEVICE_MOTION_PIN`; `gpio_read_pin()` reads the simulated RDY line | yes | 15 of 15 pass |
+| **control** | the block with `TRACKPAD_NO_TAP_LATCH_FIX`; shows what the workaround fixes | no (informational) | 7 of 16 pass |
+| **block, no RDY** | polled every 11 ms | yes | 16 of 16 pass |
+| **block + RDY** | with `POINTING_DEVICE_MOTION_PIN`; `gpio_read_pin()` reads the simulated RDY line | yes | 16 of 16 pass |
 
 > [!NOTE]
 > **It is a model.** It covers the chip's register and window behaviour. It does not model bit-level I2C timing, the pad's own I2C timeout or electrical effects.
@@ -438,10 +438,13 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 | EveryTapIsDelivered (400 taps, one every 37 ms) | – | **FAIL**: 1 press, 0 releases | pass: 400/400 | pass: 400/400 |
 | OneFailedReadDuringHoldReleasesOnce (pins the known limit: 2 presses, 2 releases) | – | **FAIL** (button still latched) | pass | pass |
 | MouseKeyDuringDragKeepsTheDragHeld (40 `MS_BTN2` taps during a hold: button 1 pressed and released once) | – | **FAIL** | pass | pass |
+| MouseKeyTapInTheReadWindowKeepsTheDragHeld (a macro key does `tap_code(MS_BTN1)` whenever the pad's window is open during a hold: button 1 pressed and released once) | – | **FAIL** | pass | pass |
 | FailedReinitReleasesTheDragButKeepsKeyButtons (pad drag + `MS_BTN2` key) | – | **FAIL** (button 1 still latched from earlier tests) | pass | pass |
 | FailedReinitReleasesPadButtonKeepsKeyButton1 (pad button 2 + `MS_BTN1` key) | – | pass | pass | pass |
 
-**The last three tests** fail in both "must pass" builds without the mouse-key and failed-re-init handling (12 of 15).
+**MouseKeyDuringDragKeepsTheDragHeld and the two FailedReinit tests** fail in both "must pass" builds without the mouse-key and failed-re-init handling (12 of 15, before MouseKeyTapInTheReadWindowKeepsTheDragHeld was added).
+
+**MouseKeyTapInTheReadWindowKeepsTheDragHeld** fails in both "must pass" builds without the mouse-key handling. It also fails with the handler's first version, which added the pad's buttons before the key's own transition (15 of 16).
 
 **The first version of this trackpad code** had the release and the hot-plug check in `housekeeping_task_user()`.
 
@@ -512,7 +515,7 @@ QMK master `33292390974c`, measured with `arm-none-eabi-size`:
 | keymap | text | bss | .uf2 |
 |---|---|---|---|
 | stock `default` (renames only, not shipped) | 48 160 B | 265 024 B | 96 768 B |
-| `ithalat` | 50 968 B (+2 808 B) | 265 016 B | 102 400 B |
+| `ithalat` | 50 960 B (+2 800 B) | 265 016 B | 102 400 B |
 
 - **Not a concern:** the Pico has 2 MB of flash.
 
@@ -572,7 +575,7 @@ All 8 `pointing_device_handle_buttons()` calls in the driver (lines 371-397) pas
   - **Without RDY:** it removes them in the next pass. `pointing_device_task()` is throttled to 11 ms and returns before sending anything until its next poll, which reads the pad first.
   - **With `POINTING_DEVICE_MOTION_PIN`:** it removes them only while RDY is high, i.e. in the pass where the driver reads. There is no throttle then: `pointing_device_task()` sends on every pass but reads only while RDY is high.
   - **Why not later:** a release done after the send (the first version of this code did it in `housekeeping_task_user()`) reached the host in the passes between two reads. A press-and-hold then became a ~100 Hz click stream.
-- **Mouse keys in between:** an `MS_BTNx` key sends its report at once (`register_mouse()` → `pointing_device_keycode_handler()`), also between the release and the driver's read. The keymap replaces QMK's weak handler with the same logic, but that report still carries the pad buttons removed since the last read; they are removed again right after.
+- **Mouse keys in between:** an `MS_BTNx` key sends its report at once (`register_mouse()` → `pointing_device_keycode_handler()`), also between the release and the driver's read. The keymap replaces QMK's weak handler with the same logic, but that report still carries the pad buttons removed since the last read; they are removed again right after. They are added after the key's own press or release, so releasing an `MS_BTN1` key does not release a drag the pad still holds.
 
 ### What the host sees
 

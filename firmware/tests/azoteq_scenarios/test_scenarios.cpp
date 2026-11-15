@@ -25,6 +25,7 @@ void     iqs_mock_hold(int reads);
 void     iqs_mock_fail_base_reads(int n);
 void     iqs_mock_vanish_on_reset(bool on);
 void     iqs_mock_raise_show_reset(void);
+int      iqs_mock_rdy(void);
 uint16_t iqs_mock_x_res(void);
 uint16_t iqs_mock_y_res(void);
 bool     iqs_mock_show_reset(void);
@@ -286,6 +287,47 @@ TEST_F(Azoteq, MouseKeyDuringDragKeepsTheDragHeld) {
     EXPECT_EQ(count_edges(seen, 1, false), 1);
     EXPECT_EQ(count_edges(seen, 2, true), key_taps);
     EXPECT_EQ(count_edges(seen, 2, false), key_taps);
+    EXPECT_EQ(seen.back(), 0);
+}
+
+// A macro key that taps MS_BTN1 (press and release in one pass, like tap_code(MS_BTN1)).
+extern "C" bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (keycode == QK_USER_0) {
+        if (record->event.pressed) tap_code(MS_BTN1);
+        return false;
+    }
+    return true;
+}
+
+// MS_BTN1 tapped during a drag while the pad's communication window is open: the keymap has taken
+// the pad's button 1 out of the report for the driver's read (in this pass with RDY, within 1 ms
+// without), and the key reports carry it in the meantime. The key's release must not release the
+// drag: the host sees button 1 released only once, when the pad reports the lift.
+TEST_F(Azoteq, MouseKeyTapInTheReadWindowKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       macro = KeymapKey(0, 0, 0, QK_USER_0);
+    set_keymap({macro});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    iqs_mock_hold(100); // ~1 s of press-and-hold reports
+    run_ms(50);
+    int  taps = 0;
+    bool down = false;
+    for (int i = 0; i < 600; i++) { // all inside the hold
+        if (down) {
+            macro.release();
+            down = false;
+        } else if (iqs_mock_rdy()) {
+            macro.press();
+            down = true;
+            taps++;
+        }
+        run_ms(1);
+    }
+    run_ms(700); // the hold ends: the pad reports the lift
+    EXPECT_GE(taps, 40);
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 1);
     EXPECT_EQ(seen.back(), 0);
 }
 
