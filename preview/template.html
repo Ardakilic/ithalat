@@ -1,0 +1,1624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--@NOTE
+  ithalat preview template. Do not open this file directly: run
+  tools/build_preview.py, which fills the @PLACEHOLDERS@ and writes
+  preview/index.html (standalone page) and build/artifact.html (claude.ai
+  Artifact fragment = the part between FRAGMENT-START..HEAD-END plus
+  BODY-START..BODY-END).
+-->
+<!--@FRAGMENT-START@-->
+<title>ithalat wrist rest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+/* Layout: one-screen drafting bench. The 3D stage takes the room; a drawing-sheet
+   side panel carries controls, dimensions, the parts schedule and the pinout. At
+   phone width the panel stacks under the stage and the page scrolls. */
+:root {
+  /* colour: pale cool drafting paper, sea-ink linework, deep teal accent */
+  --paper: #edf2f3;
+  --sheet: #f8fafb;
+  --ink: #12222a;
+  --ink-soft: #4b5f69;
+  --rule: #cad5d9;
+  --rule-strong: #9db0b7;
+  --accent: #0a676b;
+  --accent-ink: #f0fbfa;
+  --accent-wash: #d4e9e7;
+  --focus: #0a676b;
+  --warn: #8a4b12;
+  /* 3D scene, read by the viewer's script */
+  --scene-bg: #e2e9eb;
+  --scene-grid: #cdd8dc;
+  --scene-grid-major: #a9bcc2;
+  --scene-sky: #f5f9ff;
+  --scene-ground: #7d8b92;
+  --scene-shadow: 0.22;
+  --scene-fill: 0.7;
+  --scene-edge: #0a676b;
+  --acrylic-edge: #5f7f86;
+  --cap-a: #0a676b;
+  --cap-b: #cfe5e2;
+  --axis-x: #b5473b;
+  --axis-y: #3d7b40;
+  --axis-z: #2f5ea6;
+  /* bought parts drawn in the viewer (physical colours: the same in both themes) */
+  --mat-pcb-green: #1d6b3a;
+  --mat-pcb-blue: #1f4fa8;
+  --mat-metal: #c4c9cc;
+  --mat-plastic: #17191b;
+  --mat-magnet: #aab0b3;
+  --mat-diode: #141516;
+  --mat-diode-band: #a3a8ac;
+  /* type */
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-text: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --fs-xs: 0.6875rem;
+  --fs-sm: 0.78125rem;
+  --fs-md: 0.875rem;
+  --fs-lg: 1.0625rem;
+  --fs-xl: 1.75rem;
+  --radius: 4px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0a1317;
+    --sheet: #0e1a1f;
+    --ink: #d7e4e8;
+    --ink-soft: #8ba1a9;
+    --rule: #1d2f36;
+    --rule-strong: #2f4952;
+    --accent: #57dcc9;
+    --accent-ink: #04211e;
+    --accent-wash: #113230;
+    --focus: #57dcc9;
+    --warn: #e0a560;
+    --scene-bg: #0b161b;
+    --scene-grid: #13232a;
+    --scene-grid-major: #1f3a42;
+    --scene-sky: #bcd6e8;
+    --scene-ground: #0a1216;
+    --scene-shadow: 0.5;
+    --scene-fill: 1.3;
+    --scene-edge: #57dcc9;
+    --acrylic-edge: #7fb7b2;
+    --cap-a: #57dcc9;
+    --cap-b: #0d2a2a;
+    --axis-x: #e27b6d;
+    --axis-y: #7cc47f;
+    --axis-z: #76a8ef;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0a1317;
+  --sheet: #0e1a1f;
+  --ink: #d7e4e8;
+  --ink-soft: #8ba1a9;
+  --rule: #1d2f36;
+  --rule-strong: #2f4952;
+  --accent: #57dcc9;
+  --accent-ink: #04211e;
+  --accent-wash: #113230;
+  --focus: #57dcc9;
+  --warn: #e0a560;
+  --scene-bg: #0b161b;
+  --scene-grid: #13232a;
+  --scene-grid-major: #1f3a42;
+  --scene-sky: #bcd6e8;
+  --scene-ground: #0a1216;
+  --scene-shadow: 0.5;
+  --scene-fill: 1.3;
+  --scene-edge: #57dcc9;
+  --acrylic-edge: #7fb7b2;
+  --cap-a: #57dcc9;
+  --cap-b: #0d2a2a;
+  --axis-x: #e27b6d;
+  --axis-y: #7cc47f;
+  --axis-z: #76a8ef;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { height: 100%; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--fs-md)/1.45 var(--font-text);
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+button, input { font: inherit; color: inherit; }
+code, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 14px;
+}
+
+/* ---------- masthead ---------- */
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 20px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 8px;
+}
+.brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; min-width: 0; }
+.wordmark {
+  margin: 0;
+  font: 800 var(--fs-xl)/1 var(--font-display);
+  font-variation-settings: "opsz" 96;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.wordmark i { font-style: normal; color: var(--accent); }
+.tagline { margin: 0; color: var(--ink-soft); font-size: var(--fs-md); text-wrap: balance; }
+.tagline a { color: inherit; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
+.tagline a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.mast-side { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; min-width: 0; }
+.sheet-ref {
+  margin: 0;
+  font: 500 var(--fs-xs)/1.3 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+/* repository link: a small stamped tab beside the sheet reference */
+.src-link {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  font: 500 var(--fs-xs)/1.3 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.src-link:hover { border-color: var(--accent); background: var(--accent-wash); }
+.src-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.fine a { color: var(--accent); text-underline-offset: 2px; }
+.fine a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- bench ---------- */
+.bench {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 368px);
+  gap: 12px;
+}
+.stage {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--scene-bg);
+}
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+.stage canvas:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
+
+.stage-bar {
+  position: absolute;
+  top: 10px; left: 10px; right: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+.stage-bar > * { pointer-events: auto; }
+.glass-chip {
+  background: color-mix(in srgb, var(--sheet) 86%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* segmented controls (radio + label) */
+.seg { display: inline-flex; flex-wrap: wrap; padding: 2px; gap: 2px; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.seg label, .seg button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px;
+  border: 0; border-radius: 3px;
+  background: transparent;
+  font: 500 var(--fs-sm)/1.2 var(--font-text);
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg label:hover, .seg button:hover { color: var(--ink); background: var(--accent-wash); }
+.seg input:checked + label, .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg input:focus-visible + label, .seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+.toggle-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; font-size: var(--fs-sm); color: var(--ink-soft); cursor: pointer; }
+
+/* title block, bottom-left of the stage: a drawing-sheet corner */
+.titleblock {
+  position: absolute;
+  left: 10px; bottom: 10px;
+  display: grid;
+  grid-template-columns: auto auto;
+  font: 500 var(--fs-xs)/1.25 var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  overflow: hidden;
+}
+.titleblock span { padding: 3px 8px; border-top: 1px solid var(--rule); }
+.titleblock span:nth-child(-n+2) { border-top: 0; }
+.titleblock span:nth-child(odd) { color: var(--ink-soft); border-right: 1px solid var(--rule); }
+.titleblock span:nth-child(even) { color: var(--ink); }
+.triad { position: absolute; right: 8px; bottom: 8px; width: 68px; height: 68px; pointer-events: none; }
+.triad text { font: 600 10px var(--font-mono); }
+.hint {
+  position: absolute; right: 84px; bottom: 12px;
+  margin: 0; font-size: var(--fs-xs); color: var(--ink-soft);
+  pointer-events: none;
+}
+.stage-msg {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  padding: 24px;
+  text-align: center;
+}
+.stage-msg div { max-width: 34ch; }
+.stage-msg strong { display: block; font: 600 var(--fs-lg)/1.3 var(--font-display); margin-bottom: 6px; }
+.stage-msg p { margin: 0; color: var(--ink-soft); }
+.loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 500 var(--fs-xs) var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+
+/* ---------- side panel ---------- */
+.panel {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  scrollbar-width: thin;
+}
+.block { padding: 14px 16px 16px; border-top: 1px solid var(--rule); display: grid; gap: 10px; }
+.block:first-child { border-top: 0; }
+.block h2 {
+  margin: 0;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font: 600 var(--fs-lg)/1.2 var(--font-display);
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.block h2 small { font: 500 var(--fs-xs)/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.label, .grid th, .kv caption {
+  font: 600 var(--fs-xs)/1.2 var(--font-text);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.field { display: grid; gap: 6px; }
+.field-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.readout { font: 500 var(--fs-sm)/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.panel .seg { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper); display: flex; }
+.panel .seg label { flex: 1 1 0; justify-content: center; }
+
+input[type="range"] { width: 100%; margin: 2px 0; accent-color: var(--accent); cursor: pointer; }
+input:disabled, input:disabled + label, button:disabled, .switch:has(input:disabled) { opacity: 0.45; cursor: not-allowed; }
+input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
+.mini-btn {
+  justify-self: start;
+  padding: 3px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  background: transparent;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+.mini-btn:hover { border-color: var(--accent); color: var(--accent); }
+.mini-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* swatches */
+.swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.swatches input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.swatches label {
+  display: grid; justify-items: center; gap: 4px;
+  padding: 6px 2px 5px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-align: center;
+}
+.swatches label::before {
+  content: "";
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--chip);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent);
+}
+.swatches input:checked + label { border-color: var(--accent); color: var(--ink); box-shadow: inset 0 0 0 1px var(--accent); }
+.swatches input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* switches */
+.toggles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.switch { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); cursor: pointer; min-width: 0; }
+.switch input, .toggle-chip input {
+  appearance: none; -webkit-appearance: none;
+  flex: none;
+  width: 28px; height: 16px; margin: 0;
+  border-radius: 8px;
+  background: var(--rule-strong);
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.switch input::after, .toggle-chip input::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--sheet);
+  transition: transform 0.15s;
+}
+.switch input:checked, .toggle-chip input:checked { background: var(--accent); }
+.switch input:checked::after, .toggle-chip input:checked::after { transform: translateX(12px); background: var(--accent-ink); }
+.switch input:focus-visible, .toggle-chip input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* tables */
+table { border-collapse: collapse; width: 100%; }
+.kv th, .kv td { padding: 6px 0; border-top: 1px solid var(--rule); vertical-align: baseline; text-align: left; }
+.kv tr:first-child th, .kv tr:first-child td { border-top: 0; }
+.kv th { width: 34%; font-weight: 400; color: var(--ink-soft); padding-right: 12px; font-size: var(--fs-sm); line-height: 1.35; }
+.kv td { font: 400 var(--fs-xs)/1.5 var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.scroll-x { overflow-x: auto; }
+.grid th, .grid td { padding: 6px 8px 6px 0; border-top: 1px solid var(--rule); text-align: left; vertical-align: top; font-size: var(--fs-sm); }
+.grid thead th { border-top: 0; padding-top: 0; }
+.grid td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-xs); white-space: nowrap; }
+.grid td b { font-weight: 600; color: var(--accent); font-size: var(--fs-sm); }
+.grid td .sub { display: block; font-family: var(--font-text); color: var(--ink-soft); font-size: var(--fs-xs); white-space: normal; }
+.grid td.num { color: var(--ink-soft); }
+.grid .nb { white-space: nowrap; }
+
+.parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.part { padding: 8px 0; border-top: 1px solid var(--rule); display: grid; gap: 3px; transition: opacity 0.2s; }
+.part:first-child { border-top: 0; padding-top: 0; }
+.part-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.part-name { font-weight: 600; }
+.part-mass { font: 500 var(--fs-xs)/1.4 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.part-file { font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.part-file a { color: var(--accent); text-underline-offset: 2px; font-family: var(--font-mono); font-size: 0.92em; }
+.part-file a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.part-file .size { color: var(--ink-soft); font-family: var(--font-mono); font-size: var(--fs-xs); }
+.part-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; font: 400 var(--fs-xs)/1.35 var(--font-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.part.dim { opacity: 0.5; }
+.hw { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--rule); }
+.hw-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: var(--fs-sm); }
+.hw-list li { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.hw-list b { font: 500 var(--fs-xs) var(--font-mono); color: var(--ink-soft); }
+.hw-chip {
+  flex: none; width: 10px; height: 10px; border-radius: 2px;
+  background: var(--chip, var(--rule-strong));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent);
+  transform: translateY(1px);
+}
+.kv tr.conn-row th { color: var(--accent); }
+.fine { margin: 0; font-size: var(--fs-xs); color: var(--ink-soft); }
+.notes { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: var(--fs-sm); max-width: 65ch; }
+.notes li::marker { font: 500 var(--fs-xs) var(--font-mono); color: var(--accent); }
+
+/* ---------- phone ---------- */
+@media (max-width: 760px) {
+  body { height: auto; min-height: 100%; }
+  .app { height: auto; grid-template-rows: auto auto; }
+  .bench { grid-template-columns: minmax(0, 1fr); }
+  .stage { height: 60vh; height: 60svh; min-height: 320px; }
+  .panel { overflow: visible; }
+  .wordmark { font-size: 1.5rem; }
+  .hint { display: none; }
+  .titleblock span.wide { display: none; }
+  .stage-bar { top: 8px; left: 8px; right: 8px; }
+  .seg label, .seg button { padding: 5px 8px; }
+  .grid td { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+<!--@HEAD-END@-->
+</head>
+<body>
+<!--@BODY-START@-->
+<div class="app" id="app">
+  <header class="masthead">
+    <div class="brand">
+      <h1 class="wordmark">ithalat<i>.</i></h1>
+      <p class="tagline">Trackpad wrist rest for the <a href="https://github.com/ozkan/Yakamoz" target="_blank" rel="noopener noreferrer">Yakamoz</a> keyboard by ozkan</p>
+    </div>
+    <div class="mast-side">
+      <p class="sheet-ref">Azoteq TPS65 · I²C 0x74 on the OLED bus</p>
+      <!--@SOURCE-LINK@-->
+    </div>
+  </header>
+
+  <main class="bench">
+    <section class="stage" id="stage" aria-label="3D model of the wrist rest in front of the keyboard">
+      <div class="stage-bar">
+        <div class="seg glass-chip" role="group" aria-label="Camera view">
+          <button type="button" id="view-hero" data-view="hero" aria-pressed="true">Hero 3/4</button>
+          <button type="button" id="view-top" data-view="top" aria-pressed="false">Top</button>
+          <button type="button" id="view-profile" data-view="profile" aria-pressed="false">Profile</button>
+          <button type="button" id="view-under" data-view="under" aria-pressed="false">Underside</button>
+        </div>
+        <label class="toggle-chip glass-chip" for="autorotate"><input type="checkbox" id="autorotate"> Auto-rotate</label>
+      </div>
+      <div class="titleblock glass-chip" aria-hidden="true">
+        <span>Part</span><span id="tb-part">ithalat wrist rest</span>
+        <span>Variant</span><span id="tb-variant"><!--@VARIANT-LABEL@--></span>
+        <span>Connector</span><span id="tb-connector"><!--@CONNECTOR-LABEL@--></span>
+        <span class="wide">View</span><span class="wide" id="tb-view">Hero 3/4</span>
+        <span class="wide">Frame</span><span class="wide">Z up · rest front-left = 0</span>
+      </div>
+      <svg class="triad" id="triad" viewBox="-34 -34 68 68" aria-hidden="true">
+        <line id="ax-x" x1="0" y1="0" x2="20" y2="0" stroke="var(--axis-x)" stroke-width="2" stroke-linecap="round"></line>
+        <line id="ax-y" x1="0" y1="0" x2="0" y2="-20" stroke="var(--axis-y)" stroke-width="2" stroke-linecap="round"></line>
+        <line id="ax-z" x1="0" y1="0" x2="-14" y2="14" stroke="var(--axis-z)" stroke-width="2" stroke-linecap="round"></line>
+        <text id="lb-x" x="24" y="3" fill="var(--axis-x)">X</text>
+        <text id="lb-y" x="-3" y="-24" fill="var(--axis-y)">Y</text>
+        <text id="lb-z" x="-22" y="22" fill="var(--axis-z)">Z</text>
+      </svg>
+      <p class="hint" id="hint">Drag to orbit · right-drag to pan · scroll to zoom</p>
+      <div class="loading" id="loading">Decoding meshes</div>
+      <div class="stage-msg" id="stage-msg" hidden><div><strong id="msg-title">3D preview unavailable</strong><p id="msg-body"></p></div></div>
+    </section>
+
+    <aside class="panel" id="panel" aria-label="Controls and specifications">
+      <section class="block" aria-labelledby="h-configure">
+        <h2 id="h-configure">Configure</h2>
+        <div class="field">
+          <span class="label" id="lbl-variant">Variant</span>
+          <div class="seg" role="radiogroup" aria-labelledby="lbl-variant" id="variant-group">
+            <!--@VARIANTS@-->
+          </div>
+        </div>
+        <div class="field" id="connector-field">
+          <span class="label" id="lbl-connector">Connector</span>
+          <div class="seg" role="radiogroup" aria-labelledby="lbl-connector" id="connector-group">
+            <!--@CONNECTORS@-->
+          </div>
+        </div>
+        <div class="field">
+          <span class="label" id="lbl-finish">Filament</span>
+          <div class="swatches" role="radiogroup" aria-labelledby="lbl-finish">
+            <input type="radio" name="finish" id="finish-charcoal" value="#2c3034" checked><label for="finish-charcoal" style="--chip:#2c3034">Charcoal</label>
+            <input type="radio" name="finish" id="finish-sand" value="#cdbb97"><label for="finish-sand" style="--chip:#cdbb97">Sand</label>
+            <input type="radio" name="finish" id="finish-walnut" value="#6a4630"><label for="finish-walnut" style="--chip:#6a4630">Walnut</label>
+            <input type="radio" name="finish" id="finish-fog" value="#a9b3b7"><label for="finish-fog" style="--chip:#a9b3b7">Fog grey</label>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-row"><label class="label" for="explode">Explode</label><output class="readout" id="explode-val" for="explode">Assembled</output></div>
+          <input type="range" id="explode" min="0" max="100" step="1" value="0">
+        </div>
+        <div class="field">
+          <div class="field-row"><label class="label" for="section">Section along X</label><output class="readout" id="section-val" for="section">Off</output></div>
+          <input type="range" id="section" min="0" max="1000" step="1" value="1000">
+          <button type="button" class="mini-btn" id="section-center">Cut through the pad centre</button>
+        </div>
+        <div class="field">
+          <span class="label">Show</span>
+          <div class="toggles">
+            <label class="switch" for="show-keyboard"><input type="checkbox" id="show-keyboard" checked> Keyboard</label>
+            <label class="switch" for="show-cable"><input type="checkbox" id="show-cable" checked> Cable</label>
+            <label class="switch" for="xray"><input type="checkbox" id="xray"> X-ray</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="h-dims">
+        <h2 id="h-dims">Dimensions <small>mm</small></h2>
+        <!--@DIMENSIONS@-->
+      </section>
+
+      <section class="block" aria-labelledby="h-parts">
+        <h2 id="h-parts">Parts and STLs</h2>
+        <!--@PARTS@-->
+      </section>
+
+      <section class="block" aria-labelledby="h-pinout">
+        <h2 id="h-pinout">Connector pinout</h2>
+        <!--@PINOUT@-->
+        <!--@WIRING-LINK@-->
+      </section>
+
+      <section class="block" aria-labelledby="h-notes">
+        <h2 id="h-notes">Print and assembly notes</h2>
+        <!--@NOTES@-->
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="application/json" id="ithalat-data">/*@DATA@*/null</script>
+<!--@MESHES@-->
+<script type="module">
+const DATA = JSON.parse(document.getElementById("ithalat-data").textContent);
+const $ = (id) => document.getElementById(id);
+const app = $("app");
+const stage = $("stage");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+function showMessage(title, body) {
+  $("loading").hidden = true;
+  // without the 3D view, its controls do nothing: hide the overlays, disable the inputs
+  for (const el of stage.querySelectorAll(".stage-bar, .triad, .hint")) el.setAttribute("hidden", ""); // attribute: the triad is SVG
+  for (const id of ["explode", "section", "section-center", "show-keyboard", "show-cable", "xray",
+                    "finish-charcoal", "finish-sand", "finish-walnut", "finish-fog"]) { const el = $(id); if (el) el.disabled = true; }
+  $("msg-title").textContent = title;
+  $("msg-body").textContent = body;
+  $("stage-msg").hidden = false;
+  window.__error = title + ": " + body;
+}
+
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl")));
+  } catch (e) { return false; }
+}
+
+// ---- variant UI works without WebGL too -------------------------------------
+// one radio per manifest variant (tools/build_preview.py); the first one starts
+// checked, and a restored check on an unknown / hidden radio is ignored
+const variantIds = (DATA.variants || []).map((v) => v.id);
+for (const input of document.querySelectorAll('input[name="variant"]')) {
+  if (!variantIds.includes(input.value)) { input.hidden = true; input.checked = false; if (input.nextElementSibling) input.nextElementSibling.hidden = true; }
+}
+function variantLabel(id) { const v = (DATA.variants || []).find((x) => x.id === id); return v ? v.label : id; }
+function variantGlassT(id) { const v = (DATA.variants || []).find((x) => x.id === id); return v ? (+v.glass_t || 0) : 0; }
+function initialVariant() {
+  const chk = document.querySelector('input[name="variant"]:checked');
+  return chk && !chk.hidden && variantIds.includes(chk.value) ? chk.value : variantIds[0];
+}
+function setVariantUI(v) {
+  app.dataset.variant = v;
+  $("tb-variant").textContent = variantLabel(v);
+  for (const li of document.querySelectorAll(".part[data-variant]")) li.classList.toggle("dim", li.dataset.variant !== v);
+  const r = document.querySelector(`input[name="variant"][value="${CSS.escape(v)}"]`); if (r) r.checked = true;
+}
+setVariantUI(initialVariant());
+
+// ---- connector UI (magnetic pogo / USB-C / ...), also without WebGL -----------
+// one radio per manifest connector; every part, pinout table, dimension row and
+// note that belongs to one connector carries data-connector="<id>" and is shown
+// only while that connector is picked. A general dimension row that a connector
+// replaces with its own row of the same label carries data-hide-for="<ids>".
+const connectors = DATA.connectors || [];
+const connIds = connectors.map((c) => c.id);
+for (const input of document.querySelectorAll('input[name="connector"]')) {
+  if (!connIds.includes(input.value)) { input.hidden = true; input.checked = false; if (input.nextElementSibling) input.nextElementSibling.hidden = true; }
+}
+$("connector-field").hidden = connIds.length < 2;
+function connLabel(id) { const c = connectors.find((x) => x.id === id); return c ? c.label : (id || "-"); }
+function initialConnector() {
+  const chk = document.querySelector('input[name="connector"]:checked');
+  return chk && !chk.hidden && connIds.includes(chk.value) ? chk.value : (connIds[0] ?? null);
+}
+function setConnectorUI(c) {
+  app.dataset.connector = c || "";
+  $("tb-connector").textContent = connLabel(c);
+  for (const el of document.querySelectorAll("[data-connector]")) el.hidden = el.dataset.connector !== c;
+  for (const el of document.querySelectorAll("[data-hide-for]")) el.hidden = el.dataset.hideFor.split(" ").includes(c);
+  const r = c && document.querySelector(`input[name="connector"][value="${CSS.escape(c)}"]`); if (r) r.checked = true;
+}
+setConnectorUI(initialConnector());
+
+if (!hasWebGL()) {
+  showMessage("3D preview needs WebGL",
+    "This browser has WebGL turned off or unavailable. The dimensions, parts list and pinout beside the viewer still apply.");
+  document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventListener("change", () => {
+    if (el.checked) setVariantUI(el.value);
+  }));
+  document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => {
+    if (el.checked) setConnectorUI(el.value);
+  }));
+} else {
+  boot().catch((err) => {
+    console.error(err);
+    showMessage("3D preview failed to start", String(err && err.message || err));
+  });
+}
+
+async function boot() {
+  let THREE, OrbitControls, RoomEnvironment;
+  try {
+    THREE = await import("three");
+    ({ OrbitControls } = await import("three/addons/controls/OrbitControls.js"));
+    ({ RoomEnvironment } = await import("three/addons/environments/RoomEnvironment.js"));
+  } catch (err) {
+    showMessage("3D engine did not load",
+      "three.js comes from cdn.jsdelivr.net and could not be fetched. Check the connection and reload; the tables beside the viewer still apply.");
+    return;
+  }
+  if (typeof DecompressionStream === "undefined") {
+    showMessage("Browser too old for this preview", "It needs DecompressionStream (Chrome 80+, Safari 16.4+, Firefox 113+).");
+    return;
+  }
+
+  // ---------------------------------------------------------------- tokens --
+  const rootStyle = () => getComputedStyle(document.documentElement);
+  function tok(name) { return rootStyle().getPropertyValue(name).trim(); }
+  function srgb(hex) { // css hex -> [r,g,b] 0..1 (sRGB, unconverted)
+    let h = hex.replace("#", "");
+    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    const n = parseInt(h.slice(0, 6), 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+
+  // -------------------------------------------------------------- decoding --
+  function b64ToBytes(b64) {
+    if (Uint8Array.fromBase64) return Uint8Array.fromBase64(b64);
+    const bin = atob(b64), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  async function gunzip(bytes) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  async function decodeMesh(part) {
+    const meta = part.mesh;
+    const raw = await gunzip(b64ToBytes($("mesh-" + part.id).textContent.trim()));
+    const n = meta.nv, pos = new Float32Array(n * 3);
+    for (let a = 0; a < 3; a++) {
+      const lo = meta.lo[a], st = meta.step[a], b0 = a * n, b1 = 3 * n + a * n;
+      let acc = 0;
+      for (let i = 0; i < n; i++) {
+        acc = (acc + (raw[b0 + i] | (raw[b1 + i] << 8))) & 0xffff;
+        pos[i * 3 + a] = lo + acc * st;
+      }
+    }
+    const m = meta.nt * 3, index = new Uint32Array(m);
+    let p = meta.pos_bytes, hw = 0;
+    for (let k = 0; k < m; k++) {
+      let v = 0, shift = 0, b;
+      do { b = raw[p++]; v |= (b & 0x7f) << shift; shift += 7; } while (b & 0x80);
+      index[k] = hw - v;
+      if (v === 0) hw++;
+    }
+    return { pos, index };
+  }
+
+  // Smooth normals except across creases; returns non-indexed geometry.
+  // Also returns per-face unit normals for the feature-edge overlay.
+  function creasedGeometry(pos, index, creaseDeg) {
+    const nt = index.length / 3, nv = pos.length / 3;
+    const fa = new Float32Array(nt * 3), fu = new Float32Array(nt * 3);
+    for (let t = 0; t < nt; t++) {
+      const a = index[3 * t] * 3, b = index[3 * t + 1] * 3, c = index[3 * t + 2] * 3;
+      const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2];
+      const vx = pos[c] - pos[a], vy = pos[c + 1] - pos[a + 1], vz = pos[c + 2] - pos[a + 2];
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      const l = Math.hypot(nx, ny, nz) || 1;
+      fa[3 * t] = nx; fa[3 * t + 1] = ny; fa[3 * t + 2] = nz;
+      fu[3 * t] = nx / l; fu[3 * t + 1] = ny / l; fu[3 * t + 2] = nz / l;
+    }
+    const start = new Uint32Array(nv + 1);
+    for (let k = 0; k < index.length; k++) start[index[k] + 1]++;
+    for (let i = 0; i < nv; i++) start[i + 1] += start[i];
+    const fill = start.slice(0, nv), list = new Uint32Array(index.length);
+    for (let k = 0; k < index.length; k++) list[fill[index[k]]++] = (k / 3) | 0;
+    const cosT = Math.cos(creaseDeg * Math.PI / 180);
+    const P = new Float32Array(nt * 9), N = new Float32Array(nt * 9);
+    for (let t = 0; t < nt; t++) {
+      const tx = fu[3 * t], ty = fu[3 * t + 1], tz = fu[3 * t + 2];
+      for (let c = 0; c < 3; c++) {
+        const v = index[3 * t + c], o = 9 * t + 3 * c;
+        P[o] = pos[3 * v]; P[o + 1] = pos[3 * v + 1]; P[o + 2] = pos[3 * v + 2];
+        let sx = 0, sy = 0, sz = 0;
+        for (let q = start[v]; q < start[v + 1]; q++) {
+          const f = list[q];
+          if (fu[3 * f] * tx + fu[3 * f + 1] * ty + fu[3 * f + 2] * tz >= cosT) {
+            sx += fa[3 * f]; sy += fa[3 * f + 1]; sz += fa[3 * f + 2];
+          }
+        }
+        const l = Math.hypot(sx, sy, sz) || 1;
+        N[o] = sx / l; N[o + 1] = sy / l; N[o + 2] = sz / l;
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(P, 3));
+    g.setAttribute("normal", new THREE.BufferAttribute(N, 3));
+    g.computeBoundingBox(); g.computeBoundingSphere();
+    return { geometry: g, faceUnit: fu };
+  }
+
+  // Feature edges (dihedral > angle, or open) from the welded index.
+  function featureEdges(pos, index, fu, angleDeg) {
+    const nt = index.length / 3, nv = pos.length / 3;
+    const seen = new Map(), out = [];
+    const cosT = Math.cos(angleDeg * Math.PI / 180);
+    for (let t = 0; t < nt; t++) {
+      for (let e = 0; e < 3; e++) {
+        let a = index[3 * t + e], b = index[3 * t + (e + 1) % 3];
+        if (a > b) { const s = a; a = b; b = s; }
+        const key = a * nv + b, other = seen.get(key);
+        if (other === undefined) { seen.set(key, t); continue; }
+        seen.delete(key);
+        const d = fu[3 * t] * fu[3 * other] + fu[3 * t + 1] * fu[3 * other + 1] + fu[3 * t + 2] * fu[3 * other + 2];
+        if (d < cosT) out.push(a, b);
+      }
+    }
+    for (const key of seen.keys()) out.push(Math.floor(key / nv), key % nv);
+    const P = new Float32Array(out.length * 3);
+    for (let i = 0; i < out.length; i++) { P[3 * i] = pos[3 * out[i]]; P[3 * i + 1] = pos[3 * out[i] + 1]; P[3 * i + 2] = pos[3 * out[i] + 2]; }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(P, 3));
+    return g;
+  }
+
+  // ---------------------------------------------------------------- scene --
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.localClippingEnabled = true;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const canvas = renderer.domElement;
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", "Interactive 3D model. Drag to orbit, right-drag to pan, scroll or pinch to zoom.");
+  canvas.tabIndex = 0;
+  stage.prepend(canvas);
+
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.55;
+
+  const camera = new THREE.PerspectiveCamera(30, 1, 2, 6000);
+  camera.up.set(0, 0, 1); // z-up model; must be set before OrbitControls
+  const controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.09;
+  controls.screenSpacePanning = true;
+  controls.minDistance = 40;
+  controls.maxDistance = 2200;
+  controls.autoRotateSpeed = 0.9;
+  controls.listenToKeyEvents(canvas); // arrow keys pan while the canvas has focus
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x777777, 1.1);
+  scene.add(hemi);
+  const key = new THREE.DirectionalLight(0xffffff, 2.3);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.bias = -0.0004;
+  key.shadow.normalBias = 0.25;
+  const sc = key.shadow.camera;
+  sc.left = -260; sc.right = 260; sc.top = 260; sc.bottom = -260; sc.near = 10; sc.far = 1400;
+  scene.add(key, key.target);
+  const fill = new THREE.DirectionalLight(0xcfe2ff, 0.7);
+  scene.add(fill, fill.target);
+  const under = new THREE.DirectionalLight(0xffffff, 0.0);
+  scene.add(under, under.target);
+
+  // ------------------------------------------------------------- materials --
+  const clipPlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 1e6);
+  const clipMats = [];
+  function clip(m) { m.clippingPlanes = [clipPlane]; clipMats.push(m); return m; }
+  const capU = { a: { value: new THREE.Vector3() }, b: { value: new THREE.Vector3() }, on: { value: 0 } };
+  // own = true: the section hatch uses the part's own colour (bought parts keep their
+  // identity in a cut: blue board, green board, silver shell), else the theme's cap tokens
+  function withCap(m, own) {
+    m.side = THREE.DoubleSide;
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uCapA = capU.a; shader.uniforms.uCapB = capU.b; shader.uniforms.uCapOn = capU.on;
+      shader.fragmentShader = "uniform vec3 uCapA;\nuniform vec3 uCapB;\nuniform float uCapOn;\n" +
+        shader.fragmentShader.replace("#include <dithering_fragment>",
+          "#include <dithering_fragment>\n" +
+          "  if (!gl_FrontFacing && uCapOn > 0.5) {\n" +
+          "    float h = step(0.62, fract((gl_FragCoord.x - gl_FragCoord.y) / 9.0));\n" +
+          (own ? "    gl_FragColor = vec4(mix(diffuseColor.rgb * 0.45, min(diffuseColor.rgb * 1.35 + 0.06, 1.0), h), 1.0);\n"
+               : "    gl_FragColor = vec4(mix(uCapB, uCapA, h), 1.0);\n") +
+          "  }");
+    };
+    m.customProgramCacheKey = () => (own ? "ithalat-cap-own" : "ithalat-cap");
+    return m;
+  }
+  const std = (o) => clip(new THREE.MeshStandardMaterial(o));
+  // Engraving fill: the engraved letters get a contrasting tone (per-vertex
+  // weight aFill, colour uFill) so "ithalat" reads on every filament; light
+  // and shade alone leave it invisible on Charcoal.
+  const fillU = { value: new THREE.Color() };
+  function withFill(m) {
+    const prev = m.onBeforeCompile;
+    m.onBeforeCompile = (shader, r) => {
+      prev(shader, r);
+      shader.uniforms.uFill = fillU;
+      shader.vertexShader = "attribute float aFill;\nvarying float vFill;\n" +
+        shader.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vFill = aFill;");
+      shader.fragmentShader = "uniform vec3 uFill;\nvarying float vFill;\n" +
+        shader.fragmentShader.replace("#include <color_fragment>",
+          "#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, uFill, vFill);");
+    };
+    m.customProgramCacheKey = () => "ithalat-cap-fill";
+    return m;
+  }
+  const restMat = withFill(withCap(std({ color: "#2c3034", roughness: 0.86, metalness: 0.0, envMapIntensity: 0.7 })));
+  const dockMat = withCap(std({ color: "#2c3034", roughness: 0.86, metalness: 0.0, envMapIntensity: 0.7 }));
+  // the other printed parts (USB-C grip, retainer, dock lock): same filament as the dock
+  const gripMat = withCap(std({ color: "#2c3034", roughness: 0.86, metalness: 0.0, envMapIntensity: 0.7 }));
+  function setFinish(hex) {
+    restMat.color.set(hex); dockMat.color.set(hex); gripMat.color.set(hex);
+    const c = new THREE.Color(hex), hsl = {}; c.getHSL(hsl);
+    const light = hsl.l > 0.45; // light filament: shadow-toned letters; dark: lighter letters
+    fillU.value.copy(c).lerp(new THREE.Color(light ? 0x000000 : 0xffffff), light ? 0.42 : 0.4);
+  }
+  // aFill per triangle: floors of the engraved letters 1, their walls 0.65
+  function engraveFill(geometry, faceUnit) {
+    const e = DATA.engraving || {}, n = faceUnit.length / 3;
+    const fill = new Float32Array(n * 3);
+    const depth = +cfg.ENGRAVE_DEPTH || 0, P = geometry.attributes.position.array;
+    if (e.text && e.center && e.size && depth > 0) {
+      const x0 = e.center[0] - e.size[0] / 2 - 0.6, x1 = e.center[0] + e.size[0] / 2 + 0.6;
+      const y0 = e.center[1] - e.size[1] / 2 - 0.6, y1 = e.center[1] + e.size[1] / 2 + 0.6;
+      const bottom = e.face !== "top";
+      for (let t = 0; t < n; t++) {
+        const o = 9 * t, cx = (P[o] + P[o + 3] + P[o + 6]) / 3, cy = (P[o + 1] + P[o + 4] + P[o + 7]) / 3;
+        if (cx < x0 || cx > x1 || cy < y0 || cy > y1) continue;
+        const cz = (P[o + 2] + P[o + 5] + P[o + 8]) / 3, nz = faceUnit[3 * t + 2];
+        let w = 0;
+        if (bottom) {
+          if (nz < -0.9 && Math.abs(cz - depth) < 0.03) w = 1;
+          else if (Math.abs(nz) < 0.2 && cz > 0.005 && cz < depth) w = 0.65;
+        } else if (Math.abs(nz) < 0.35 && cz > 1.0) w = 0.65; // top face: walls only (floors follow the crown)
+        fill[3 * t] = fill[3 * t + 1] = fill[3 * t + 2] = w;
+      }
+    }
+    geometry.setAttribute("aFill", new THREE.BufferAttribute(fill, 1));
+  }
+  const pcbGreen = withCap(std({ color: "#1d4a2f", roughness: 0.5, metalness: 0.05 }));
+  const pcbDark = withCap(std({ color: "#1a1f1e", roughness: 0.55, metalness: 0.05 }));
+  const chipMat = withCap(std({ color: "#121416", roughness: 0.45, metalness: 0.1 }));
+  const goldMat = clip(new THREE.MeshStandardMaterial({ color: "#c9a24a", roughness: 0.3, metalness: 1.0 }));
+  const silverMat = withCap(std({ color: "#c4c9cc", roughness: 0.3, metalness: 1.0 }));
+  const brassMat = withCap(std({ color: "#b8954d", roughness: 0.35, metalness: 0.9 }));
+  const capMat = withCap(std({ color: "#ffffff", roughness: 0.6, metalness: 0.0 }));
+  const switchMat = withCap(std({ color: "#2a2e33", roughness: 0.6 }));
+  const cableMat = withCap(std({ color: "#17191b", roughness: 0.58, metalness: 0.0 }));
+  const ffcMat = withCap(std({ color: "#d9c9a3", roughness: 0.6 }));
+  const glassMat = withCap(clip(new THREE.MeshPhysicalMaterial({
+    color: "#0a0c0e", roughness: 0.06, metalness: 0.0, clearcoat: 1.0, clearcoatRoughness: 0.02,
+    ior: 1.52, reflectivity: 0.7, envMapIntensity: 3.0,
+  })));
+  const acrylicMat = clip(new THREE.MeshPhysicalMaterial({
+    color: "#e6f4f4", roughness: 0.12, metalness: 0, transparent: true, opacity: 0.2,
+    depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 1.0,
+  }));
+  const smokeMat = clip(new THREE.MeshPhysicalMaterial({
+    color: "#15181a", roughness: 0.05, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05,
+    transparent: true, opacity: 0.66, depthWrite: false, envMapIntensity: 1.2,
+  }));
+  const adhesiveMat = clip(new THREE.MeshStandardMaterial({ color: "#f2f2ee", roughness: 0.4, transparent: true, opacity: 0.45, depthWrite: false }));
+  const compBoxMat = clip(new THREE.MeshStandardMaterial({ color: "#0d0f10", roughness: 0.7, transparent: true, opacity: 0.55, depthWrite: false }));
+  const acrylicEdgeMat = clip(new THREE.LineBasicMaterial({ color: "#7fb7b2", transparent: true, opacity: 0.85 }));
+  const featureMat = clip(new THREE.LineBasicMaterial({ color: "#57dcc9", transparent: true, opacity: 0.75, depthTest: true }));
+  // bought parts (manifest connector_variants[id].hardware[].material); colours are CSS tokens
+  const HW_SPEC = {
+    pcb_green: ["--mat-pcb-green", "#1d6b3a", 0.45, 0.05],
+    pcb_blue: ["--mat-pcb-blue", "#1f4fa8", 0.45, 0.05],
+    metal: ["--mat-metal", "#c4c9cc", 0.28, 1.0],
+    plastic_black: ["--mat-plastic", "#17191b", 0.5, 0.1],
+    magnet: ["--mat-magnet", "#aab0b3", 0.22, 1.0],
+    diode: ["--mat-diode", "#141516", 0.4, 0.05],
+    diode_band: ["--mat-diode-band", "#a3a8ac", 0.5, 0.0],
+  };
+  const hwMats = {};
+  function hwMat(name) {
+    if (hwMats[name]) return hwMats[name];
+    const [token, fallback, roughness, metalness] = HW_SPEC[name] || ["", "#808487", 0.6, 0.0];
+    return (hwMats[name] = withCap(std({ color: (token && tok(token)) || fallback, roughness, metalness }), true));
+  }
+
+  // ------------------------------------------------------------- helpers --
+  function rrPath(path, x0, y0, x1, y1, r, hole) {
+    r = Math.max(0.01, Math.min(r, (x1 - x0) / 2 - 0.01, (y1 - y0) / 2 - 0.01));
+    const P = hole ? path : path;
+    P.moveTo(x0 + r, y0);
+    P.lineTo(x1 - r, y0); P.absarc(x1 - r, y0 + r, r, -Math.PI / 2, 0, false);
+    P.lineTo(x1, y1 - r); P.absarc(x1 - r, y1 - r, r, 0, Math.PI / 2, false);
+    P.lineTo(x0 + r, y1); P.absarc(x0 + r, y1 - r, r, Math.PI / 2, Math.PI, false);
+    P.lineTo(x0, y0 + r); P.absarc(x0 + r, y0 + r, r, Math.PI, Math.PI * 1.5, false);
+    return P;
+  }
+  function rrShape(x0, y0, x1, y1, r, holes) {
+    const s = rrPath(new THREE.Shape(), x0, y0, x1, y1, r);
+    for (const h of holes || []) s.holes.push(rrPath(new THREE.Path(), h[0], h[1], h[2], h[3], h[4] ?? 0.5, true));
+    return s;
+  }
+  function slab(shape, z0, t, opts) {
+    const g = new THREE.ExtrudeGeometry(shape, Object.assign({ depth: t, bevelEnabled: false, curveSegments: 8 }, opts || {}));
+    g.translate(0, 0, z0);
+    return g;
+  }
+  function boxAt(w, d, h, cx, cy, z0, mat) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, d, h), mat);
+    m.position.set(cx, cy, z0 + h / 2);
+    return m;
+  }
+  function edges(geo, mat, angle) { return new THREE.LineSegments(new THREE.EdgesGeometry(geo, angle ?? 25), mat); }
+  function shadowy(o, cast = true, recv = true) { o.traverse((c) => { if (c.isMesh) { c.castShadow = cast; c.receiveShadow = recv; } }); return o; }
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const ease = (x) => { x = clamp01(x); return x * x * (3 - 2 * x); };
+
+  // ------------------------------------------------------------- textures --
+  function oledTexture() {
+    const W = 64, H = 128, S = 4;
+    const big = document.createElement("canvas"); big.width = W * S; big.height = H * S;
+    const g = big.getContext("2d");
+    g.fillStyle = "#000"; g.fillRect(0, 0, W * S, H * S);
+    g.fillStyle = "#fff"; g.textBaseline = "top";
+    const text = (s, y, px, w) => { g.font = `${w} ${px * S}px Menlo, "DejaVu Sans Mono", Consolas, monospace`; g.fillText(s, 3 * S, y * S); };
+    text("YAKAMOZ", 4, 9, 700);
+    for (let x = 3; x < 61; x++) {
+      const y = 21 + Math.round(2.2 * Math.sin(x / 4.2) + 1.2 * Math.sin(x / 1.7));
+      g.fillRect(x * S, y * S, S, S);
+      if (x % 3 === 0) g.fillRect(x * S, (y + 4) * S, S, S);
+    }
+    text("ithalat", 34, 10, 700);
+    g.fillRect(3 * S, 49 * S, 58 * S, S);
+    text("Pad: on", 56, 9, 400);
+    text("Layer 0", 72, 9, 400);
+    text("0x74", 88, 9, 400);
+    text("OLED 3C", 104, 9, 400);
+    const small = document.createElement("canvas"); small.width = W; small.height = H;
+    const s = small.getContext("2d");
+    const src = g.getImageData(0, 0, W * S, H * S).data, img = s.createImageData(W, H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let acc = 0;
+      for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) acc += src[((y * S + j) * W * S + (x * S + i)) * 4];
+      const on = acc / (S * S) > 92, o = (y * W + x) * 4;
+      img.data[o] = on ? 226 : 4; img.data[o + 1] = on ? 240 : 6; img.data[o + 2] = on ? 255 : 8; img.data[o + 3] = 255;
+    }
+    s.putImageData(img, 0, 0);
+    const tex = new THREE.CanvasTexture(small);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+  function electrodeTexture(w, d) { // TPS65 touch side: diamond electrode lattice under the mask
+    const ppm = 8, c = document.createElement("canvas");
+    c.width = Math.round(w * ppm); c.height = Math.round(d * ppm);
+    const g = c.getContext("2d");
+    g.fillStyle = "#1b4630"; g.fillRect(0, 0, c.width, c.height);
+    const p = 4.6 * ppm;
+    g.fillStyle = "#215238";
+    for (let y = -p; y < c.height + p; y += p / 2) {
+      const row = Math.round(y / (p / 2));
+      for (let x = (row % 2 ? p / 2 : 0) - p; x < c.width + p; x += p) {
+        g.beginPath();
+        g.moveTo(x, y - p * 0.46); g.lineTo(x + p * 0.46, y); g.lineTo(x, y + p * 0.46); g.lineTo(x - p * 0.46, y);
+        g.closePath(); g.fill();
+      }
+    }
+    g.strokeStyle = "#2b6446"; g.lineWidth = 1.2 * ppm;
+    g.strokeRect(0.6 * ppm, 0.6 * ppm, c.width - 1.2 * ppm, c.height - 1.2 * ppm);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    return tex;
+  }
+
+  // ------------------------------------------------------------ build all --
+  const parts = DATA.parts || [];
+  const CV = DATA.connector_variants || {};
+  const cfg = DATA.config || {};
+  const kb = DATA.keyboard || {};
+  const tp = DATA.trackpad || {};
+  const model = new THREE.Group(); scene.add(model);
+  // explode groups: dockG lifts with the dock, padG with the trackpad module
+  // (manifest parts[].moves_with / hardware[].moves_with: "dock" | "pad")
+  const dockG = new THREE.Group(), padG = new THREE.Group();
+  model.add(dockG, padG);
+  const explodeWraps = []; // groups that also slide by their own explode_offset [dx, dy, dz]
+  function wrapFor(off) {
+    const w = new THREE.Group();
+    if (Array.isArray(off) && off.length >= 3) { w.userData.explode = off.map(Number); explodeWraps.push(w); }
+    return w;
+  }
+
+  // One entry per manifest part: rests stay in place (one per variant, optionally per
+  // connector); docks, grips, retainers and locks ride in dockG / padG.
+  const partObjs = [];
+  for (const p of parts) {
+    const raw = await decodeMesh(p);
+    const { geometry, faceUnit } = creasedGeometry(raw.pos, raw.index, 32);
+    if (p.role === "rest") engraveFill(geometry, faceUnit);
+    const m = new THREE.Mesh(geometry, p.role === "rest" ? restMat : p.role === "dock" ? dockMat : gripMat);
+    m.matrixAutoUpdate = false;
+    m.matrix.fromArray(p.matrix);
+    m.matrixWorldNeedsUpdate = true;
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = p;
+    const o = { p, mesh: m, raw, faceUnit, edges: null, wrap: null };
+    if (p.role === "rest") model.add(m);
+    else {
+      o.wrap = wrapFor(p.explode_offset); o.wrap.add(m);
+      ((p.moves_with || (p.role === "grip" ? "pad" : "dock")) === "pad" ? padG : dockG).add(o.wrap);
+    }
+    partObjs.push(o);
+  }
+  const restObjs = partObjs.filter((o) => o.p.role === "rest");
+  function restFor(v, c) { // the rest for (variant, connector), else the shared one
+    return restObjs.find((o) => o.p.variant === v && o.p.connector === c)
+      || restObjs.find((o) => o.p.variant === v && !o.p.connector)
+      || restObjs.find((o) => o.p.variant === v) || restObjs[0];
+  }
+  const restBox = new THREE.Box3();
+  for (const o of restObjs) { o.mesh.updateMatrixWorld(true); restBox.union(new THREE.Box3().setFromObject(o.mesh)); }
+  const REST_W = restBox.max.x - restBox.min.x, REST_D = restBox.max.y;
+  const REST_H = restBox.max.z;
+
+  // ---- trackpad module + glass -------------------------------------------
+  const tpW = tp.width || 65, tpD = tp.depth || 49, tpR = tp.corner_r || 4, pcbT = tp.pcb_t || 1.0;
+  const adhT = tp.adhesive_t || 0.13, compH = tp.component_h || 1.1;
+  const tpC = tp.center || [REST_W / 2, REST_D - 33.5];
+  const moduleG = new THREE.Group();
+  {
+    const shape = rrShape(-tpW / 2, -tpD / 2, tpW / 2, tpD / 2, tpR);
+    const pcb = new THREE.Mesh(slab(shape, -pcbT, pcbT, { curveSegments: 10 }), pcbGreen);
+    moduleG.add(pcb);
+    const tex = electrodeTexture(tpW, tpD);
+    tex.repeat.set(1 / tpW, 1 / tpD); tex.offset.set(0.5, 0.5);
+    const faceMat = clip(new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.05 }));
+    const face = new THREE.Mesh(new THREE.ShapeGeometry(shape, 10), faceMat);
+    face.position.z = 0.01; moduleG.add(face);
+    const adh = new THREE.Mesh(slab(shape, 0.0, adhT, { curveSegments: 10 }), adhesiveMat);
+    adh.position.z = 0.02; adh.userData.glassOnly = true; moduleG.add(adh);
+    // component box hint on the back (x from the left edge seen from the touch side,
+    // y from the connector edge, which faces +Y)
+    const cb = tp.component_box || [12.9, 52.0, 4.4, 31.0];
+    const yEdge = (tp.connector_edge || "back") === "back" ? tpD / 2 : -tpD / 2, ys = yEdge > 0 ? -1 : 1;
+    const bx0 = -tpW / 2 + cb[0], bx1 = -tpW / 2 + cb[1];
+    const by0 = yEdge + ys * cb[2], by1 = yEdge + ys * cb[3];
+    const cbox = boxAt(bx1 - bx0, Math.abs(by1 - by0), compH, (bx0 + bx1) / 2, (by0 + by1) / 2, -pcbT - compH, compBoxMat);
+    moduleG.add(cbox);
+    const cbEdge = edges(cbox.geometry, clip(new THREE.LineDashedMaterial({ color: "#57dcc9", dashSize: 1.2, gapSize: 0.8 })), 1);
+    cbEdge.position.copy(cbox.position); cbEdge.computeLineDistances(); cbEdge.userData.themeEdge = true; moduleG.add(cbEdge);
+    const cy = (by0 + by1) / 2, cx = (bx0 + bx1) / 2;
+    moduleG.add(boxAt(5.0, 5.0, 0.9, cx - 2, cy + 1, -pcbT - 0.9, chipMat));            // IQS550 controller
+    moduleG.add(boxAt(3.2, 1.6, 0.6, cx + 9, cy - 5, -pcbT - 0.6, chipMat));             // regulator
+    for (let i = 0; i < 9; i++) moduleG.add(boxAt(1.0, 0.5, 0.5, cx - 12 + i * 2.6, cy + 7 - (i % 3) * 3.4, -pcbT - 0.5, ffcMat));
+    // six 2.0 mm pitch solder pads + the 0.5 mm ZIF near the connector edge
+    const pb = tp.pads_box || [19.9, 30.8, 4.9, 7.1], zb = tp.zif_box || [21.2, 29.7, 8.8, 14.2];
+    const px0 = -tpW / 2 + pb[0], px1 = -tpW / 2 + pb[1], pyc = yEdge + ys * (pb[2] + pb[3]) / 2;
+    for (let i = 0; i < 6; i++) moduleG.add(boxAt(1.2, Math.abs(pb[3] - pb[2]), 0.05, lerp(px0 + 0.6, px1 - 0.6, i / 5), pyc, -pcbT - 0.05, goldMat));
+    moduleG.add(boxAt(zb[1] - zb[0], Math.abs(zb[3] - zb[2]), 1.0, -tpW / 2 + (zb[0] + zb[1]) / 2, yEdge + ys * (zb[2] + zb[3]) / 2, -pcbT - 1.0, ffcMat));
+  }
+  shadowy(moduleG);
+  model.add(moduleG);
+
+  // overlay slab, rebuilt per variant from its own thickness (VARIANTS[id])
+  const glassG = new THREE.Group();
+  const glassMesh = new THREE.Mesh(new THREE.BufferGeometry(), glassMat);
+  glassMesh.castShadow = true; glassMesh.receiveShadow = true;
+  glassG.add(glassMesh);
+  function buildGlass(t) {
+    if (glassG.userData.t === t) return;
+    glassG.userData.t = t;
+    const bev = Math.min(0.18, t / 3);
+    const gW = (cfg.GLASS_WIDTH || tpW), gD = (cfg.GLASS_DEPTH || tpD), gR = (cfg.GLASS_CORNER_R || tpR);
+    const shape = rrShape(-gW / 2 + bev, -gD / 2 + bev, gW / 2 - bev, gD / 2 - bev, gR - bev);
+    const g = new THREE.ExtrudeGeometry(shape, { depth: Math.max(0.01, t - 2 * bev), bevelEnabled: bev > 0.005, bevelThickness: bev, bevelSize: bev, bevelSegments: 2, curveSegments: 10 });
+    g.translate(0, 0, bev);
+    glassMesh.geometry.dispose(); glassMesh.geometry = g;
+  }
+  model.add(glassG);
+
+  // ---- keyboard mock ---------------------------------------------------------
+  const kbG = new THREE.Group();
+  const kbO = kb.origin || [0, REST_D + 1.5, 0];
+  kbG.position.set(kbO[0], kbO[1], kbO[2] || 0);
+  const KW = kb.width || 270.98, KD = kb.depth || 81, KR = kb.corner_r || 2.8, KH = kb.height || 11.8;
+  {
+    let z = 0;
+    for (const L of kb.layers || []) {
+      const holes = [];
+      if (/upper/i.test(L.name)) { // the clear frame: switch openings, Pico window, 2-key cavity
+        holes.push([3.66, 3.96, 3.66 + 111.3, 3.96 + 73.2, 1.0], [KW - 3.66 - 111.3, 3.96, KW - 3.66, 3.96 + 73.2, 1.0],
+          [121.2, 25.9, 149.8, 79.2, 0.8], [118.94, 4.02, 153.08, 20.02, 0.8]);
+      }
+      const geo = slab(rrShape(0, 0, KW, KD, KR, holes), z, L.t);
+      if (L.material === "acrylic") {
+        kbG.add(new THREE.Mesh(geo, acrylicMat));
+        const e = edges(geo, acrylicEdgeMat, 30); e.userData.acrylicEdge = true; kbG.add(e);
+      } else {
+        const m = new THREE.Mesh(geo, pcbDark); m.castShadow = true; m.receiveShadow = true; kbG.add(m);
+      }
+      z += L.t;
+    }
+    // switches + keycaps (instanced)
+    const keys = (kb.keys || []).filter((k) => !k.removed);
+    const sw = new THREE.InstancedMesh(new THREE.BoxGeometry(14.6, 14.6, 6.2), switchMat, keys.length);
+    const caps = new THREE.InstancedMesh(keycapGeometry(), capMat, keys.length);
+    const accent = new Set(["0,0", "1,13", "3,5", "3,8"]);
+    const M4 = new THREE.Matrix4(), col = new THREE.Color();
+    keys.forEach((k, i) => {
+      M4.makeTranslation(k.x, k.y, KH + 3.1); sw.setMatrixAt(i, M4);
+      M4.makeTranslation(k.x, k.y, KH + 6.9); caps.setMatrixAt(i, M4);
+      caps.setColorAt(i, col.set(accent.has(k.row + "," + k.col) ? "#2f7f7a" : "#e9e7e1"));
+    });
+    caps.castShadow = true; caps.receiveShadow = true; sw.castShadow = true;
+    kbG.add(sw, caps);
+    // OLED cover block: standoffs, Pico on its headers, SH1107 64x128 module, smoked cover
+    const oc = kb.oled_cover || { x0: 117.1, y0: 22.1, x1: 153.9, y1: 81.0, top_z: 24.0 };
+    const coverT = +cfg.OLED_COVER_T || 2.0, coverZ = oc.top_z - coverT;
+    for (const [sx, sy] of [[2.9, 2.9], [33.9, 2.9], [2.9, 52.9], [33.9, 52.9]]) {
+      const so = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, coverZ - KH, 6).rotateX(Math.PI / 2), brassMat);
+      so.position.set(oc.x0 + sx, oc.y0 + sy, (KH + coverZ) / 2); kbG.add(so);
+      const hd = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 1.2, 16).rotateX(Math.PI / 2), silverMat);
+      hd.position.set(oc.x0 + sx, oc.y0 + sy, oc.top_z + 0.6); kbG.add(hd);
+    }
+    const pico = kb.pico || { cx: 135.49, cy: 52.69, w: 21, l: 51 };
+    const picoZ = 6.6 + 8.5;
+    kbG.add(boxAt(pico.w, pico.l, 1.0, pico.cx, pico.cy, picoZ, withCap(std({ color: "#17703f", roughness: 0.5 }))));
+    kbG.add(boxAt(7, 7, 0.9, pico.cx, pico.cy - 2, picoZ + 1.0, chipMat));
+    kbG.add(boxAt(3, 3, 0.8, pico.cx + 5.5, pico.cy - 9, picoZ + 1.0, chipMat));
+    kbG.add(boxAt(8, 5.4, 2.7, pico.cx, pico.cy + pico.l / 2 - 2.2, picoZ + 1.0, silverMat)); // USB at the back
+    kbG.add(boxAt(3.5, 4.4, 1.4, pico.cx - 4.5, pico.cy + 13, picoZ + 1.0, std({ color: "#f0f0ea", roughness: 0.5 })));
+    for (const sx of [-8.89, 8.89]) kbG.add(boxAt(2.54, pico.l, picoZ - 6.6, pico.cx + sx, pico.cy, 6.6, chipMat));
+    const oledW = 23.0, oledL = 36.0, oledY0 = 23.0, oledZ = coverZ - 3.2;
+    kbG.add(boxAt(oledW, oledL, 1.2, pico.cx, oledY0 + oledL / 2, oledZ, chipMat));
+    kbG.add(boxAt(20.0, 32.0, 1.3, pico.cx, oledY0 + oledL / 2 + 1, oledZ + 1.2, glassMat));
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(14.7, 29.4), clip(new THREE.MeshBasicMaterial({ map: oledTexture(), toneMapped: false })));
+    screen.position.set(pico.cx, oledY0 + oledL / 2 + 1.5, oledZ + 2.52); kbG.add(screen);
+    const cover = slab(rrShape(oc.x0, oc.y0, oc.x1, oc.y1, 2.0), coverZ, coverT);
+    kbG.add(new THREE.Mesh(cover, smokeMat));
+    const ce = edges(cover, acrylicEdgeMat, 30); ce.userData.acrylicEdge = true; kbG.add(ce);
+  }
+  model.add(kbG);
+
+  function keycapGeometry() { // DSA-like: lofted rounded squares, slight dish
+    const rings = [[18.0, 18.0, 1.4, 0.0], [17.0, 17.2, 1.9, 4.2], [13.0, 13.4, 2.6, 7.2]];
+    const K = 5, pts = [];
+    for (const [w, d, r, z] of rings) {
+      const ring = [];
+      const cs = [[w / 2 - r, d / 2 - r, 0], [-w / 2 + r, d / 2 - r, Math.PI / 2], [-w / 2 + r, -d / 2 + r, Math.PI], [w / 2 - r, -d / 2 + r, Math.PI * 1.5]];
+      for (const [cx, cy, a0] of cs) for (let k = 0; k <= K; k++) { const a = a0 + (Math.PI / 2) * k / K; ring.push([cx + r * Math.cos(a), cy + r * Math.sin(a), z]); }
+      pts.push(ring);
+    }
+    const N = pts[0].length, pos = [], idx = [];
+    for (const ring of pts) for (const p of ring) pos.push(...p);
+    for (let r = 0; r < pts.length - 1; r++) for (let i = 0; i < N; i++) {
+      const a = r * N + i, b = r * N + (i + 1) % N, c = (r + 1) * N + i, d = (r + 1) * N + (i + 1) % N;
+      idx.push(a, b, d, a, d, c);
+    }
+    const top = pos.length / 3; pos.push(0, 0, rings[2][3] - 0.55);
+    const t0 = (pts.length - 1) * N;
+    for (let i = 0; i < N; i++) idx.push(t0 + i, t0 + (i + 1) % N, top);
+    return creasedGeometry(new Float32Array(pos), new Uint32Array(idx), 40).geometry;
+  }
+
+  // ---- connector hardware, cable ----------------------------------------------
+  // Bought (non-printed) parts come from connector_variants[id].hardware, boxes in
+  // assembly coordinates: the pogo plug housing + strain relief + magnets, or the
+  // USB-C boards, shells and the Schottky diode. Each rides with the dock or the pad
+  // in the exploded view (moves_with). The cable is drawn per connector and variant:
+  // the sleeve only where it is sleeved, the loose cores as thin wires.
+  function roundedBoxGeometry(b, r, axis) { // rounded edges run along `axis` (default y)
+    const [x0, x1, y0, y1, z0, z1] = b, opts = { bevelEnabled: false, curveSegments: 10 };
+    let g;
+    if (axis === "z") {
+      g = new THREE.ExtrudeGeometry(rrShape(x0, y0, x1, y1, r ?? Math.min(x1 - x0, y1 - y0) / 4), Object.assign({ depth: z1 - z0 }, opts));
+      g.translate(0, 0, z0);
+    } else if (axis === "x") { // shape (u, v) = (-z, y); rotateY(90deg) maps (u, v, w) -> (w, v, -u)
+      g = new THREE.ExtrudeGeometry(rrShape(-z1, y0, -z0, y1, r ?? Math.min(y1 - y0, z1 - z0) / 4), Object.assign({ depth: x1 - x0 }, opts));
+      g.rotateY(Math.PI / 2); g.translate(x0, 0, 0);
+    } else { // shape (x, z); rotateX(90deg) sends the extrusion along -Y, from y1 back to y0
+      g = new THREE.ExtrudeGeometry(rrShape(x0, z0, x1, z1, r ?? Math.min(x1 - x0, z1 - z0) / 4), Object.assign({ depth: y1 - y0 }, opts));
+      g.rotateX(Math.PI / 2); g.translate(0, y1, 0);
+    }
+    return g;
+  }
+  function hardwareObject(h) {
+    const b = (h.box || []).map(Number);
+    if (b.length < 6) return null;
+    const [x0, x1, y0, y1, z0, z1] = b, d = [x1 - x0, y1 - y0, z1 - z0];
+    if (!(d[0] > 0 && d[1] > 0 && d[2] > 0)) return null;
+    const c = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
+    const shape = h.shape || "box", mat = hwMat(h.material);
+    const out = new THREE.Group();
+    out.name = h.label || h.id || "";
+    // long axis: the cylinder axis, else the box's longest side (for the diode band)
+    let ax = /^cylinder_[xyz]$/.test(shape) ? "xyz".indexOf(shape.slice(-1)) : d.indexOf(Math.max(...d));
+    if (/^cylinder_/.test(shape)) {
+      const across = d.filter((_, i) => i !== ax);
+      const r = Math.min(+h.r || Infinity, across[0] / 2, across[1] / 2);
+      const g = new THREE.CylinderGeometry(r, r, d[ax], 24); // along Y
+      if (ax === 0) g.rotateZ(-Math.PI / 2); else if (ax === 2) g.rotateX(Math.PI / 2);
+      g.translate(...c);
+      out.add(new THREE.Mesh(g, mat));
+    } else if (shape === "rounded_box") {
+      out.add(new THREE.Mesh(roundedBoxGeometry(b, h.r != null ? +h.r : undefined, h.axis || "y"), mat));
+    } else {
+      out.add(boxAt(d[0], d[1], d[2], c[0], c[1], z0, mat));
+    }
+    if (h.material === "diode") { // cathode band near one end of the long axis
+      const L = d[ax], bw = Math.max(0.4, L * 0.14), atMin = h.band_end === "min" || h.band_end === "x0";
+      const pos = c.slice(); pos[ax] = atMin ? b[2 * ax] + L * 0.12 + bw / 2 : b[2 * ax + 1] - L * 0.12 - bw / 2;
+      const s = d.map((v, i) => (i === ax ? bw : v * 1.04 + 0.02));
+      let g;
+      if (/^cylinder_/.test(shape)) {
+        const r = Math.min(+h.r || Infinity, ...d.filter((_, i) => i !== ax).map((v) => v / 2)) * 1.05 + 0.01;
+        g = new THREE.CylinderGeometry(r, r, bw, 24);
+        if (ax === 0) g.rotateZ(-Math.PI / 2); else if (ax === 2) g.rotateX(Math.PI / 2);
+      } else g = new THREE.BoxGeometry(s[0], s[1], s[2]);
+      g.translate(...pos);
+      out.add(new THREE.Mesh(g, hwMat("diode_band")));
+    }
+    shadowy(out);
+    return out;
+  }
+  // per connector: [dock-side group, pad-side group]
+  const hwGroups = {};
+  for (const c of connectors) {
+    const gD = new THREE.Group(), gP = new THREE.Group();
+    for (const h of (CV[c.id] || {}).hardware || []) {
+      const obj = hardwareObject(h);
+      if (!obj) continue;
+      const w = wrapFor(h.explode_offset); w.add(obj);
+      (h.moves_with === "pad" ? gP : gD).add(w);
+    }
+    dockG.add(gD); padG.add(gP);
+    hwGroups[c.id] = [gD, gP];
+  }
+
+  const cableG = new THREE.Group();
+  model.add(cableG);
+  const sleeveMesh = new THREE.Mesh(new THREE.BufferGeometry(), cableMat);
+  sleeveMesh.castShadow = true;
+  cableG.add(sleeveMesh);
+  const wireMats = {}, wireMeshes = [];
+  const wireMat = (c) => wireMats[c] || (wireMats[c] = withCap(std({ color: c, roughness: 0.5, metalness: 0.0 })));
+  const cableOf = (c) => (CV[c] || {}).cable || {};
+  function routeOf(cab, v) {
+    const pv = cab.per_variant || {};
+    return pv[v] || pv[variantIds[0]] || Object.values(pv)[0] || { sleeve: cab.points || [], wires: [] };
+  }
+  // Which explode group the plug end of the wires follows: cable.plug_moves_with, else the
+  // group of the hardware box / printed part nearest to the plug end of the first plug wire
+  // (pogo: the plug rides with the dock; USB-C: the male board rides with the grip and pad).
+  function boxDist(b, p) {
+    const dx = Math.max(b[0] - p[0], 0, p[0] - b[1]), dy = Math.max(b[2] - p[1], 0, p[1] - b[3]), dz = Math.max(b[4] - p[2], 0, p[2] - b[5]);
+    return Math.hypot(dx, dy, dz);
+  }
+  model.updateMatrixWorld(true);
+  const plugFollow = {};
+  for (const c of connectors) {
+    const cab = cableOf(c.id);
+    let res = cab.plug_moves_with, best = Infinity;
+    if (res !== "pad" && res !== "dock") {
+      res = "dock";
+      const r = routeOf(cab, variantIds[0]), w = (r.wires || []).find((x) => x.part !== "pad");
+      const pt = w && w.points && w.points.length ? w.points[w.points.length - 1] : null;
+      if (pt) {
+        for (const h of (CV[c.id] || {}).hardware || []) {
+          const dd = boxDist(h.box, pt); if (dd < best) { best = dd; res = h.moves_with === "pad" ? "pad" : "dock"; }
+        }
+        for (const o of partObjs) {
+          if (o.p.role === "rest" || o.p.connector !== c.id) continue;
+          const bb = new THREE.Box3().setFromObject(o.mesh);
+          const dd = boxDist([bb.min.x, bb.max.x, bb.min.y, bb.max.y, bb.min.z, bb.max.z], pt);
+          if (dd < best) { best = dd; res = (o.p.moves_with || (o.p.role === "grip" ? "pad" : "dock")) === "pad" ? "pad" : "dock"; }
+        }
+      }
+    }
+    plugFollow[c.id] = res;
+  }
+  function tube(pts, r) {
+    if (pts.length < 2) return new THREE.BufferGeometry();
+    const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+    return new THREE.TubeGeometry(curve, Math.max(48, pts.length * 6), r, r > 1 ? 14 : 6, false);
+  }
+  function fractions(P) { // cumulative length fraction per point
+    const t = [0]; let L = 0;
+    for (let i = 1; i < P.length; i++) { L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]); t.push(L); }
+    return t.map((x) => (L ? x / L : 0));
+  }
+  function rebuildCable(v, c, liftPad, liftDock) {
+    const cab = cableOf(c), r = routeOf(cab, v);
+    const cableR = (cab.diameter || cfg.CABLE_D || 3.5) / 2;
+    const wireR = (cab.wire_d || cfg.CABLE_WIRE_D || 0.9) / 2;
+    const liftA = liftPad, liftB = plugFollow[c] === "pad" ? liftPad : liftDock;
+    sleeveMesh.geometry.dispose();
+    sleeveMesh.geometry = tube((r.sleeve || []).map((p) => new THREE.Vector3(p[0], p[1], p[2])), cableR);
+    const ws = r.wires || [];
+    while (wireMeshes.length < ws.length) {
+      const m = new THREE.Mesh(new THREE.BufferGeometry(), cableMat); m.castShadow = true;
+      cableG.add(m); wireMeshes.push(m);
+    }
+    wireMeshes.forEach((m, i) => {
+      const w = ws[i];
+      m.visible = !!w;
+      if (!w) return;
+      // exploded: the pad-end cores stretch up to the lifted module, the plug-end cores to the
+      // lifted plug (with the dock for the pogo plug, with the pad for the USB-C grip)
+      if (!w.points || w.points.length < 2) { m.visible = false; return; }
+      const f = fractions(w.points);
+      const pts = w.points.map((p, k) => new THREE.Vector3(p[0], p[1], p[2] + (w.part === "pad" ? liftA * (1 - f[k]) : liftB * f[k])));
+      m.material = wireMat(w.color || "#888888");
+      m.geometry.dispose();
+      m.geometry = tube(pts, wireR);
+    });
+  }
+
+  // ---- ground: shadow catcher + 10 mm grid ---------------------------------
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ opacity: 0.25 }));
+  ground.position.set(REST_W / 2, 90, -0.02); ground.receiveShadow = true;
+  scene.add(ground);
+  let grid = null;
+  function makeGrid() {
+    if (grid) { scene.remove(grid); grid.geometry.dispose(); grid.material.dispose(); }
+    grid = new THREE.GridHelper(800, 80, new THREE.Color(tok("--scene-grid-major")), new THREE.Color(tok("--scene-grid")));
+    grid.rotation.x = Math.PI / 2;
+    grid.position.set(Math.round(REST_W / 20) * 10, 90, -0.05);
+    grid.material.transparent = true; grid.material.opacity = 0.9; grid.material.depthWrite = false;
+    scene.add(grid);
+  }
+
+  // ------------------------------------------------------------------ state --
+  const S = { variant: initialVariant(), connector: initialConnector(), explode: 0, section: 1, xray: false, keyboard: true, cable: true, view: "hero" };
+  let needsRender = true;
+  const invalidate = () => { needsRender = true; };
+
+  function seat(v) {
+    const pv = (tp.per_variant || {})[v] || {};
+    const t = variantGlassT(v);
+    const pcbTop = pv.pcb_top_z ?? (REST_H - (+cfg.TP_SURFACE_RECESS || 0.15) - (t > 0 ? t + adhT : adhT));
+    const glassTop = pv.glass_top_z ?? (pcbTop + adhT + t);
+    return { pcbTop, glassBottom: glassTop - t, t };
+  }
+  function edgesOf(o) { // x-ray feature edges, built on first use, ride with the part
+    if (!o.edges) {
+      o.edges = new THREE.LineSegments(featureEdges(o.raw.pos, o.raw.index, o.faceUnit, 28), featureMat);
+      o.edges.matrixAutoUpdate = false; o.edges.matrix.copy(o.mesh.matrix);
+      (o.wrap || model).add(o.edges);
+    }
+    return o.edges;
+  }
+  const XRAY_OPACITY = new Map([[restMat, 0.2], [dockMat, 0.26], [gripMat, 0.26]]);
+  function applyState() {
+    const v = S.variant, c = S.connector, st = seat(v), hasGlass = st.t > 0;
+    const rest = restFor(v, c);
+    for (const o of partObjs) {
+      const on = o.p.role === "rest" ? o === rest : (!o.p.connector || o.p.connector === c);
+      (o.wrap || o.mesh).visible = on;
+      o.mesh.castShadow = !S.xray;
+      if (S.xray && on) edgesOf(o).visible = true;
+      else if (o.edges) o.edges.visible = false;
+    }
+    for (const [id, gs] of Object.entries(hwGroups)) for (const g of gs) g.visible = id === c;
+    const e = S.explode;
+    const glassLift = 26 * ease(e / 0.45), moduleLift = 12 * ease((e - 0.18) / 0.45), dockLift = 30 * ease((e - 0.45) / 0.55);
+    const late = ease((e - 0.45) / 0.55);
+    moduleG.position.set(tpC[0], tpC[1], st.pcbTop + moduleLift);
+    moduleG.traverse((ch) => { if (ch.userData.glassOnly) ch.visible = hasGlass; });
+    glassG.visible = hasGlass;
+    if (hasGlass) buildGlass(st.t);
+    glassG.position.set(tpC[0], tpC[1], st.glassBottom + moduleLift + glassLift);
+    dockG.position.z = dockLift;
+    padG.position.z = moduleLift;
+    for (const w of explodeWraps) { const o = w.userData.explode; w.position.set(o[0] * late, o[1] * late, o[2] * late); }
+    rebuildCable(v, c, moduleLift, dockLift);
+    $("explode-val").textContent = e <= 0 ? "Assembled"
+      : (hasGlass ? `glass +${(moduleLift + glassLift).toFixed(0)} · ` : "") + `pad +${moduleLift.toFixed(0)} · dock +${dockLift.toFixed(0)} mm`;
+    // section
+    const xCut = restBox.min.x + S.section * REST_W;
+    clipPlane.constant = S.section >= 1 ? 1e6 : xCut;
+    $("section-val").textContent = S.section >= 1 ? "Off" : `X ${xCut.toFixed(1)} mm`;
+    capU.on.value = S.section < 1 && !S.xray ? 1 : 0;
+    // x-ray: the printed parts go glassy, so the trackpad, boards and wires inside show
+    for (const [m, op] of XRAY_OPACITY) {
+      if (m.transparent === S.xray) continue;
+      m.transparent = S.xray; m.opacity = S.xray ? op : 1; m.depthWrite = !S.xray;
+      m.needsUpdate = true;
+    }
+    // labels
+    setVariantUI(v);
+    setConnectorUI(c);
+    invalidate();
+  }
+
+  const skyC = new THREE.Color(), groundC = new THREE.Color();
+  let shadowBase = 0.25;
+  function applyTheme() {
+    scene.background = new THREE.Color(tok("--scene-bg"));
+    skyC.set(tok("--scene-sky")); groundC.set(tok("--scene-ground"));
+    shadowBase = parseFloat(tok("--scene-shadow")) || 0.25;
+    fill.intensity = parseFloat(tok("--scene-fill")) || 0.7;
+    featureMat.color.set(tok("--scene-edge"));
+    acrylicEdgeMat.color.set(tok("--acrylic-edge"));
+    model.traverse((c) => { if (c.userData.themeEdge) c.material.color.set(tok("--scene-edge")); });
+    capU.a.value.fromArray(srgb(tok("--cap-a"))); capU.b.value.fromArray(srgb(tok("--cap-b")));
+    makeGrid();
+    invalidate();
+  }
+
+  // ---------------------------------------------------------------- camera --
+  const SCENE_C = new THREE.Vector3();
+  function visibleBox(restOnly) {
+    const b = restBox.clone();
+    if (S.section < 1) b.max.x = Math.min(b.max.x, restBox.min.x + S.section * REST_W);
+    b.expandByPoint(new THREE.Vector3(tpC[0], tpC[1], REST_H + 2));
+    if (!restOnly && S.keyboard) {
+      const k = new THREE.Box3(new THREE.Vector3(kbO[0], kbO[1], 0), new THREE.Vector3(kbO[0] + KW, kbO[1] + KD, KH + 15));
+      if (S.section < 1) k.max.x = Math.min(k.max.x, b.max.x);
+      b.union(k);
+    }
+    return b;
+  }
+  // The bottom engraving is mirrored in X (geometry/rest.py), i.e. it reads right after
+  // turning the rest over about its Y axis: look up from behind so screen-right = -X.
+  const engraveAxis = String(cfg.ENGRAVE_FLIP_AXIS || "y").toLowerCase();
+  const VIEWS = {
+    hero: { dir: [0.42, -0.78, 0.6], tall: [0.3, -0.62, 0.95], label: "Hero 3/4" },
+    top: { dir: [0, -0.015, 1], label: "Top" },
+    profile: { dir: [1, 0, 0.06], label: "Profile" },
+    under: { dir: engraveAxis === "x" ? [0, -0.35, -1] : [0, 0.35, -1], label: "Underside", restOnly: true },
+  };
+  function fitView(name) {
+    const v = VIEWS[name], box = visibleBox(v.restOnly), c = box.getCenter(new THREE.Vector3());
+    const dir = new THREE.Vector3(...(camera.aspect < 1 && v.tall ? v.tall : v.dir)).normalize();
+    const basis = new THREE.Matrix4().lookAt(dir, new THREE.Vector3(), camera.up);
+    const right = new THREE.Vector3().setFromMatrixColumn(basis, 0), up = new THREE.Vector3().setFromMatrixColumn(basis, 1);
+    const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 0.86, tanH = tanV * camera.aspect;
+    let D = 10;
+    for (let i = 0; i < 8; i++) {
+      const p = new THREE.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).sub(c);
+      const depth = -p.dot(dir);
+      D = Math.max(D, Math.abs(p.dot(right)) / tanH - depth, Math.abs(p.dot(up)) / tanV - depth);
+    }
+    return { pos: c.clone().addScaledVector(dir, D), target: c };
+  }
+  let tween = null;
+  function goTo(name, instant) {
+    S.view = name;
+    for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b.dataset.view === name));
+    $("tb-view").textContent = VIEWS[name].label;
+    const f = fitView(name);
+    if (instant || reduceMotion.matches) {
+      camera.position.copy(f.pos); controls.target.copy(f.target); controls.update(); tween = null; invalidate(); return;
+    }
+    tween = { t0: performance.now(), dur: 700, p0: camera.position.clone(), q0: controls.target.clone(), p1: f.pos, q1: f.target };
+  }
+  controls.addEventListener("start", () => { tween = null; });
+  controls.addEventListener("change", invalidate);
+
+  // ---------------------------------------------------------------- resize --
+  function resize() {
+    const w = Math.max(1, stage.clientWidth), h = Math.max(1, stage.clientHeight);
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    invalidate();
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  // ------------------------------------------------------------------- UI --
+  document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventListener("change", () => { if (el.checked) { S.variant = el.value; applyState(); } }));
+  document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => { if (el.checked) { S.connector = el.value; applyState(); } }));
+  document.querySelectorAll('input[name="finish"]').forEach((el) => el.addEventListener("change", () => {
+    if (!el.checked) return; setFinish(el.value); invalidate();
+  }));
+  $("explode").addEventListener("input", (e) => { S.explode = +e.target.value / 100; applyState(); });
+  $("section").addEventListener("input", (e) => { S.section = +e.target.value / 1000; applyState(); });
+  $("section-center").addEventListener("click", () => {
+    const v = Math.round(((tpC[0] - restBox.min.x) / REST_W) * 1000);
+    $("section").value = String(v); S.section = v / 1000; applyState();
+  });
+  $("show-keyboard").addEventListener("change", (e) => { S.keyboard = e.target.checked; applyState(); });
+  $("show-cable").addEventListener("change", (e) => { S.cable = e.target.checked; applyState(); });
+  $("xray").addEventListener("change", (e) => { S.xray = e.target.checked; applyState(); });
+  $("autorotate").addEventListener("change", (e) => { controls.autoRotate = e.target.checked; invalidate(); });
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => goTo(b.dataset.view)));
+  // pick up states the browser restored (back/forward cache, republish)
+  S.variant = initialVariant();
+  S.connector = initialConnector();
+  const fin =document.querySelector('input[name="finish"]:checked'); if (fin) setFinish(fin.value);
+  else setFinish("#2c3034");
+  S.explode = +$("explode").value / 100; S.section = +$("section").value / 1000;
+  S.keyboard = $("show-keyboard").checked; S.cable = $("show-cable").checked; S.xray = $("xray").checked;
+  controls.autoRotate = $("autorotate").checked;
+
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+
+  applyTheme();
+  applyState();
+  goTo("hero", true);
+
+  // -------------------------------------------------------------- render --
+  const triad = { x: $("ax-x"), y: $("ax-y"), z: $("ax-z"), lx: $("lb-x"), ly: $("lb-y"), lz: $("lb-z") };
+  const tmpV = new THREE.Vector3();
+  function updateTriad() {
+    const q = camera.quaternion.clone().invert();
+    for (const [a, vec] of [["x", [1, 0, 0]], ["y", [0, 1, 0]], ["z", [0, 0, 1]]]) {
+      tmpV.set(...vec).applyQuaternion(q);
+      const x = tmpV.x * 20, y = -tmpV.y * 20;
+      triad[a].setAttribute("x2", x.toFixed(1)); triad[a].setAttribute("y2", y.toFixed(1));
+      triad["l" + a].setAttribute("x", (x * 1.25 - 3.5).toFixed(1)); triad["l" + a].setAttribute("y", (y * 1.25 + 3.5).toFixed(1));
+    }
+  }
+  function placeLights(below) { // mirror the rig under the table for the underside view
+    const c = controls.target, sz = below ? -1 : 1;
+    // below: a low raking light so the engraving's walls catch it
+    if (below) key.position.set(c.x - 340, c.y - 120, c.z - 55); else key.position.set(c.x - 160, c.y - 230, c.z + 320);
+    key.target.position.copy(c);
+    key.intensity = below ? 3.6 : 2.3; hemi.intensity = below ? 0.4 : 1.1;
+    scene.environmentIntensity = below ? 0.3 : 0.55;
+    fill.position.set(c.x + 260, c.y + 200, c.z + sz * 140); fill.target.position.copy(c);
+    under.position.set(c.x + 60, c.y + 90, c.z - 300); under.target.position.copy(c); // fill from below
+    hemi.color.copy(below ? groundC : skyC); hemi.groundColor.copy(below ? skyC : groundC);
+  }
+  let frames = 0;
+  renderer.setAnimationLoop((now) => {
+    if (tween) {
+      const k = Math.min(1, (now - tween.t0) / tween.dur), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      camera.position.lerpVectors(tween.p0, tween.p1, e); controls.target.lerpVectors(tween.q0, tween.q1, e);
+      if (k >= 1) tween = null;
+      needsRender = true;
+    }
+    const moved = controls.update();
+    if (!(moved || needsRender || controls.autoRotate || tween)) return;
+    needsRender = false;
+    const below = camera.position.z < controls.target.z - 5 && camera.position.z < 0;
+    grid.visible = !below; ground.visible = !below;
+    under.intensity = below ? 1.5 : 0.0;
+    key.castShadow = !below;
+    // from below only the rest matters: the keyboard, dock and cable would sit in front of it
+    kbG.visible = S.keyboard && !below; dockG.visible = !below; padG.visible = !below;
+    cableG.visible = S.cable && !below;
+    const toCam = camera.position.clone().sub(controls.target);
+    const elev = Math.asin(THREE.MathUtils.clamp(toCam.z / (toCam.length() || 1), -1, 1)) * 180 / Math.PI;
+    ground.material.opacity = shadowBase * clamp01((elev - 4) / 16);
+    placeLights(below);
+    updateTriad();
+    renderer.render(scene, camera);
+    if (++frames === 1) {
+      $("loading").hidden = true;
+      requestAnimationFrame(() => { window.__ready = true; document.documentElement.dataset.ready = "1"; });
+    }
+  });
+  window.__ithalat = { S, goTo, applyState, scene, camera, controls, invalidate, THREE };
+}
+</script>
+<!--@BODY-END@-->
+</body>
+</html>
