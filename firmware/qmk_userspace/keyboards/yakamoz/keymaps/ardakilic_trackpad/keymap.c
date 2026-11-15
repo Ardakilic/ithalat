@@ -31,6 +31,8 @@
  * transparent there before), so both stay reachable without the removed switches. The trackpad
  * replaces the mouse buttons: 1-finger tap = left click, 2-finger tap = right click,
  * press-and-hold = left button held (drag; enabled in config.h).
+ * The same keymap is in Ardakilic/qmk_userspace as yakamoz:yakamoz_ithalat_trackpad. Only the
+ * comments that name the keymap or point to files differ; keep the code of both copies in sync.
  */
 
 #include QMK_KEYBOARD_H
@@ -64,7 +66,7 @@ enum yakamoz_layers {
 #define BACKTICK RALT(KC_BSLS)
 #define TILDE RALT(KC_RBRC)
 #define HASHTAG RALT(KC_3)
-#define LOCKSCREEN LCTL(LSFT(KC_PWR)) // Screen Lock shortcut for OSX
+#define LOCKSCREEN LCTL(LSFT(KC_SYSTEM_POWER)) // Screen Lock shortcut for OSX
 
 /*
 // Unicode Turkish characters, in case it's needed
@@ -564,10 +566,7 @@ bool render_status(void) {
     return false;
 }
 
-bool oled_task_kb(void) {
-    if (!oled_task_user()) {
-        return false;
-    }
+bool oled_task_user(void) {
     if (is_keyboard_master()) {
         render_status();  // Renders the current keyboard state (layer, lock, caps, scroll, etc)
     }

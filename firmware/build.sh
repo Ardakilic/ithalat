@@ -32,7 +32,7 @@ QMK_REF="${QMK_REF:-master}"
 FORK_REPO="${FORK_REPO:-https://github.com/Ardakilic/qmk_firmware.git}"
 FORK_REF="${FORK_REF:-7bed308a04e06ea586efa9d9b6ec553903594edb}"            # fork master, 2026-09-24
 USERSPACE_REPO="${USERSPACE_REPO:-https://github.com/Ardakilic/qmk_userspace.git}"
-USERSPACE_REF="${USERSPACE_REF:-ef35653599766e6cb1c834cd192c3e39d69dd623}"  # userspace main, 2026-03-29
+USERSPACE_REF="${USERSPACE_REF:-021ecc16318e3b847276e954fd82da7f152aebd6}"  # userspace main, 2026-11-15
 KEYMAPS="${KEYMAPS:-ardakilic ardakilic_trackpad}"
 DOCKER_PULL="${DOCKER_PULL:-missing}"   # always | missing | never
 

@@ -119,6 +119,7 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
   - locks the dock's back clips with its two prongs. There is no separate lock part.
 - **Preview** (`preview/index.html`):
   - shows the glass/bare variants, the two connectors, filament colours, explode, section cut, x-ray, underside view, dimensions, parts with masses, pinout and print notes;
+  - lists the STLs for the picked variant and connector under *Download STLs*: one link per file, plus *Download all* (a .zip made in the browser with JSZip from cdnjs);
   - is one file. It loads three.js and the fonts from a CDN, so it needs a network connection.
 
 ### Frames and orientation

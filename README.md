@@ -37,6 +37,7 @@ A 3D-printed wrist rest with a built-in trackpad for the [Yakamoz](https://githu
 - **All four combinations:** glass or bare rest, with the magnetic pogo or the USB-C connector.
 - **Views:** x-ray, explode, section cut and the underside.
 - **Info:** filament colours, dimensions, the parts with their masses, the pinout and the print notes.
+- **Download:** the *Download STLs* block lists just the files your pick needs. Get them one by one, or all at once as a .zip.
 - **Offline:** open [`preview/index.html`](preview/index.html) in a browser after cloning. It is one file, but it loads three.js and the fonts from a CDN, so it needs an internet connection and WebGL.
 
 ## What "ithalat" means
@@ -335,6 +336,7 @@ cd firmware
 - **Image:** it builds inside the official `ghcr.io/qmk/qmk_cli` image, against upstream QMK.
 - **Keyboard:** `keyboards/yakamoz` comes from [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware).
 - **Baseline keymap:** comes from [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace).
+- **Also in the owner's QMK userspace:** the same keymap is in [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace) as `yakamoz:yakamoz_ithalat_trackpad` ([details](firmware/README.md#the-keymap-in-qmk_userspace)).
 
 > [!NOTE]
 > **Not yet tested on hardware.** The firmware compiles cleanly and passes the simulated scenario tests, but it has not run on a real Yakamoz with a real TPS65 yet. Work through the [test checklist](firmware/README.md#test-checklist-after-flashing) after the first flash.
@@ -472,7 +474,7 @@ Python 3.14, numpy 2.5.3, shapely 2.1.2, trimesh 5.1.0, manifold3d 3.5.3, mapbox
 > [!NOTE]
 > **If `tools/verify.py` fails, nothing is deployed.** The last good page stays up.
 
-- **STLs online:** the site also serves the STLs, at `https://ardakilic.github.io/ithalat/stl/<file>.stl`. The STL links on the page itself download the committed files from this repository.
+- **STLs online:** the site also serves the STLs, at `https://ardakilic.github.io/ithalat/stl/<file>.stl`. The page's download links use these copies. The offline copy downloads the committed files from this repository instead.
 - **Offline copy:** the committed [`preview/index.html`](preview/index.html) is the same page.
 - **Badge:** the badge at the top of this README shows the state of the last run.
 - **Forks:** enable Pages in *Settings > Pages* with *Source: GitHub Actions*, and your fork publishes its own preview.

@@ -95,7 +95,7 @@ WORK_DIR=/path/to/scratch ./build.sh        # where qmk_firmware is cloned (defa
 
 1. A shallow clone of `qmk/qmk_firmware` with submodules at `QMK_REF`.
 2. `keyboards/yakamoz` from `Ardakilic/qmk_firmware@7bed308` (`FORK_REF`).
-3. The baseline `ardakilic` keymap from `Ardakilic/qmk_userspace@ef35653` (`USERSPACE_REF`).
+3. The baseline `ardakilic` keymap from `Ardakilic/qmk_userspace@021ecc1` (`USERSPACE_REF`, `main` as of 2026-11-15).
 4. The keymaps in `qmk_userspace/keyboards/yakamoz/keymaps/`.
 5. `qmk compile` for each keymap, with fresh objects every time.
 
@@ -108,6 +108,9 @@ WORK_DIR=/path/to/scratch ./build.sh        # where qmk_firmware is cloned (defa
 </details>
 
 ## Using it in a QMK userspace
+
+> [!TIP]
+> **Already in the owner's userspace:** the same keymap is in [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace) as `yakamoz:yakamoz_ithalat_trackpad`, and its CI builds it ([Maintainer notes](#maintainer-notes-ardakilicqmk_userspace)).
 
 The simplest route is `./build.sh` (above), which needs only Docker. To build the keymap from your own [QMK userspace](https://docs.qmk.fm/newbs_external_userspace) instead:
 
@@ -123,7 +126,7 @@ The simplest route is `./build.sh` (above), which needs only Docker. To build th
 3. **Build it** against a QMK tree that has `keyboards/yakamoz` (from the [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware) fork) and up-to-date submodules.
 
 > [!NOTE]
-> **The fork's own CI needs a submodule fix first.** See [Maintainer notes](#maintainer-notes-ardakilicqmk_userspace).
+> **Use upstream QMK with the fork's `keyboards/yakamoz` copied in, not the fork itself.** The fork's ChibiOS submodules are stale. `build.sh` and the userspace CI both do it this way ([Maintainer notes](#maintainer-notes-ardakilicqmk_userspace)).
 
 ## Config knobs (`ardakilic_trackpad/config.h`)
 
@@ -425,12 +428,13 @@ Do these in order on first flash.
 **Where the rest comes from**
 
 - **Baseline keymap:** `ardakilic` lives in the owner's [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace) repo.
+- **Userspace copy:** this keymap is in that repo too, as `yakamoz_ithalat_trackpad` ([Maintainer notes](#the-keymap-in-qmk_userspace)).
 - **Keyboard definition:** `keyboards/yakamoz` comes from the [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware) fork.
 - **Layout:** the folder layout here matches a QMK userspace, so the keymap folder can be copied straight into one.
 
 ### Changes vs. `ardakilic`
 
-- **Diff base:** `Ardakilic/qmk_userspace@ef35653` `keyboards/yakamoz/keymaps/ardakilic`.
+- **Diff base:** `Ardakilic/qmk_userspace@021ecc1` `keyboards/yakamoz/keymaps/ardakilic` (`main` as of 2026-11-15, with its `KC_SYSTEM_POWER` and `oled_task_user()` updates).
 - **Only additions,** plus exactly two changed lines: the SODA layer's bottom row and its diagram line in `keymap.c`.
 - **No original line was removed.**
 
@@ -594,21 +598,49 @@ All 8 `pointing_device_handle_buttons()` calls in the driver (lines 371-397) pas
 ## Maintainer notes (Ardakilic/qmk_userspace)
 
 - **For the owner's other repos:** [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace) and the [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware) fork.
-- **You do not need these** to build or flash ithalat: `./build.sh` already works around the problem below.
+- **You do not need these** to build or flash ithalat. `./build.sh` builds the same way as the userspace CI below: upstream QMK plus the fork's `keyboards/yakamoz` at a pinned commit.
+- **Status:** both changes below are in the [pull request #2](https://github.com/Ardakilic/qmk_userspace/pull/2) on Ardakilic/qmk_userspace. Until it is merged, `main` there still has the broken CI and no trackpad target.
 
-### qmk_userspace CI and the fork's stale submodules
+### The keymap in qmk_userspace
 
-**What is broken**
+- **Build target:** `yakamoz:yakamoz_ithalat_trackpad`, in `keyboards/yakamoz/keymaps/yakamoz_ithalat_trackpad/` plus one `qmk.json` entry. Output: `yakamoz_yakamoz_ithalat_trackpad.uf2`.
+- **Same code as `ardakilic_trackpad` here:** with comments stripped, `keymap.c` and `config.h` are identical, and `rules.mk` is byte-identical. Only comments that name the keymap or point to files differ.
+- **Keep them in sync:** change both copies together. `./test.sh` only tests the copy here.
+- **Own README:** the userspace folder has a short `README.md` (wiring, build, flash) that links back here.
 
-- **Last green build:** the `Ardakilic/qmk_userspace` `main` branch last built green on 2026-03-29 (run `23719399243`, at `ef35653`). That was before the fork sync of 2026-09-24.
-- **Latest run:** `36069148228`, 2026-09-24, on the `migrate/keyboard-json` branch of the open PR #1, not on `main`. It failed every ChibiOS target, `yakamoz:ardakilic` included, with:
+<details><summary>Why that name, and why a keymap</summary>
+
+- **Underscores, not hyphens:** QMK keymap names allow only `a-z`, `0-9` and `_`. With `yakamoz-ithalat-trackpad`, `qmk userspace-add` refuses to save `qmk.json`. A hand-edited entry makes `qmk userspace-doctor` (the CI's "Validate userspace" step) reject the file, so nothing builds.
+- **A keymap, not a keyboard:** an External Userspace holds keymaps only. Keyboards live in a QMK fork, and `keyboards/yakamoz` is already in Ardakilic/qmk_firmware.
+- **The folder here stays `ardakilic_trackpad`:** `build.sh`, `test.sh`, the prebuilt `.uf2` names and the links in these docs use it.
+
+</details>
+
+### qmk_userspace CI: current state
+
+- **Was broken:** since the fork sync of 2026-09-24, every ChibiOS target failed, `yakamoz:ardakilic` included. Latest failure: run `43751252332` on `main` @ `021ecc1` (2026-11-15). The `latest` release from that run holds only four AVR binaries.
+- **Fix: build against upstream.** `.github/workflows/build_binaries.yaml` now uses `qmk_repo: qmk/qmk_firmware` (`qmk_ref: master`) instead of the fork.
+- **Fork keyboards are copied in:** the reusable workflow's `preparation_command` fetches `cost_crafter40`, `skywatch`, `woodpecker` and `yakamoz` from the fork at a pinned commit (`FORK_SHA`, `7bed308`) and copies them into `qmk_firmware/keyboards/`. `build.sh` does the same for `yakamoz`.
+- **After editing those keyboards in the fork:** push, then bump `FORK_SHA` in the workflow.
+- **Publishing:** the `publish` job now runs only on `main`. Branch pushes just build and no longer replace the `latest` release.
+- **Checked locally** (docker replay of the CI job, QMK `33292390974c`): all 13 targets, the new one included, build with zero errors and zero warnings. The prebuilt `.uf2` files in `build/` are byte-identical to that run's `yakamoz` images.
+
+<details><summary>Side effect: CI now builds the userspace's own keymaps everywhere</summary>
+
+- QMK looks for keymaps in `qmk_firmware/keyboards/*/keymaps` before the userspace, and the first match wins.
+- The fork has its own older `keymaps/ardakilic` for `ergotravel`, `horizon` (`ardakilic`, `ardakilic_trackball`) and `peej/lumberjack`. CI used to build those, not the userspace copies.
+- Upstream QMK has none of them, so CI now builds the userspace keymaps. The published binaries now match the userspace source.
+- That also cleared the `ergotravel` `RGBLIGHT_LED_COUNT` error: the fork's copy still set the old `RGBLED_NUM`.
+
+</details>
+
+<details><summary>Root cause: the fork's stale submodule gitlinks</summary>
+
+- **Cause:** the fork (`master` @ `7bed308`, "sync fork") merged upstream's code but kept **old submodule pointers**. The new ChibiOS config templates therefore meet an old ChibiOS:
 
 ```
 ./lib/chibios/os/hal/include/hal.h:136:2: error: #error "obsolete or unknown configuration file"
 ```
-
-- **Next push will fail too:** that CI builds against the fork's current `master` (`.github/workflows/build_binaries.yaml`: `qmk_repo: Ardakilic/qmk_firmware`, `qmk_ref: master`). So the next push to `main`, for example one that adds `ardakilic_trackpad`, will very likely hit the same error on every RP2040 target.
-- **Cause:** the fork (`master` @ `7bed308`, "sync fork") merged upstream's code but kept **old submodule pointers**. The new ChibiOS config templates therefore meet an old ChibiOS.
 
 | submodule | Ardakilic/qmk_firmware | upstream master |
 |---|---|---|
@@ -616,17 +648,10 @@ All 8 `pointing_device_handle_buttons()` calls in the driver (lines 371-397) pas
 | `lib/chibios-contrib` | `8d863d9e…` | `5a9ad82b6ba4f649cdb800e8c2bbc9be2d3ce767` |
 | `lib/pico-sdk` | `a3398d8d…` | `d0c5cac430cc955b65efa0e899748853d9a80928` |
 
-<details><summary>Supporting evidence</summary>
+- **History:** `main` last built green on 2026-03-29 (run `23719399243`, at `ef35653`), before the sync. The first failed run was `36069148228` (2026-09-24, PR #1's `migrate/keyboard-json` branch).
+- **Evidence:** `build.sh` builds the fork's **unchanged** `keyboards/yakamoz` against upstream master with correct submodules, with zero warnings. The keyboard definition is fine; only the gitlinks are stale.
 
-- `build.sh` builds the fork's **unchanged** `keyboards/yakamoz` and the **unchanged** `ardakilic` keymap against upstream master with correct submodules. Both compile with zero warnings.
-- The keyboard definition and keymap are fine; only the gitlinks are stale.
-- The fork tree itself was not rebuilt locally. The error text above comes from the CI log.
-
-</details>
-
-**The fix**
-
-Run this in a clone of the fork. It records upstream's gitlinks.
+**Optional: fix the fork itself.** The CI no longer needs it; it only matters when building from a clone of the fork. Run this in a clone of the fork. It records upstream's gitlinks.
 
 ```sh
 git update-index --cacheinfo 160000,6170ddf92d55be54c89b708d1882eea229edeb2c,lib/chibios
@@ -639,14 +664,14 @@ git push
 
 - **SHAs:** upstream master as of 2026-11-12.
 - **Future syncs:** merge `upstream/master` normally, then run `git submodule update --init --recursive`.
-- **Why the release is incomplete:** the CI's `publish` job runs on `always()`, which is why the current `latest` release holds only the four AVR binaries.
-- **Alternative (untested), no fork maintenance:** build against `qmk/qmk_firmware` and use the reusable workflow's `preparation_command` to copy `keyboards/yakamoz` and `keyboards/cost_crafter40` from the fork into `./qmk_firmware/keyboards/`. That is exactly what `build.sh` does.
+
+</details>
 
 ### cost_crafter40: tap latch and CPI
 
 **Tap latch**
 
-- The fork's `master` (synced 2026-09-24) contains `0d401d1182`.
+- Upstream master, which the userspace CI now builds against, contains `0d401d1182`. So does the fork's `master` (synced 2026-09-24).
 - So the `cost_crafter40` trackpad keymap will latch taps too on its next build (see [Tap-latch finding](#tap-latch-finding-qmk--0340)).
 - The same two functions fix it there.
 
