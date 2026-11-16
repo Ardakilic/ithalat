@@ -14,23 +14,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* 'ardakilic_trackpad' = the 'ardakilic' keymap (Ardakilic/qmk_userspace) with every layer (plus
- * two SODA copies, see below), the OLED rendering, audio and WPM unchanged, plus an Azoteq TPS65
- * trackpad in the "ithalat" wrist rest (see the "Azoteq TPS65 trackpad" section below and
- * firmware/README.md in the ithalat repo):
- *   - CPI re-applied after every (re)initialisation of the pad
- *   - hot-plug: the pad is detected and (re)initialised when the cable is plugged in after boot
- *     or when the pad was reset
- *   - keymap-level workaround for the QMK >= 0.34.0 tap-to-click latch
+/* 'ithalat' = ozkan's stock 'default' keymap (github.com/ozkan/Yakamoz-qmk, yakamoz/keymaps/default)
+ * plus an Azoteq TPS65 trackpad in the "ithalat" wrist rest. See the "Azoteq TPS65 trackpad"
+ * section below and firmware/README.md in the ithalat repo. Changes against the stock keymap:
+ *   - keycode renames only, so that it builds on current QMK (the old names were removed in the
+ *     2025-08-31 breaking-changes release, qmk_firmware#25444): RGB_xxx -> UG_xxx (same RGB
+ *     underglow functions), KC_MS_BTN2 -> MS_BTN2
+ *   - trackpad code: CPI re-applied after every (re)initialisation, hot-plug (the pad is found and
+ *     (re)initialised when the cable is plugged in after boot or the pad was reset), and a
+ *     keymap-level workaround for the QMK >= 0.34.0 tap-to-click latch
  *   - "Pad: on" / "Pad: --" line on the OLED
- * The two front-row centre keys [3,6]/[3,7] are physically removed on the trackpad build to make
- * room for the connector dock. They carry MS_BTN1/MS_BTN2 on every layer except SODA, where they
- * carry QK_AUDIO_VOICE_NEXT/QK_MUSIC_TOGGLE. All keycodes are left in place so this keymap still
- * works on an unmodified board. The only original lines changed are the SODA bottom row and its
- * diagram line: QK_AUDIO_VOICE_NEXT is copied to [3,4] and QK_MUSIC_TOGGLE to [3,9] (both
- * transparent there before), so both stay reachable without the removed switches. The trackpad
- * replaces the mouse buttons: 1-finger tap = left click, 2-finger tap = right click,
- * press-and-hold = left button held (drag; enabled in config.h).
+ *   - OLED layer line fix: it also reads default_layer_state, so it shows the selected
+ *     Colemak/Dvorak base layer (stock showed "QWERTY" whenever no momentary layer was held);
+ *     the caps line is pinned to line 11 so the longer "L: COLEMAK" leaves no stale text
+ *   - the two front-row centre switches [3,6]/[3,7] (SW44/SW43) are physically removed on the
+ *     trackpad build to make room for the connector dock. Stock keycodes there: Scroll Lock and
+ *     right click on the three base layers, QK_BOOT and DB_TOGG on Adjust. All of them stay in
+ *     place, so this keymap still works on an unmodified board. Adjust gets copies in its
+ *     (previously transparent) left column: QK_BOOT on the Tab key, DB_TOGG on the Esc key,
+ *     KC_SCRL on the Caps key. Right click needs no copy: the trackpad replaces it
+ *     (1-finger tap = left click, 2-finger tap = right click, press-and-hold = left button held
+ *     for drag, enabled in config.h).
+ * Everything else (layers, Colemak/Dvorak, tri-layer, audio, RGB, OLED picture) is unchanged.
  */
 
 #include QMK_KEYBOARD_H
@@ -38,182 +43,166 @@
 
 enum yakamoz_layers {
   _QWERTY,
+  _COLEMAK,
+  _DVORAK,
   _LOWER,
   _RAISE,
-  // _ADJUST,
-  _SODA,
-  _SPACE,
-  _NUMPAD
+  _ADJUST
 };
 
-// KC_NONUS_BACKSLASH (\|) is equivalent to ["é] key in Turkish keyboards.
-// KC_GRV (~ `) is equivalent to [<>|] key in Turkish keyboards.
-// KC_SCLN is Turkish s [şŞ] key
-// KC_QUOT is Turkish i [iİ] key
-// KC_COMM is Turkish o [öÖ] key
-// KC_DOT is Turkish c [çÇ] key
-
-// Custom shortcuts specific to Turkish layout
-#define CURLY_OPEN RALT(KC_7)
-#define CURLY_CLOSE RALT(KC_0)
-#define SQUARE_OPEN RALT(KC_8)
-#define SQUARE_CLOSE RALT(KC_9)
-#define DOLLAR_SIGN RALT(KC_4)
-#define BACKSLASH RALT(KC_MINS)
-#define VERTICAL_PIPE RALT(KC_EQL)
-#define BACKTICK RALT(KC_BSLS)
-#define TILDE RALT(KC_RBRC)
-#define HASHTAG RALT(KC_3)
-#define LOCKSCREEN LCTL(LSFT(KC_PWR)) // Screen Lock shortcut for OSX
-
-/*
-// Unicode Turkish characters, in case it's needed
-enum {
-    TR_C, // ç
-    TR_C_L, // Ç
-    TR_I, // ı
-    TR_I_L, // İ
-    TR_G, // ğ
-    TR_G_L, // Ğ
-    TR_S, // ş
-    TR_S_L, // Ş
-    TR_U, // ü
-    TR_U_L, // Ü
-    TR_O, // ö
-    TR_O_L, // Ö
+enum yakamoz_keycodes {
+  QWERTY = SAFE_RANGE,
+  COLEMAK,
+  DVORAK
 };
 
-// clang-format off
-const uint32_t PROGMEM unicode_map[] = {
-    [TR_C] = 0x00c7,
-    [TR_C_L] = 0x00e7,
-    [TR_I] = 0x0130,
-    [TR_I_L] = 0x0131,
-    [TR_G] = 0x011e,
-    [TR_G_L] = 0x011f,
-    [TR_S] = 0x015e,
-    [TR_S_L] = 0x015f,
-    [TR_U] = 0x00dc,
-    [TR_U_L] = 0x00fc,
-    [TR_O] = 0x00d6,
-    [TR_O_L] = 0x00f6,
-};
-// clang-format on
-*/
+#define LOWER MO(_LOWER)
+#define RAISE MO(_RAISE)
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
-    /* Qwerty
-    * ,-------------------------------------------------------------------------------------------------.
-    * |  Tab |   Q  |   W  |   E  |   R  |   T  |             |   Y  |   U  |   I  |   O  |   P  | Bksp |
-    * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-    * |NPdEsc|   A  |   S  |   D  |   F  |   G  |             |   H  |   J  |   K  |   L  |   Ş  |   İ  |
-    * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-    * |SftCps|   Z  |   X  |   C  |   V  |   B  |             |   N  |   M  |   Ö  |   Ç  |   .  |SftEtr|
-    * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
-    * |Sda|<>| Ctrl | Alt  |  OS  |Lowr|,|Space*|LftClk|RgtClk| Bksp |Rise|"| Left | Down |  Up  |Right |
-    * `-------------------------------------------------------------------------------------------------'
-    */
-    [_QWERTY] = LAYOUT_yakamoz(
-        KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSPC,
-        LT(_NUMPAD, KC_ESC),  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
-        LSFT_T(KC_CAPS), KC_Z,  KC_X,    KC_C,    KC_V,    KC_B,    KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, RSFT_T(KC_ENT) /*KC_ENT*/,
-        LT(_SODA, KC_GRV), KC_LCTL, KC_LALT, KC_LGUI, LT(_LOWER, KC_BSLS), LT(_SPACE, KC_SPC), MS_BTN1, MS_BTN2, KC_BSPC, LT(_RAISE, KC_NONUS_BACKSLASH), KC_LEFT, KC_DOWN, KC_UP, KC_RGHT
-    ),
+/* Qwerty
+ * ,-----------------------------------------.             ,-----------------------------------------.
+ * | Tab  |   Q  |   W  |   E  |   R  |   T  |             |   Y  |   U  |   I  |   O  |   P  | Bksp |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Esc  |   A  |   S  |   D  |   F  |   G  |             |   H  |   J  |   K  |   L  |   ;  |  '   |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Shift|   Z  |   X  |   C  |   V  |   B  |             |   N  |   M  |   ,  |   .  |   /  |Enter |
+ * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
+ * | Caps | Ctrl | Alt  | GUI  |Lower |Space |Scroll|RgtClk|Space |Raise | Left | Down |  Up  |Right |
+ * `-------------------------------------------------------------------------------------------------'
+ */
+[_QWERTY] = LAYOUT_yakamoz(
+    KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,                        KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSPC,
+    KC_ESC,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,                        KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
+    KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                        KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_ENT ,
+    KC_CAPS, KC_LCTL, KC_LALT, KC_LGUI, LOWER,   KC_SPC, KC_SCRL, MS_BTN2,    KC_SPC,  RAISE,   KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
+),
 
-    /* Lower
-     * ,-------------------------------------------------------------------------------------------------.
-     * |   >  |   !  |   '  |   ^  |   +  |   %  |             |   &  |   /  |   (  |   )  |   =  | Bksp |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * | Del  |  F1  |  F2  |  F3  |  F4  |  F5  |             |  F6  |   ?  |   _  |  Ğ   |  Ü   |  -   |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |      |  F7  |  F8  |  F9  |  F10 |  F11 |             |  F12 |  "$" |  "{" |  "}" |  <   |  ">" |
-     * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
-     * |      |      |      |      |      |      |LftClk|RgtClk|      |      |  "[" |  "]" |  '   |   "  |
-     * `-------------------------------------------------------------------------------------------------'
-     */
-    [_LOWER] = LAYOUT_yakamoz(
-        KC_TILD, KC_EXLM, KC_AT,   KC_HASH, KC_DLR,  KC_PERC, KC_CIRC, KC_AMPR,    KC_ASTR,    KC_LPRN, KC_RPRN, KC_BSPC,
-        KC_DEL,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_UNDS,    KC_PLUS,    KC_LBRC, KC_RBRC, KC_EQL,
-        _______, KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  DOLLAR_SIGN, CURLY_OPEN, CURLY_CLOSE, KC_GRV, LSFT(KC_GRV),
-        _______, _______, _______, _______, _______, _______, MS_BTN1, MS_BTN2, _______, _______,   SQUARE_OPEN, SQUARE_CLOSE, LSFT(KC_2), KC_NONUS_BACKSLASH
-    ),
+/* Colemak
+ * ,-----------------------------------------.             ,-----------------------------------------.
+ * | Tab  |   Q  |   W  |   F  |   P  |   G  |             |   J  |   L  |   U  |   Y  |   ;  | Bksp |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Esc  |   A  |   R  |   S  |   T  |   D  |             |   H  |   N  |   E  |   I  |   O  |  '   |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Shift|   Z  |   X  |   C  |   V  |   B  |             |   K  |   M  |   ,  |   .  |   /  |Enter |
+ * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
+ * | Caps | Ctrl | Alt  | GUI  |Lower |Space |Scroll|RgtClk|Space |Raise | Left | Down |  Up  |Right |
+ * `-------------------------------------------------------------------------------------------------'
+ */
+[_COLEMAK] = LAYOUT_yakamoz(
+    KC_TAB,  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,                        KC_J,    KC_L,    KC_U,    KC_Y,    KC_SCLN, KC_BSPC,
+    KC_ESC,  KC_A,    KC_R,    KC_S,    KC_T,    KC_D,                        KC_H,    KC_N,    KC_E,    KC_I,    KC_O,    KC_QUOT,
+    KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                        KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_ENT ,
+    KC_CAPS, KC_LCTL, KC_LALT, KC_LGUI, LOWER,   KC_SPC, KC_SCRL, MS_BTN2,    KC_SPC,  RAISE,   KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
+),
 
-    /* Raise
-     * ,-------------------------------------------------------------------------------------------------.
-     * |  <>| |   1  |   2  |   3  |   4  |   5  |             |   6  |   7  |   8  |   9  |   0  | Bksp |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |  Del |  F1  |  F2  |  F3  |  F4  |  F5  |             |  F6  |   *  |   -  | "\"  | "|"  |  ,   |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |      |  F7  |  F8  |  F9  |  F10 |  F11 |             |  F12 |   #  |   "  | "~"  | "`"  |  <>| |
-     * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
-     * |      |      |      |      |      |      |LftClk|RgtClk|      |      | Next | Vol- | Vol+ | Play |
-     * `-------------------------------------------------------------------------------------------------'
-     */
-    [_RAISE] = LAYOUT_yakamoz(
-        KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSPC,
-        KC_DEL,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,   KC_F6,   KC_MINS, KC_EQL,  BACKSLASH, VERTICAL_PIPE, KC_BSLS,
-        _______, KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,  KC_F12,  HASHTAG, KC_NUBS, TILDE, BACKTICK, KC_GRV,
-        _______, _______, _______, _______, _______, _______, MS_BTN1, MS_BTN2,_______, _______, KC_MNXT, KC_VOLD, KC_VOLU, KC_MPLY
-    ),
+/* Dvorak
+ * ,-----------------------------------------.             ,-----------------------------------------.
+ * | Tab  |   '  |   ,  |   .  |   P  |   Y  |             |   F  |   G  |   C  |   R  |   L  | Bksp |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Esc  |   A  |   O  |   E  |   U  |   I  |             |   D  |   H  |   T  |   N  |   S  |  /   |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Shift|   ;  |   Q  |   J  |   K  |   X  |             |   B  |   M  |   W  |   V  |   Z  |Enter |
+ * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
+ * | Caps | Ctrl | Alt  | GUI  |Lower |Space |Scroll|RgtClk|Space |Raise | Left | Down |  Up  |Right |
+ * `-------------------------------------------------------------------------------------------------'
+ */
+[_DVORAK] = LAYOUT_yakamoz(
+    KC_TAB,  KC_QUOT, KC_COMM, KC_DOT,  KC_P,    KC_Y,                        KC_F,    KC_G,    KC_C,    KC_R,    KC_L,    KC_BSPC,
+    KC_ESC,  KC_A,    KC_O,    KC_E,    KC_U,    KC_I,                        KC_D,    KC_H,    KC_T,    KC_N,    KC_S,    KC_SLSH,
+    KC_LSFT, KC_SCLN, KC_Q,    KC_J,    KC_K,    KC_X,                        KC_B,    KC_M,    KC_W,    KC_V,    KC_Z,    KC_ENT ,
+    KC_CAPS, KC_LCTL, KC_LALT, KC_LGUI, LOWER,   KC_SPC, KC_SCRL, MS_BTN2,    KC_SPC,  RAISE,   KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
+),
 
-    /* Soda Layer. Adjust and other stuff
-     * ,-------------------------------------------------------------------------------------------------.
-     * |EepRST|BotLdr| Debug|Reboot|      |      |             |      |      |  Up  |      |      |      |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |      |BRGTH+| SAT+ | HUE+ |RGBMOD|  RGB |             |      | Left | Down |Right |      | Mute |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |      |BRGTH-| SAT- | HUE- |      |      |             |      |      | Next | Vol- | Vol+ | Play |
-     * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
-     * |      |      |      |      |AUD_N*|MSC_N |AUD_N |M_TOGG|A_TOGG|MTOGG*|      |      |Brght▼|Brght▲|
-     * `-------------------------------------------------------------------------------------------------'
-     * * = copies of AUD_N [3,6] / M_TOGG [3,7] for the trackpad build, where those two switches are removed.
-     */
-    [_SODA] = LAYOUT_yakamoz(
-        QK_CLEAR_EEPROM,  QK_BOOT, DB_TOGG, QK_RBT, _______, _______, _______, _______, KC_UP, _______, _______, _______,
-        _______, UG_VALU, UG_SATU, UG_HUEU, UG_NEXT, UG_TOGG, _______, KC_LEFT, KC_DOWN, KC_RGHT, _______, KC_MUTE,
-        _______, UG_VALD, UG_SATD, UG_HUED, _______, _______, _______, _______, KC_MNXT, KC_VOLD, KC_VOLU, KC_MPLY,
-        _______, _______, _______, _______, QK_AUDIO_VOICE_NEXT, QK_MUSIC_MODE_NEXT, QK_AUDIO_VOICE_NEXT, QK_MUSIC_TOGGLE, QK_AUDIO_TOGGLE, QK_MUSIC_TOGGLE, _______, _______, KC_BRMD, KC_BRMU
-    ),
+/* Lower
+ * ,-----------------------------------------.             ,-----------------------------------------.
+ * |   ~  |   !  |   @  |   #  |   $  |   %  |             |   ^  |   &  |   *  |   (  |   )  |  Del |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Del  |  F1  |  F2  |  F3  |  F4  |  F5  |             |  F6  |   _  |   +  |   {  |   }  |  |   |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * |      |  F7  |  F8  |  F9  |  F10 |  F11 |             |  F12 |ISO ~ |ISO | | Home | End  |      |
+ * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
+ * |      |      |      |      |      |      |      |      |      |      | Next | Vol- | Vol+ | Play |
+ * `-------------------------------------------------------------------------------------------------'
+ */
+[_LOWER] = LAYOUT_yakamoz(
+    KC_TILD, KC_EXLM, KC_AT,   KC_HASH, KC_DLR,  KC_PERC,                   KC_CIRC, KC_AMPR,    KC_ASTR,    KC_LPRN, KC_RPRN, KC_DEL,
+    KC_DEL,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,                     KC_F6,   KC_UNDS,    KC_PLUS,    KC_LCBR, KC_RCBR, KC_PIPE,
+    _______, KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,                    KC_F12,  S(KC_NUHS), S(KC_NUBS), KC_HOME, KC_END,  _______,
+    _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,    KC_MNXT,    KC_VOLD, KC_VOLU, KC_MPLY
+),
 
-    /* Space Layer (Space Bar Layer Tap)
-     * ,-------------------------------------------------------------------------------------------------.
-     * |      |CMD+1 |CMD+2 |CMD+3 |CMD+4 |CMD+5 |             |CMD+6 |CMD+7 |CMD+8 |CMD+9 |CMD+0 |LCKOSX|
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |      |      |      |      |      |      |             |      |      |      |  Up  |      |      |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |      |      |      |      |      |      |             |      |      | Left | Down |Right |      |
-     * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
-     * |      |      |      |      |      |      |LftClk|RgtClk|      |      |      |      |Brght▼|Brght▲|
-     * `-------------------------------------------------------------------------------------------------'
-     */
-    [_SPACE] = LAYOUT_yakamoz(
-        _______, LGUI(KC_1), LGUI(KC_2), LGUI(KC_3), LGUI(KC_4), LGUI(KC_5), LGUI(KC_6), LGUI(KC_7), LGUI(KC_8),  LGUI(KC_9), LGUI(KC_0), LOCKSCREEN,
-        _______, _______, _______, _______, _______, _______, _______, _______, _______, KC_UP,  _______, _______,
-        _______, _______, _______, _______, _______, _______, _______, _______, KC_LEFT, KC_DOWN, KC_RGHT, _______,
-        _______, _______, _______, _______, _______, _______, MS_BTN1, MS_BTN2, _______, _______, _______, _______, KC_BRMD, KC_BRMU
-    ),
+/* Raise
+ * ,-----------------------------------------.             ,-----------------------------------------.
+ * |   `  |   1  |   2  |   3  |   4  |   5  |             |   6  |   7  |   8  |   9  |   0  | DEL |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * | Del  |  F1  |  F2  |  F3  |  F4  |  F5  |             |  F6  |   -  |   =  |   [  |   ]  |  \   |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * |      |  F7  |  F8  |  F9  |  F10 |  F11 |             |  F12 |ISO # |ISO / |Pg Up |Pg Dn |      |
+ * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
+ * |      |      |      |      |      |      |      |      |      |      | Next | Vol- | Vol+ | Play |
+ * `-------------------------------------------------------------------------------------------------'
+ */
+[_RAISE] = LAYOUT_yakamoz(
+    KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_DEL,
+    KC_DEL,  KC_F1,   KC_F2,   KC_F3,   KC_F4,   KC_F5,                     KC_F6,   KC_MINS, KC_EQL,  KC_LBRC, KC_RBRC, KC_BSLS,
+    _______, KC_F7,   KC_F8,   KC_F9,   KC_F10,  KC_F11,                    KC_F12,  KC_NUHS, KC_NUBS, KC_PGUP, KC_PGDN, _______,
+    _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, KC_MNXT, KC_VOLD, KC_VOLU, KC_MPLY
+),
 
-    /* Numpad Layer
-     * KC_PDOT is comma on the Turkish layout ¯\_(ツ)_/¯
-     * ,-------------------------------------------------------------------------------------------------.
-     * |      |      |      |      |      |      |             | Space|   7  |   8  |   9  |   -  | Bksp |
-     * |------+------+------+------+------+------+             |------+------+------+------+------+------|
-     * |      |      |      |      |      |      |             | Enter|   4  |   5  |   6  |   +  |   *  |
-     * |------+------+------+------+------+------|             |------+------+------+------+------+------|
-     * |      |      |      |      |      |      |             | Enter|   1  |   2  |   3  |   +  |   /  |
-     * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
-     * |      |      |      |      |      |      |LftClk|RgtClk| Bkspc|   0  |   0  |   .  |   ,  |   =  |
-     * `-------------------------------------------------------------------------------------------------'
-     */
-    [_NUMPAD] = LAYOUT_yakamoz(
-        _______, _______, _______, _______, _______, _______, KC_SPC, KC_P7, KC_P8, KC_P9, KC_PMNS, KC_BSPC,
-        _______, _______, _______, _______, _______, _______, KC_PENT, KC_P4, KC_P5, KC_P6, KC_PPLS, KC_PAST,
-        _______, _______, _______, _______, _______, _______, KC_PENT, KC_P1, KC_P2, KC_P3, KC_PPLS, KC_PSLS,
-        _______, _______, _______, _______, _______, _______, MS_BTN1, MS_BTN2, KC_BSPC,  KC_P0, KC_P0, KC_SLSH, KC_PDOT, KC_PEQL
-    ),
+/* Adjust (Lower + Raise)
+ * ----------------RGB CONTROL----------------
+ * ,-----------------------------------------.             ,-----------------------------------------.
+ * |Reset*|BRGTH+| SAT+ | HUE+ |RGBMOD|  RGB |             |      |      |      |Qwerty|Colemk|Dvorak|
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * |Debug*|BRGTH-| SAT- | HUE- |      |      |             |      |MSC_N |AUD_N |      |      |      |
+ * |------+------+------+------+------+------|             |------+------+------+------+------+------|
+ * |      |      |      |      |      |      |             |      |M_TOGG|A_TOGG|      |      |      |
+ * |------+------+------+------+------+------+-------------+------+------+------+------+------+------|
+ * |ScrLk*|      |      |      |      |      | Reset|Debug |EE_Clr|      |      |      |      |      |
+ * `-------------------------------------------------------------------------------------------------'
+ * * = copies for the trackpad build, where the two centre keys (Scroll/RgtClk on the base layers,
+ *     Reset/Debug here) are removed. The originals stay in place for unmodified boards.
+ */
+[_ADJUST] = LAYOUT_yakamoz(
+    QK_BOOT, UG_VALU, UG_SATU, UG_HUEU, UG_NEXT, UG_TOGG,                   _______, _______,             _______,             QWERTY,  COLEMAK, DVORAK,
+    DB_TOGG, UG_VALD, UG_SATD, UG_HUED, _______, _______,                   _______, QK_MUSIC_MODE_NEXT,  QK_AUDIO_VOICE_NEXT, _______, _______, _______,
+    _______, _______, _______, _______, _______, _______,                   _______, QK_MUSIC_TOGGLE,     QK_AUDIO_TOGGLE,     _______, _______, _______,
+    KC_SCRL, _______, _______, _______, _______, _______, QK_BOOT, DB_TOGG, EE_CLR,  _______,             _______,             _______, _______, _______
+)
 
 };
+
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+  return update_tri_layer_state(state, _LOWER, _RAISE, _ADJUST);
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  switch (keycode) {
+    case QWERTY:
+      if (record->event.pressed) {
+        print("mode just switched to qwerty and this is a huge string\n");
+        set_single_persistent_default_layer(_QWERTY);
+      }
+      return false;
+      break;
+    case COLEMAK:
+      if (record->event.pressed) {
+        set_single_persistent_default_layer(_COLEMAK);
+      }
+      return false;
+      break;
+    case DVORAK:
+      if (record->event.pressed) {
+        set_single_persistent_default_layer(_DVORAK);
+      }
+      return false;
+      break;
+  }
+  return true;
+}
 
 
 #ifdef POINTING_DEVICE_ENABLE
@@ -229,8 +218,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * would release a held button between two reads and use up the RDY window before checking it.)
  *
  * 1. CPI: re-applied in pointing_device_init_user(), which QMK calls at the end of every
- *    pointing_device_init(). Guarded by POINTING_DEVICE_ENABLE (cost_crafter40 guards its CPI code
- *    with POINTING_DEVICE_DRIVER, which is never defined for keymap code, so it never compiles).
+ *    pointing_device_init(). Guarded by POINTING_DEVICE_ENABLE (not POINTING_DEVICE_DRIVER: that
+ *    is a make variable, never defined for keymap code, so code guarded by it never compiles).
  *
  * 2. Hot-plug: QMK initialises pointing devices only at boot. If that fails the status stays
  *    POINTING_DEVICE_STATUS_INIT_FAILED and pointing_device_task() never polls again
@@ -244,6 +233,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  *        pad button. SHOW_RESET (bit 7) set -> the pad was power-cycled (re-plugged between two
  *        checks) or its watchdog fired and lost the QMK settings -> re-initialise. The flag is
  *        acknowledged (System Control 0, 0x0431, bit 7 ACK_RESET) after every init.
+ *        A failed (re)init releases any pad button too, like an unplug.
  *        The read waits (at most TRACKPAD_ALIGN_MAX_WAIT_MS) for the pad's communication window:
  *        RDY high with POINTING_DEVICE_MOTION_PIN, otherwise one report period after the driver's
  *        last poll. It reads inside the window and leaves the window open; the driver's poll in the
@@ -255,14 +245,23 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * 3. Tap latch (QMK >= 0.34.0, commit 0d401d1182 "Preserve Azoteq mouse buttons"): the driver now
  *    starts every report from the buttons of the previous report and only ever SETS bits, and
  *    pointing_device_send() keeps the buttons in the report it feeds back, so a tap's BUTTON1 is
- *    never released (see firmware/README.md). Workaround: pointing_device_task_user() records the
- *    buttons that no key holds (= produced by the pad), and matrix_scan_user() removes them from
- *    the pointing device report just before the driver reads the pad again: when RDY is high with
- *    POINTING_DEVICE_MOTION_PIN; without it at once, because the driver's 11 ms throttle returns
- *    before sending anything until that read. The pad re-asserts a held gesture (press-and-hold) on
- *    every read, so the host sees one press and one release; a tap is released one report later.
- *    Keyboard mouse buttons (mousekey) are never touched. Harmless on older QMK, where the driver
- *    ignores incoming buttons.
+ *    never released (see firmware/README.md). Workaround: matrix_scan_user() removes every button
+ *    from the pointing device report just before the driver reads the pad again: when RDY is high
+ *    with POINTING_DEVICE_MOTION_PIN; without it at once, because the driver's 11 ms throttle
+ *    returns before sending anything until that read. The driver's result then holds exactly the
+ *    pad's buttons, which pointing_device_task_user() records (including a button a key holds),
+ *    and pointing_device_task() adds the buttons that keys hold (mousekey) before it sends. With
+ *    RDY, pointing_device_task() samples RDY again later in the pass; if it rose in between, the
+ *    driver reads from a report that was not emptied. So in a pass where RDY was low,
+ *    matrix_scan_user() leaves only the recorded pad buttons in the report and
+ *    pointing_device_task_user() records the result too: such a read can add pad buttons (also one
+ *    a key holds) but not clear them; the next read from an emptied report does that. The pad
+ *    re-asserts a held gesture (press-and-hold) on every read, so the host sees one press and one
+ *    release; a tap is released one report later. Until that read, a report sent by an MS_BTNx key
+ *    (pointing_device_keycode_handler() below) still carries the removed buttons, so a key does not
+ *    release a drag on the host. A button that both a key and the pad hold stays pressed until both
+ *    have released it. Keyboard mouse buttons stay pressed while their keys are held. Harmless on
+ *    older QMK, where the driver ignores incoming buttons.
  *    Known limit: when one driver read fails (I2C error) during a press-and-hold, the driver
  *    returns only the incoming buttons, so the button is released for one read and pressed again
  *    at the next good read - the same as on QMK < 0.34.0, whose driver started from an empty report.
@@ -314,7 +313,11 @@ static uint32_t tp_due_since   = 0;     // when the pending (running-state) chec
 static uint16_t tp_interval    = TRACKPAD_HOTPLUG_INTERVAL_MS;
 static bool     tp_candidate   = false; // pad answered once, waiting TRACKPAD_HOTPLUG_SETTLE_MS
 static bool     tp_check_due   = false;
-static uint8_t  tp_pad_buttons = 0;     // buttons the pad put into the report that was just processed
+static uint8_t  tp_pad_buttons = 0;     // the pad's buttons as of the driver's last read (including ones a key holds)
+static uint8_t  tp_released    = 0;     // pad buttons removed from the report, not read again by the driver yet
+#    ifndef TRACKPAD_NO_TAP_LATCH_FIX
+static bool tp_read_now = false; // matrix_scan_user() emptied the report for a driver read in this pass
+#    endif
 
 static bool trackpad_is_active(void) {
     return pointing_device_get_status() == POINTING_DEVICE_STATUS_SUCCESS;
@@ -336,6 +339,7 @@ static uint8_t tp_keyboard_buttons(void) {
 #    endif
 }
 
+#    ifndef TRACKPAD_NO_TAP_LATCH_FIX
 // Remove the given buttons from the report that pointing_device_task() feeds back into the driver.
 static void tp_drop_buttons(uint8_t buttons) {
     report_mouse_t report = pointing_device_get_report();
@@ -343,6 +347,19 @@ static void tp_drop_buttons(uint8_t buttons) {
         report.buttons &= (uint8_t)~buttons;
         pointing_device_set_report(report);
     }
+}
+#    endif
+
+// The driver no longer reads the pad (unplugged, or its (re)initialisation failed), so
+// pointing_device_task() sends no more reports: release every pad button on the host now.
+// Buttons held by keys stay pressed (set here: matrix_scan_user() may have removed them).
+static void tp_release_pad_buttons(void) {
+    report_mouse_t report = pointing_device_get_report();
+    report.buttons        = tp_keyboard_buttons();
+    pointing_device_set_report(report);
+    tp_pad_buttons = 0;
+    tp_released    = 0;
+    pointing_device_send();
 }
 
 // Read one register byte. The IQS5xx NACKs the first address while it is in a low-power mode and
@@ -390,6 +407,9 @@ static bool tp_window_open(void) {
 // (Re)initialise through QMK so that pointing_device_init_user() (CPI, reset ack) runs as well.
 static void tp_reinit(void) {
     pointing_device_init(); // blocks ~111 ms: driver soft reset + wait_ms(100) + wait_ms(11)
+    if (!trackpad_is_active()) {
+        tp_release_pad_buttons(); // init failed (status INIT_FAILED): a held drag would stay pressed
+    }
     tp_candidate  = false;
     tp_check_due  = false;
     tp_last_check = timer_read32();
@@ -435,9 +455,7 @@ static void trackpad_hotplug_task(void) {
         // Unplugged: stop the driver from polling a missing device every 11 ms and make sure no
         // pad button stays pressed on the host (pointing_device_task() no longer sends reports).
         pointing_device_set_status(POINTING_DEVICE_STATUS_FAILED);
-        tp_drop_buttons((uint8_t)~tp_keyboard_buttons());
-        tp_pad_buttons = 0;
-        pointing_device_send();
+        tp_release_pad_buttons();
         return;
     }
     if (info0 & TP_SHOW_RESET) {
@@ -475,14 +493,27 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
     tp_last_poll = timer_read32();
 #    endif
 #    ifndef TRACKPAD_NO_TAP_LATCH_FIX
-    tp_pad_buttons = mouse_report.buttons & (uint8_t)~tp_keyboard_buttons();
+    if (tp_read_now) { // the driver read the pad from a report without buttons: these are all the pad's
+        tp_pad_buttons = mouse_report.buttons;
+        tp_released    = 0;
+    }
+#        ifdef POINTING_DEVICE_MOTION_PIN
+    else {
+        // RDY was low in matrix_scan_user(), but it may have risen before pointing_device_task()
+        // sampled it, and then the driver has read the pad from a report that held only the
+        // recorded pad buttons (matrix_scan_user() took every other button out). Either way the
+        // report holds only the pad's buttons: keep any that such a read added. A button the pad
+        // has let go is cleared by the next read from an emptied report.
+        tp_pad_buttons = mouse_report.buttons;
+    }
+#        endif
 #    endif
     return mouse_report;
 }
 
 #    ifndef TRACKPAD_NO_TAP_LATCH_FIX
 // True when the report will next be sent only after the driver has read the pad again, so that
-// removing the pad's buttons now cannot show up on the host as a release by itself.
+// removing buttons from it now cannot show up on the host as a release by itself.
 static bool tp_driver_reads_next(void) {
 #        ifdef POINTING_DEVICE_MOTION_PIN
     // pointing_device_task() reads the pad in this pass only while RDY is high, but sends on every
@@ -494,17 +525,49 @@ static bool tp_driver_reads_next(void) {
     return true;
 #        endif
 }
+
+// MS_BTNx keys send the report at once (quantum/action.c register_mouse() -> this handler, which
+// replaces QMK's weak one in quantum/pointing_device/pointing_device.c with the same logic).
+// matrix_scan_user() empties the report before every driver read, so that report would lack the
+// buttons that the pad and other keys hold, and the host would see them released. So it is sent
+// with every button the pad (tp_pad_buttons, tp_released) or a key (mousekey) still holds, added
+// after the key's own transition: releasing a key does not release a button the pad still holds,
+// and the pad lifting does not release a button a key still holds. Right after, the report goes
+// back to the pad's buttons only, for the driver.
+void pointing_device_keycode_handler(uint16_t keycode, bool pressed) {
+    if (IS_MOUSEKEY_BUTTON(keycode)) {
+        report_mouse_t report = pointing_device_get_report();
+        report.buttons        = pointing_device_handle_buttons(report.buttons, pressed, keycode - QK_MOUSE_BUTTON_1) | tp_pad_buttons | tp_released | tp_keyboard_buttons();
+        pointing_device_set_report(report);
+        pointing_device_send();
+        tp_drop_buttons((uint8_t)~tp_pad_buttons);
+    }
+}
 #    endif
 
 // Runs in matrix_task(), i.e. BEFORE pointing_device_task() of the same main-loop pass (see the
-// block comment above). The original 'ardakilic' keymap defines no matrix_scan_user().
+// block comment above). The stock 'default' keymap defines no matrix_scan_user().
 void matrix_scan_user(void) {
     trackpad_hotplug_task(); // first, so that a window it waited for is also used by the release below
 #    ifndef TRACKPAD_NO_TAP_LATCH_FIX
-    if (tp_pad_buttons && tp_driver_reads_next()) {
-        tp_drop_buttons(tp_pad_buttons); // the driver re-asserts a held gesture in its read
+    tp_read_now = tp_driver_reads_next();
+    if (tp_read_now) {
+        // All buttons, also the ones keys hold: the driver's result is then exactly the pad's
+        // buttons (it re-asserts a held gesture), even for a button a key holds as well.
+        tp_drop_buttons(0xFF);
+        tp_released |= tp_pad_buttons; // key reports keep them until then (pointing_device_keycode_handler())
         tp_pad_buttons = 0;
     }
+#        ifdef POINTING_DEVICE_MOTION_PIN
+    else {
+        // RDY can still rise before pointing_device_task() samples it again in this pass, and the
+        // driver then reads the pad from this report. Leave only the recorded pad buttons in it
+        // (as pointing_device_keycode_handler() does after its send), so that the driver's result
+        // still holds only the pad's buttons, also one a key holds. pointing_device_task() and
+        // pointing_device_keycode_handler() add the keys' buttons before they send.
+        tp_drop_buttons((uint8_t)~tp_pad_buttons);
+    }
+#        endif
 #    endif
 }
 #endif // POINTING_DEVICE_ENABLE
@@ -521,43 +584,52 @@ static const char PROGMEM star_wars_darth_vader[] = {0x00, 0x00, 0x00, 0x00, 0x0
 
 bool render_status(void) {
     oled_set_cursor(0, 0);
-    oled_write_raw_P(star_wars_darth_vader, sizeof(star_wars_darth_vader));
+    oled_write_raw_P(vs_code, sizeof(vs_code));
     oled_set_cursor(0, 9);
     oled_write_P(PSTR("L: "), false);
 
-    switch (get_highest_layer(layer_state)) {
+    // Fix vs. stock (which used layer_state alone): the Qwerty/Colemak/Dvorak keys set the default
+    // layer, which is in default_layer_state, not layer_state. Without it the line read "QWERTY"
+    // whenever Lower/Raise were not held, even with Colemak or Dvorak selected.
+    switch (get_highest_layer(layer_state | default_layer_state)) {
         case 0:
             oled_write_P(PSTR("QWERTY\n"), false);
             break;
         case 1:
-            oled_write_P(PSTR("LOWER\n"), false);
-            break;
+            oled_write_P(PSTR("COLEMAK\n"), false);
+            break;            
         case 2:
-            oled_write_P(PSTR("RAISE\n"), false);
-            break;
+            oled_write_P(PSTR("DVORAK\n"), false);
+            break;            
         case 3:
-            oled_write_P(PSTR("SODA\n"), false);
-            break;
+            oled_write_P(PSTR("LOWER\n"), false);
+            break;            
         case 4:
-            oled_write_P(PSTR("SPACE\n"), false);
-            break;
+            oled_write_P(PSTR("RAISE \n"), false);
+            break;            
         case 5:
-            oled_write_P(PSTR("NUMPAD\n"), false);
-            break;
+            oled_write_P(PSTR("ADJUST\n"), false);
+            break;                                              
         default:
             // Or use the write_ln shortcut over adding '\n' to the end of your string
             oled_write_ln_P(PSTR("Undefined"), false);
     }
-
+ 
     // Host Keyboard LED Status
     led_t led_state = host_keyboard_led_state();
+    // Part of the fix above: from line 10, the "\r" below moves to line 11, so the caps line is
+    // always line 11. After the 10-character "L: COLEMAK" the cursor would already be on 11, the
+    // caps line would land on 12, and switching layers would leave a stale second caps line (the
+    // screen is not cleared between frames). Unreachable in stock, which never showed "COLEMAK".
+    oled_set_cursor(0, 10);
     oled_write_P(led_state.caps_lock ? PSTR("\rCaps: ON  ") : PSTR("\rCaps: OFF  "), false);
 
 #ifdef POINTING_DEVICE_ENABLE
-    // Trackpad status. The 64x128 screen has 16 text lines of 10 characters: the bitmap uses
-    // lines 0-7, the layer line 9, the caps line 11 (its trailing blank wraps onto line 12), so
-    // line 13 is free. Exactly 10 characters, so the line is fully overwritten every frame.
-    oled_set_cursor(0, 13);
+    // Trackpad status. The 64x128 screen has 16 text lines of 10 characters: the picture uses
+    // lines 0-7, the layer line 9, the caps line 11 ("Caps: OFF  " wraps its last blank onto
+    // line 12), so line 14 is always free. Exactly 10 characters, so the line is fully
+    // overwritten every frame.
+    oled_set_cursor(0, 14);
     oled_write_P(trackpad_is_active() ? PSTR("Pad: on   ") : PSTR("Pad: --   "), false);
 #endif
 
@@ -570,7 +642,7 @@ bool oled_task_kb(void) {
     }
     if (is_keyboard_master()) {
         render_status();  // Renders the current keyboard state (layer, lock, caps, scroll, etc)
-    }
+    } 
     return false;
 }
 

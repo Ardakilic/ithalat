@@ -157,8 +157,8 @@ Pico GP2/GP3/3V3/GND ── main-PCB traces (R1/R2 4.7k) ── J2/TB1 link ─�
 ### Remove SW44 and SW43
 
 - **Positions:** SW44 is left of centre at X 125.95; SW43 is right of centre at X 145.00. Both at Y 11.93, matrix positions [3,6] and [3,7].
-- **Keymap:** MS_BTN1/MS_BTN2 sit at these positions. They go dead once the switches are pulled; trackpad taps replace them.
-- **SODA layer:** these positions carry QK_AUDIO_VOICE_NEXT and QK_MUSIC_TOGGLE. The `ardakilic_trackpad` keymap copies them to [3,4] and [3,9], so they stay reachable.
+- **Keymap:** the stock keymap has Scroll Lock (SW44) and right click (SW43) here on the base layers, and QK_BOOT and DB_TOGG on Adjust. They go dead once the switches are pulled.
+- **Where they go:** the `ithalat` keymap replaces right click with a two-finger tap and copies the other three to the Adjust layer ([firmware/README.md, Removed keys](../firmware/README.md#removed-keys)).
 - **Pulling them:** pull both keycaps, then both switches with a switch puller. The sockets are hot-swap, so there is nothing to desolder. Keep the parts.
 - **Nothing needs cutting:** GP13 and GP16 lead only to empty sockets; the diodes stay.
 - **The switchplate stays in place** for the recommended wiring. Only the OLED cover comes off.
@@ -520,7 +520,7 @@ At the dock, on the keyboard side: the keyboard half is live and exposed wheneve
 - **100 Ω series resistors:** cheap insurance against hot-plug spikes and ESD current into the RP2040 pins. They raise the low level by only about 0.1 V. Recommended if you hot-plug often.
 - **USBLC6-4SC6 TVS array,** dead-bugged on a scrap of perfboard: the TPS65 is rated only ±2 kV HBM. Connect the I/O pins to SDA, SCL and RDY, VBUS to 3V3, GND to GND. Check the pinout in the ST datasheet. With USB-C, the two-line USBLC6-2SC6 is enough: it was designed for exactly these D+/D− contacts.
 - **PTC polyfuse:** the magnets attract steel debris (staples, swarf, paper clips) that can bridge the exposed 3V3 and GND pads. Without the fuse, a short browns out the Pico, which then reset-loops. With it, the keyboard keeps running.
-- **100 kΩ RDY pull-down:** not needed with `ardakilic_trackpad`. It sets GP15 to an input with the internal pull-down (`pointing_device_init_user()`), which keeps RDY low while the pad is unplugged. Only for other firmware that leaves the pin floating.
+- **100 kΩ RDY pull-down:** not needed with the `ithalat` keymap. It sets GP15 to an input with the internal pull-down (`pointing_device_init_user()`), which keeps RDY low while the pad is unplugged. Only for other firmware that leaves the pin floating.
 
 </details>
 

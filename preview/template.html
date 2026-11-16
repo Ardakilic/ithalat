@@ -421,6 +421,53 @@ table { border-collapse: collapse; width: 100%; }
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent);
   transform: translateY(1px);
 }
+/* Download STLs: the files the picked variant + connector need */
+.dl-for b { font-weight: 600; color: var(--ink); }
+.dl-all {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 var(--fs-md)/1.2 var(--font-text);
+  cursor: pointer;
+}
+.dl-all:hover { background: color-mix(in srgb, var(--accent) 84%, var(--ink)); }
+.dl-all:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.dl-all[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
+.dl-sum { font: 500 var(--fs-xs)/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+.dl-progress {
+  appearance: none; -webkit-appearance: none;
+  width: 100%; height: 6px; margin: 0;
+  border: 0; border-radius: 3px;
+  background: var(--rule); color: var(--accent);
+  overflow: hidden;
+}
+.dl-progress::-webkit-progress-bar { background: var(--rule); }
+.dl-progress::-webkit-progress-value { background: var(--accent); }
+.dl-progress::-moz-progress-bar { background: var(--accent); }
+.dl-status:empty { display: none; }
+.dl-status.err { color: var(--warn); }
+.dl-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.dl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 0; }
+.dl-row:not([hidden]) ~ .dl-row { border-top: 1px solid var(--rule); } /* a rule above every row but the first shown */
+.dl-what { display: grid; gap: 1px; min-width: 0; }
+.dl-name { font-weight: 600; font-size: var(--fs-sm); }
+.dl-file { font-size: var(--fs-xs); color: var(--ink-soft); overflow-wrap: anywhere; }
+.dl-file code { color: var(--ink); }
+.dl-get {
+  padding: 3px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  font-size: var(--fs-sm);
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dl-get:hover { border-color: var(--accent); background: var(--accent-wash); }
+.dl-get:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .kv tr.conn-row th { color: var(--accent); }
 .fine { margin: 0; font-size: var(--fs-xs); color: var(--ink-soft); }
 .notes { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: var(--fs-sm); max-width: 65ch; }
@@ -534,6 +581,11 @@ table { border-collapse: collapse; width: 100%; }
         </div>
       </section>
 
+      <section class="block" aria-labelledby="h-download">
+        <h2 id="h-download">Download STLs</h2>
+        <!--@DOWNLOADS@-->
+      </section>
+
       <section class="block" aria-labelledby="h-dims">
         <h2 id="h-dims">Dimensions <small>mm</small></h2>
         <!--@DIMENSIONS@-->
@@ -597,6 +649,7 @@ function hasWebGL() {
 // ---- variant UI works without WebGL too -------------------------------------
 // one radio per manifest variant (tools/build_preview.py); the first one starts
 // checked, and a restored check on an unknown / hidden radio is ignored
+let refreshDownloads = () => {}; // set by the Download STLs block below
 const variantIds = (DATA.variants || []).map((v) => v.id);
 for (const input of document.querySelectorAll('input[name="variant"]')) {
   if (!variantIds.includes(input.value)) { input.hidden = true; input.checked = false; if (input.nextElementSibling) input.nextElementSibling.hidden = true; }
@@ -612,6 +665,7 @@ function setVariantUI(v) {
   $("tb-variant").textContent = variantLabel(v);
   for (const li of document.querySelectorAll(".part[data-variant]")) li.classList.toggle("dim", li.dataset.variant !== v);
   const r = document.querySelector(`input[name="variant"][value="${CSS.escape(v)}"]`); if (r) r.checked = true;
+  refreshDownloads();
 }
 setVariantUI(initialVariant());
 
@@ -637,18 +691,115 @@ function setConnectorUI(c) {
   for (const el of document.querySelectorAll("[data-connector]")) el.hidden = el.dataset.connector !== c;
   for (const el of document.querySelectorAll("[data-hide-for]")) el.hidden = el.dataset.hideFor.split(" ").includes(c);
   const r = c && document.querySelector(`input[name="connector"][value="${CSS.escape(c)}"]`); if (r) r.checked = true;
+  refreshDownloads();
 }
 setConnectorUI(initialConnector());
+
+// ---- Download STLs: the files the picked variant + connector need, also without WebGL
+// One row per part (tools/build_preview.py, data-dl = part id); filesFor() mirrors its
+// files_for(). On *.github.io (the Pages site, forks too) `make site` serves the STLs
+// next to this page, so the links and "Download all" use stl/<file> there; anywhere else
+// (a local copy, other hosts) the links keep the committed files on GitHub and the zip
+// fetches them from raw.githubusercontent.com (CORS-enabled).
+const PARTS = DATA.parts || [];
+function filesFor(v, c) {
+  const rests = PARTS.filter((p) => p.role === "rest");
+  const rest = rests.find((p) => p.variant === v && p.connector === c) || rests.find((p) => p.variant === v && !p.connector)
+    || rests.find((p) => p.variant === v) || rests[0];
+  return (rest ? [rest] : []).concat(PARTS.filter((p) => p.role !== "rest"
+    && (!p.connector || p.connector === c) && (!p.variant || p.variant === v)));
+}
+const onPages = /^https?:$/.test(location.protocol) && /(^|\.)github\.io$/i.test(location.hostname);
+if (onPages) for (const a of document.querySelectorAll("a[data-site]")) a.href = a.dataset.site;
+const fmtBytes = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${(n / 1e3).toFixed(0)} kB` : `${n} B`);
+const filesTxt = (files) => `${files.length} file${files.length === 1 ? "" : "s"}, ${fmtBytes(files.reduce((s, p) => s + (p.file_bytes || 0), 0))}`;
+const pickNow = () => ({ v: initialVariant(), c: initialConnector() }); // the checked radios
+const dlAll = $("dl-all"), dlStatus = $("dl-status"), dlBar = $("dl-progress");
+let dlBusy = false, dlPick = null;
+refreshDownloads = () => { // runs on every applyState(); acts only when the pick changed
+  const { v, c } = pickNow();
+  if (dlPick === `${v}|${c}`) return;
+  dlPick = `${v}|${c}`;
+  const files = filesFor(v, c), ids = new Set(files.map((p) => p.id));
+  for (const li of document.querySelectorAll(".dl-row")) li.hidden = !ids.has(li.dataset.dl);
+  $("dl-count").textContent = filesTxt(files);
+  $("dl-sel").textContent = [variantIds.length ? variantLabel(v) : "", connIds.length > 1 ? connLabel(c) : ""].filter(Boolean).join(" · ");
+  if (dlStatus && !dlBusy) { dlStatus.textContent = ""; dlStatus.classList.remove("err"); } // an old result no longer applies
+};
+refreshDownloads();
+/*@ZIP-START@*/ // standalone page only: tools/build_preview.py cuts this out of the artifact
+if (dlAll) {
+  // JSZip (exact pin + SRI on the button) loads on the first click only
+  let zipLib = null;
+  const loadZip = () => (zipLib ||= new Promise((resolve, reject) => {
+    if (window.JSZip) { resolve(window.JSZip); return; }
+    const s = document.createElement("script");
+    s.src = dlAll.dataset.lib; s.integrity = dlAll.dataset.sri; s.crossOrigin = "anonymous";
+    s.onload = () => (window.JSZip ? resolve(window.JSZip) : reject(new Error("the zip library did not start")));
+    s.onerror = () => { s.remove(); reject(new Error("the zip library (cdnjs.cloudflare.com) did not load")); };
+    document.head.append(s);
+  }).catch((err) => { zipLib = null; throw err; }));
+  const say = (text, err) => { dlStatus.textContent = text; dlStatus.classList.toggle("err", !!err); };
+  async function fetchStl(url, name, onBytes) {
+    let res;
+    try { res = await fetch(url); } catch (e) { throw new Error(`${name} could not be fetched (offline?)`); }
+    if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
+    if (!res.body) return new Uint8Array(await res.arrayBuffer());
+    const reader = res.body.getReader(), chunks = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); onBytes(value.length);
+    }
+    return new Uint8Array(await new Blob(chunks).arrayBuffer());
+  }
+  dlAll.addEventListener("click", async () => {
+    if (dlBusy) return;
+    const { v, c } = pickNow(), files = filesFor(v, c);
+    const zipName = ["ithalat", v, c].filter(Boolean).join("-") + ".zip";
+    const total = files.reduce((s, p) => s + (p.file_bytes || 0), 0) || 1;
+    dlBusy = true; dlAll.setAttribute("aria-disabled", "true");
+    dlBar.value = 0; dlBar.hidden = false;
+    try {
+      say("Loading the zip library…");
+      const JSZip = await loadZip(), zip = new JSZip();
+      let got = 0;
+      for (const [i, p] of files.entries()) {
+        const a = document.querySelector(`.dl-row[data-dl="${CSS.escape(p.id)}"] a[data-site]`);
+        if (!a) throw new Error(`no link for ${p.stl}`);
+        const name = a.getAttribute("download");
+        say(`Fetching ${i + 1} of ${files.length}: ${name}`);
+        zip.file(name, await fetchStl(onPages ? a.dataset.site : a.dataset.fetch, name,
+          (n) => { got += n; dlBar.value = 0.9 * Math.min(1, got / total); }));
+      }
+      say(`Packing ${zipName}…`);
+      const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
+        (m) => { dlBar.value = 0.9 + 0.1 * (m.percent / 100); });
+      const href = URL.createObjectURL(blob), link = document.createElement("a");
+      link.href = href; link.download = zipName; link.hidden = true;
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 60000);
+      say(`Saved ${zipName} (${filesTxt(files)}; ${fmtBytes(blob.size)} zipped).`);
+    } catch (err) {
+      say(`Couldn’t make the zip: ${err && err.message || err}. Use the Download link of each file below instead.`, true);
+    } finally {
+      dlBusy = false; dlAll.removeAttribute("aria-disabled"); dlBar.hidden = true;
+    }
+  });
+}
+/*@ZIP-END@*/
+
+// the panels follow the radios at once, also while (or if) the 3D view is not up yet
+document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventListener("change", () => {
+  if (el.checked) setVariantUI(el.value);
+}));
+document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => {
+  if (el.checked) setConnectorUI(el.value);
+}));
 
 if (!hasWebGL()) {
   showMessage("3D preview needs WebGL",
     "This browser has WebGL turned off or unavailable. The dimensions, parts list and pinout beside the viewer still apply.");
-  document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventListener("change", () => {
-    if (el.checked) setVariantUI(el.value);
-  }));
-  document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => {
-    if (el.checked) setConnectorUI(el.value);
-  }));
 } else {
   boot().catch((err) => {
     console.error(err);

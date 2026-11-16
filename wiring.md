@@ -92,7 +92,7 @@ Full list: [docs/bom.md](docs/bom.md). Shops: [docs/where-to-buy.md](docs/where-
 
 1. **Unplug USB.**
 2. **Test-fit your printed dock.** Pogo: your pair must match `DOCK_CONN_W/H/D`. USB-C: see [Step 2b](#step-2b-usb-c-dock), Part A.
-3. **Pull SW44 and SW43**, the two centre keys of the front row. Hot-swap: nothing to desolder. Their keys go dead; trackpad taps replace them.
+3. **Pull SW44 and SW43**, the two centre keys of the front row. Hot-swap: nothing to desolder. Their keys go dead: right click becomes a two-finger tap, the rest moves to the Adjust layer ([removed keys](firmware/README.md#removed-keys)).
 4. **Remove the OLED cover** (4 screws).
 5. **Pick a tap point.** Take the first free one:
 

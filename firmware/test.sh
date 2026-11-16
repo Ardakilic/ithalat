@@ -11,7 +11,7 @@
 #   control   - plus the keymap block (below) with TRACKPAD_NO_TAP_LATCH_FIX defined: hot-plug
 #               works, the tap tests fail. Shows what the workaround fixes.
 #   fixed     - plus the POINTING_DEVICE_ENABLE block extracted verbatim from
-#               qmk_userspace/keyboards/yakamoz/keymaps/ardakilic_trackpad/keymap.c, no RDY wire
+#               qmk_userspace/keyboards/yakamoz/keymaps/ithalat/keymap.c, no RDY wire
 #               (driver polls every 11 ms). Must pass everything.
 #   fixed_rdy - the same block with POINTING_DEVICE_MOTION_PIN defined (RDY wire; gpio_read_pin()
 #               reads the simulated RDY line). Must pass everything.
@@ -24,7 +24,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK_DIR="${WORK_DIR:-${TMPDIR:-/tmp}/yakamoz-qmk-build}"
 QMK_IMAGE="${QMK_IMAGE:-ghcr.io/qmk/qmk_cli:latest}"
-KEYMAP_C="$SCRIPT_DIR/qmk_userspace/keyboards/yakamoz/keymaps/ardakilic_trackpad/keymap.c"
+KEYMAP_C="$SCRIPT_DIR/qmk_userspace/keyboards/yakamoz/keymaps/ithalat/keymap.c"
 Q="$WORK_DIR/qmk_firmware"
 VARIANTS="stock control fixed fixed_rdy"
 
@@ -42,7 +42,7 @@ POINTING_DEVICE_DRIVER = azoteq_iqs5xx
 MOUSEKEY_ENABLE = yes
 SRC += tests/pointing/azoteq_scn_$v/iqs5xx_bus_mock.c
 EOF
-    # Mirrors the trackpad settings of ardakilic_trackpad/config.h that matter here.
+    # Mirrors the trackpad settings of ithalat/config.h that matter here.
     cat > "$d/config.h" <<'EOF'
 #pragma once
 #include "test_common.h"
@@ -55,7 +55,7 @@ EOF
         echo "#define SCENARIO_FIXED" >> "$d/config.h"
         echo "SRC += tests/pointing/azoteq_scn_$v/keymap_trackpad_block.c" >> "$d/test.mk"
         {
-            echo "// Extracted verbatim from ardakilic_trackpad/keymap.c (first POINTING_DEVICE_ENABLE block)"
+            echo "// Extracted verbatim from ithalat/keymap.c (first POINTING_DEVICE_ENABLE block)"
             echo '#include "quantum.h"'
             awk '/^#ifdef POINTING_DEVICE_ENABLE$/ && !done {on=1} on {print} /^#endif \/\/ POINTING_DEVICE_ENABLE$/ && on {on=0; done=1}' "$KEYMAP_C"
         } > "$d/keymap_trackpad_block.c"
@@ -92,10 +92,10 @@ echo "================ keymap block with TRACKPAD_NO_TAP_LATCH_FIX (informationa
 make -s test:pointing/azoteq_scn_control COLOR=false > /tmp/control.log 2>&1 || true
 filter /tmp/control.log
 rc=0
-echo "================ ardakilic_trackpad keymap block, no RDY wire (must pass)"
+echo "================ ithalat keymap block, no RDY wire (must pass)"
 make -s test:pointing/azoteq_scn_fixed COLOR=false > /tmp/fixed.log 2>&1 || rc=1
 filter /tmp/fixed.log
-echo "================ ardakilic_trackpad keymap block with POINTING_DEVICE_MOTION_PIN / RDY (must pass)"
+echo "================ ithalat keymap block with POINTING_DEVICE_MOTION_PIN / RDY (must pass)"
 make -s test:pointing/azoteq_scn_fixed_rdy COLOR=false > /tmp/fixed_rdy.log 2>&1 || rc=1
 filter /tmp/fixed_rdy.log
 echo "================ result: $([ $rc = 0 ] && echo PASS || echo FAIL) (fixed + fixed_rdy)"

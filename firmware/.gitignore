@@ -1,6 +1,5 @@
 # build.sh output (.uf2 firmware images); rebuild with ./build.sh.
-# The two prebuilt images are committed on purpose (the READMEs link them),
+# The prebuilt image is committed on purpose (the READMEs link it),
 # so only other files in build/ are ignored.
 build/*
-!build/yakamoz_ardakilic.uf2
-!build/yakamoz_ardakilic_trackpad.uf2
+!build/yakamoz_ithalat.uf2

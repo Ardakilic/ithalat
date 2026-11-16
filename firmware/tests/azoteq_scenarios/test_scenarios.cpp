@@ -1,11 +1,12 @@
 // Scenario tests: real pointing_device.c + real azoteq_iqs5xx.c + simulated IQS5xx with a
 // communication-window / RDY model (iqs5xx_bus_mock.c). Run with firmware/test.sh, which builds:
 //   stock     - QMK master as is (informational)
-//   control   - + the trackpad block of ardakilic_trackpad/keymap.c with TRACKPAD_NO_TAP_LATCH_FIX
+//   control   - + the trackpad block of ithalat/keymap.c with TRACKPAD_NO_TAP_LATCH_FIX
 //               (informational: shows what the tap-latch workaround fixes)
 //   fixed     - + the trackpad block, polled every 11 ms (no RDY wire)          -> must pass
 //   fixed_rdy - + the trackpad block with POINTING_DEVICE_MOTION_PIN (RDY wire) -> must pass
 #include <cstdio>
+#include <vector>
 #include "gtest/gtest.h"
 #include "mouse_report_util.hpp"
 #include "test_common.hpp"
@@ -22,6 +23,10 @@ void     iqs_mock_tap(void);
 void     iqs_mock_two_finger_tap(void);
 void     iqs_mock_hold(int reads);
 void     iqs_mock_fail_base_reads(int n);
+void     iqs_mock_vanish_on_reset(bool on);
+void     iqs_mock_raise_show_reset(void);
+int      iqs_mock_rdy(void);
+void     iqs_mock_open_window_now(void);
 uint16_t iqs_mock_x_res(void);
 uint16_t iqs_mock_y_res(void);
 bool     iqs_mock_show_reset(void);
@@ -68,10 +73,27 @@ static void count_buttons(::testing::NiceMock<TestDriver>& driver, ButtonCounter
     }));
 }
 
+// Records every change of the button state seen by the host.
+static void record_buttons(::testing::NiceMock<TestDriver>& driver, std::vector<uint8_t>& seen) {
+    ON_CALL(driver, send_mouse_mock(_)).WillByDefault(Invoke([&seen](report_mouse_t& r) {
+        if (seen.empty() || seen.back() != r.buttons) seen.push_back(r.buttons);
+    }));
+}
+static int count_edges(const std::vector<uint8_t>& seen, uint8_t mask, bool pressed) {
+    int     n    = 0;
+    uint8_t last = 0;
+    for (uint8_t b : seen) {
+        if (pressed ? ((b & mask) && !(last & mask)) : (!(b & mask) && (last & mask))) n++;
+        last = b;
+    }
+    return n;
+}
+
 class Azoteq : public TestFixture {
    protected:
     void SetUp() override {
         ::testing::NiceMock<TestDriver> d; // a live TestDriver is needed whenever the scan loop runs
+        iqs_mock_vanish_on_reset(false);
         iqs_mock_set_present(true);
         if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
             pointing_device_init();
@@ -240,5 +262,237 @@ TEST_F(Azoteq, OneFailedReadDuringHoldReleasesOnce) {
     run_ms(500);
     EXPECT_EQ(c.presses, 2);
     EXPECT_EQ(c.releases, 2);
+}
+
+// An MS_BTNx key pressed and released during a drag sends reports of its own (register_mouse() ->
+// pointing_device_keycode_handler()). None of them may release the pad's button 1: the host sees it
+// released only once, when the pad reports the lift. Key events land on every phase of the driver's
+// read cycle (13 ms key period vs. 10/11 ms reads).
+TEST_F(Azoteq, MouseKeyDuringDragKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       btn2 = KeymapKey(0, 0, 0, MS_BTN2);
+    set_keymap({btn2});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    iqs_mock_hold(100); // ~1 s of press-and-hold reports
+    run_ms(50);
+    const int key_taps = 40; // 520 ms, all inside the hold
+    for (int i = 0; i < key_taps; i++) {
+        btn2.press();
+        run_ms(7);
+        btn2.release();
+        run_ms(6);
+    }
+    run_ms(700); // the hold ends: the pad reports the lift
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 1);
+    EXPECT_EQ(count_edges(seen, 2, true), key_taps);
+    EXPECT_EQ(count_edges(seen, 2, false), key_taps);
+    EXPECT_EQ(seen.back(), 0);
+}
+
+// A macro key that taps MS_BTN1 (press and release in one pass, like tap_code(MS_BTN1)).
+extern "C" bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (keycode == QK_USER_0) {
+        if (record->event.pressed) tap_code(MS_BTN1);
+        return false;
+    }
+    return true;
+}
+
+// MS_BTN1 tapped during a drag while the pad's communication window is open: the keymap has taken
+// the pad's button 1 out of the report for the driver's read (in this pass with RDY, within 1 ms
+// without), and the key reports carry it in the meantime. The key's release must not release the
+// drag: the host sees button 1 released only once, when the pad reports the lift.
+TEST_F(Azoteq, MouseKeyTapInTheReadWindowKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       macro = KeymapKey(0, 0, 0, QK_USER_0);
+    set_keymap({macro});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    iqs_mock_hold(100); // ~1 s of press-and-hold reports
+    run_ms(50);
+    int  taps = 0;
+    bool down = false;
+    for (int i = 0; i < 600; i++) { // all inside the hold
+        if (down) {
+            macro.release();
+            down = false;
+        } else if (iqs_mock_rdy()) {
+            macro.press();
+            down = true;
+            taps++;
+        }
+        run_ms(1);
+    }
+    run_ms(700); // the hold ends: the pad reports the lift
+    EXPECT_GE(taps, 40);
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 1);
+    EXPECT_EQ(seen.back(), 0);
+}
+
+// Button 1 with two owners: an MS_BTN1 key is pressed during a drag, held across driver reads and
+// released while the pad still holds button 1. The host must keep button 1 pressed until the pad
+// reports the lift, then release it exactly once. The key events land on different phases of the
+// driver's read cycle.
+TEST_F(Azoteq, MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       btn1 = KeymapKey(0, 0, 0, MS_BTN1);
+    set_keymap({btn1});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    iqs_mock_hold(100); // ~1 s of press-and-hold reports
+    run_ms(50);
+    for (int i = 0; i < 10; i++) { // ~380 ms, all inside the hold
+        const uint32_t reads = iqs_mock_base_reads();
+        btn1.press();
+        run_ms(23 + i % 5);
+        ASSERT_GE(iqs_mock_base_reads() - reads, 2u); // held across driver reads
+        btn1.release();
+        run_ms(9 + i % 4);
+    }
+    // The pad still holds: no release of button 1 so far.
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 0);
+    ASSERT_FALSE(seen.empty());
+    EXPECT_TRUE(seen.back() & 1);
+    run_ms(800); // the hold ends: the pad reports the lift
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 1);
+    EXPECT_EQ(seen.back(), 0);
+}
+
+// One pass in which RDY rises after matrix_scan_user() has sampled it (low) and before
+// pointing_device_task() samples it again (high), so the driver reads the pad in this pass from a
+// report that the keymap did not empty. On the keyboard the two samples are part of a pass apart.
+static void run_pass_rdy_rises_after_scan(void) {
+    matrix_scan_user();
+    iqs_mock_open_window_now();
+    keyboard_task();
+    housekeeping_task();
+    advance_time(1);
+}
+
+// RDY build: a press-and-hold is first seen in such a read. A mouse key event before the pad's next
+// window must not release the drag on the host:
+//   1. MS_BTN2 pressed and released (its reports carry the pad's buttons);
+//   2. MS_BTN1 held when the drag starts, released before the next window (two owners of button 1).
+// The host must see button 1 released only once, at the lift. Without RDY there is no such race;
+// the same steps run with the driver's first read of the hold in place of the racy read.
+TEST_F(Azoteq, RdyRiseBetweenScanAndReadKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       btn1 = KeymapKey(0, 0, 0, MS_BTN1);
+    KeymapKey                       btn2 = KeymapKey(0, 1, 0, MS_BTN2);
+    set_keymap({btn1, btn2});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    for (int btn1_held = 0; btn1_held < 2; btn1_held++) {
+        SCOPED_TRACE(btn1_held ? "MS_BTN1 held when the drag starts" : "MS_BTN2 tapped after the drag starts");
+        run_ms(50);
+        seen.clear();
+        // Let the driver read a window: RDY then stays low for one report period.
+        for (int i = 0; i < 20 && !iqs_mock_rdy(); i++) {
+            run_ms(1);
+        }
+        run_ms(1);
+#ifdef POINTING_DEVICE_MOTION_PIN
+        ASSERT_FALSE(iqs_mock_rdy());
+#endif
+        if (btn1_held) {
+            btn1.press();
+            run_ms(2);
+        }
+        iqs_mock_hold(50); // ~500 ms of press-and-hold reports from the next read on
+        const uint32_t reads = iqs_mock_base_reads();
+        run_pass_rdy_rises_after_scan();
+#ifdef POINTING_DEVICE_MOTION_PIN
+        ASSERT_EQ(iqs_mock_base_reads() - reads, 1u); // the racy read
+#endif
+        for (int i = 0; i < 20 && iqs_mock_base_reads() == reads; i++) { // no RDY: the next poll
+            run_ms(1);
+        }
+        ASSERT_FALSE(seen.empty());
+        ASSERT_TRUE(seen.back() & 1); // the host has button 1
+        run_ms(2);
+        if (btn1_held) {
+            btn1.release();
+            run_ms(2);
+        } else {
+            btn2.press();
+            run_ms(2);
+            btn2.release();
+            run_ms(2);
+        }
+        run_ms(200);
+        EXPECT_EQ(count_edges(seen, 1, false), 0); // the pad still holds
+        run_ms(600);                               // the hold ends: the pad reports the lift
+        EXPECT_EQ(count_edges(seen, 1, true), 1);
+        EXPECT_EQ(count_edges(seen, 1, false), 1);
+        EXPECT_EQ(count_edges(seen, 2, true), btn1_held ? 0 : 1);
+        EXPECT_EQ(count_edges(seen, 2, false), btn1_held ? 0 : 1);
+        EXPECT_EQ(seen.back(), 0);
+    }
+}
+
+// The pad resets during a drag (watchdog or quick re-plug, SHOW_RESET) and stops answering during
+// the re-init that follows: pointing_device_init() fails and pointing_device_task() sends no more
+// reports. The pad's button must still be released on the host; a mouse button held by a key stays.
+TEST_F(Azoteq, FailedReinitReleasesTheDragButKeepsKeyButtons) {
+    TestDriver driver;
+    KeymapKey  btn2 = KeymapKey(0, 0, 0, MS_BTN2);
+    set_keymap({btn2});
+    InSequence s;
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 2)).Times(1); // MS_BTN2 key
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 3)).Times(1); // + pad drag (button 1)
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 2)).Times(1); // re-init failed: drag released, key kept
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 0)).Times(1); // key up
+    btn2.press();
+    run_ms(20);
+    iqs_mock_hold(1000);
+    run_ms(100);
+    iqs_mock_vanish_on_reset(true);
+    iqs_mock_raise_show_reset();
+    // The next presence check (<= TRACKPAD_HOTPLUG_RETRY_MS after an earlier test's failed init)
+    // sees SHOW_RESET and re-initialises.
+    for (int i = 0; i < 6000 && pointing_device_get_status() == POINTING_DEVICE_STATUS_SUCCESS; i++) {
+        run_ms(1);
+    }
+    run_ms(100);
+    EXPECT_EQ(pointing_device_get_status(), POINTING_DEVICE_STATUS_INIT_FAILED);
+    btn2.release();
+    run_ms(20);
+    VERIFY_AND_CLEAR(driver);
+    iqs_mock_vanish_on_reset(false);
+}
+
+// Same, with a pad button 2 (a two-finger tap in every report cycle) and MS_BTN1 held by a key.
+TEST_F(Azoteq, FailedReinitReleasesPadButtonKeepsKeyButton1) {
+    TestDriver driver;
+    KeymapKey  btn1 = KeymapKey(0, 0, 0, MS_BTN1);
+    set_keymap({btn1});
+    InSequence s;
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 1)).Times(1); // MS_BTN1 key
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 3)).Times(1); // + pad button 2
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 1)).Times(1); // re-init failed: pad button released, MS_BTN1 kept
+    EXPECT_MOUSE_REPORT(driver, (0, 0, 0, 0, 0)).Times(1); // key up
+    btn1.press();
+    run_ms(20);
+    for (int i = 0; i < 50; i++) {
+        iqs_mock_two_finger_tap();
+        run_ms(1);
+    }
+    iqs_mock_vanish_on_reset(true);
+    iqs_mock_raise_show_reset();
+    for (int i = 0; i < 6000 && pointing_device_get_status() == POINTING_DEVICE_STATUS_SUCCESS; i++) {
+        iqs_mock_two_finger_tap();
+        run_ms(1);
+    }
+    run_ms(100);
+    EXPECT_EQ(pointing_device_get_status(), POINTING_DEVICE_STATUS_INIT_FAILED);
+    btn1.release();
+    run_ms(20);
+    VERIFY_AND_CLEAR(driver);
+    iqs_mock_vanish_on_reset(false);
 }
 #endif

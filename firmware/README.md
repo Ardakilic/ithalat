@@ -1,11 +1,13 @@
 # Yakamoz firmware: Azoteq TPS65 trackpad ("ithalat") + OLED
 
-QMK keymap `ardakilic_trackpad` for [Yakamoz](https://github.com/ozkan/Yakamoz) (Raspberry Pi Pico / RP2040) that adds the ithalat trackpad and keeps the SH1107 OLED working.
+QMK keymap `ithalat` for [Yakamoz](https://github.com/ozkan/Yakamoz) (Raspberry Pi Pico / RP2040). It is ozkan's stock `default` keymap plus the ithalat trackpad, and the SH1107 OLED keeps working.
 
 ## TL;DR
 
-- **What it adds:** an Azoteq TPS65 trackpad (IQS550 controller) in the ithalat rest, on a pluggable cable. Tap = left click, 2-finger tap = right click, press-and-hold = drag. The OLED shows `Pad: on` / `Pad: --`.
-- **Flash it:** drop the prebuilt `build/yakamoz_ardakilic_trackpad.uf2` onto `RPI-RP2`. No build needed ([Flash it](#flash-it)).
+- **What it is:** the stock keymap from [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) plus an Azoteq TPS65 trackpad (IQS550 controller) in the ithalat rest, on a pluggable cable. Nothing else changes, apart from a small OLED layer-line fix ([What changes vs. stock](#what-changes-vs-stock)).
+- **Trackpad:** tap = left click, 2-finger tap = right click, press-and-hold = drag, 2-finger scroll. The OLED shows `Pad: on` / `Pad: --`.
+- **Flash it:** drop the prebuilt `build/yakamoz_ithalat.uf2` onto `RPI-RP2`. No build needed ([Flash it](#flash-it)).
+- **Two keys go:** the dock replaces the two front-row centre switches. Their functions move to the Adjust layer or to the pad ([Removed keys](#removed-keys)).
 - **Build it:** `./build.sh`, Docker only ([Building locally](#building-locally-docker-only)).
 - **Test it:** `./test.sh`, Docker only, after `./build.sh` ([Scenario tests](#scenario-tests-simulation)).
 - **Both connectors:** the same firmware works with the magnetic pogo and USB-C. Hot-plug works on both.
@@ -20,15 +22,15 @@ QMK keymap `ardakilic_trackpad` for [Yakamoz](https://github.com/ozkan/Yakamoz) 
 
 **Jump to**
 
-- [Flash it](#flash-it)
+- [Flash it](#flash-it) · [What changes vs. stock](#what-changes-vs-stock) · [Removed keys](#removed-keys)
 - [Wiring summary](#wiring-summary-firmware-view)
 - [Building locally](#building-locally-docker-only) · [Using it in a QMK userspace](#using-it-in-a-qmk-userspace)
-- [Config knobs](#config-knobs-ardakilic_trackpadconfigh)
+- [Config knobs](#config-knobs-ithalatconfigh)
 - [Calibration (30 seconds)](#calibration-30-seconds)
 - [Hot-plug behaviour and limits](#hot-plug-behaviour-and-limits)
 - [Scenario tests](#scenario-tests-simulation) · [Test checklist after flashing](#test-checklist-after-flashing) · [Known open points](#known-open-points)
-- [Keymap details](#keymap-details) · [Tap-latch finding](#tap-latch-finding-qmk--0340)
-- [License](#license) · [Maintainer notes](#maintainer-notes-ardakilicqmk_userspace)
+- [Files in this folder](#files-in-this-folder) · [Tap-latch finding](#tap-latch-finding-qmk--0340)
+- [License](#license)
 
 This folder is part of [ithalat](../README.md). The physical wiring is in [wiring.md](../wiring.md).
 
@@ -36,14 +38,107 @@ This folder is part of [ithalat](../README.md). The physical wiring is in [wirin
 
 Wired the rest already? Beep-test the wiring first ([wiring.md, Step 4](../wiring.md#step-4-test-before-power-up)).
 
-1. **Get the file:** `firmware/build/yakamoz_ardakilic_trackpad.uf2`. It is prebuilt and committed (built against QMK master `33292390974c`).
-2. **Enter the bootloader:** double-tap reset (`RP2040_BOOTLOADER_DOUBLE_TAP_RESET`), or press `QK_BOOT` on the SODA layer.
+1. **Get the file:** `firmware/build/yakamoz_ithalat.uf2`. It is prebuilt and committed (QMK master `33292390974c`, keyboard from `ozkan/Yakamoz-qmk@d6b6212`).
+2. **Enter the bootloader**, any of:
+   - double-tap reset (`RP2040_BOOTLOADER_DOUBLE_TAP_RESET`);
+   - hold `Tab` while plugging in USB (Bootmagic);
+   - on the running keyboard: Adjust + `Tab` (`QK_BOOT`). Adjust = hold `Lower` and `Raise`.
 3. **Copy it:** drop the `.uf2` onto the `RPI-RP2` drive.
 4. **Plug the pad in:** unplug USB, connect the pad, plug USB back in. This is required for the pogo the first time; USB-C mates GND first ([checklist step 2](#test-checklist-after-flashing)). Wait for `Pad: on` on the OLED.
 5. **Check it:** do the [calibration](#calibration-30-seconds) and the [test checklist](#test-checklist-after-flashing).
 
 > [!TIP]
-> **Want the stock keymap back?** `build/yakamoz_ardakilic.uf2` is the baseline `ardakilic` build, without the trackpad.
+> **Works on an unmodified Yakamoz too.** Every stock keycode stays where it was. Without a pad the OLED shows `Pad: --` and the keyboard behaves like stock. So there is no separate stock image ([why](#keyboard-source)).
+
+## What changes vs. stock
+
+- **Diff base:** `yakamoz/keymaps/default` in [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) @ `d6b6212` (its `master`, 2024-06-30).
+- **Nothing removed:** every stock line is still there (one OLED line is fixed in place). The changes are additions, keycode renames, three keycodes on Adjust keys that were transparent, and that OLED fix.
+
+| Area | Change |
+|---|---|
+| Layers (Qwerty, Colemak, Dvorak, Lower, Raise, Adjust) | unchanged, except the renames and the 3 Adjust copies below |
+| Keycode renames | `RGB_xxx` → `UG_xxx`, `KC_MS_BTN2` → `MS_BTN2`: same functions, new names |
+| Adjust layer | copies of the removed keys' functions: `QK_BOOT` on `Tab`, `DB_TOGG` on `Esc`, `KC_SCRL` on `Caps` |
+| OLED (picture, layer, caps) | unchanged, except the layer line now shows the selected Colemak/Dvorak base layer (fix); plus one line `Pad: on` / `Pad: --` |
+| Audio (Imperial March), RGB, WPM, caps LED GP25 | unchanged |
+| `rules.mk` | adds the azoteq pointing driver |
+| `config.h` | adds the trackpad settings |
+| `keymap.c` | adds init, hot-plug and tap-latch code |
+
+<details><summary>Every change in full</summary>
+
+**Keycode renames**
+
+- QMK removed the old names in its 2025-08-31 breaking-changes release ([#25444](https://github.com/qmk/qmk_firmware/pull/25444)). The unmodified stock keymap no longer compiles on current QMK (`'RGB_VAI' undeclared`, `'KC_MS_BTN2' undeclared`).
+- `RGB_VAI`/`RGB_VAD` → `UG_VALU`/`UG_VALD`, `RGB_SAI`/`RGB_SAD` → `UG_SATU`/`UG_SATD`, `RGB_HUI`/`RGB_HUD` → `UG_HUEU`/`UG_HUED`, `RGB_MOD` → `UG_NEXT`, `RGB_TOG` → `UG_TOGG`, `KC_MS_BTN2` → `MS_BTN2`.
+
+**Adjust layer:** see [Removed keys](#removed-keys).
+
+**OLED (SH1107 64x128, VS Code picture, layer, caps)**
+
+- **Layer line fix:** stock reads `get_highest_layer(layer_state)`. The `Qwerty`/`Colemak`/`Dvorak` keys set the default layer, which lives in `default_layer_state`, so stock showed `L: QWERTY` whenever `Lower`/`Raise` were not held. It now reads `layer_state | default_layer_state`, the pattern QMK's own docs use (`docs/features/rgb_matrix.md`).
+- **Caps line pinned to line 11** (one added `oled_set_cursor(0, 10)`, part of the fix). The 10-character `L: COLEMAK` would push it to line 12, and the screen is not cleared between frames, so a layer change left a stale second caps line. Stock never showed `COLEMAK`, so it never hit this.
+- One new line `Pad: on` / `Pad: --` on text line 14.
+- Lines 0-7 are the picture, 9 the layer and 11 caps. `Caps: OFF  ` wraps its last blank onto line 12, so line 14 is always free.
+- The line is 10 characters, so it is fully overwritten every frame.
+
+**`rules.mk`**
+
+- Adds `POINTING_DEVICE_ENABLE = yes` and `POINTING_DEVICE_DRIVER = azoteq_iqs5xx`.
+
+**`config.h`**
+
+- Adds `AZOTEQ_IQS5XX_TPS65`.
+- Adds the I2C bus (`I2CD1`, GP2/GP3, the existing OLED bus) and `I2C1_CLOCK_SPEED 400000`.
+- Adds an optional RDY pin (commented out) and rotation options (commented out).
+- Adds `TRACKPAD_CPI 500`, `TRACKPAD_HOTPLUG_INTERVAL_MS 1000` and `AZOTEQ_IQS5XX_PRESS_AND_HOLD_ENABLE true`.
+
+**`keymap.c`**
+
+- `pointing_device_init_user()` re-applies CPI and acknowledges the pad's reset flag.
+- `matrix_scan_user()` runs the hot-plug check and the tap-latch workaround. It runs before `pointing_device_task()` in each main-loop pass (see [Tap-latch finding](#tap-latch-finding-qmk--0340)).
+- `pointing_device_task_user()` records which buttons came from the pad.
+- `pointing_device_keycode_handler()` replaces QMK's weak one (same logic), so an `MS_BTNx` key does not drop a drag.
+- The trackpad code is inside `#ifdef POINTING_DEVICE_ENABLE`. The stock keymap defines none of these four functions.
+
+</details>
+
+### Removed keys
+
+The dock replaces the two front-row centre switches, SW44 (`[3,6]`, left of centre) and SW43 (`[3,7]`, right of centre).
+
+| Switch | Stock: base layers | Stock: Adjust | Now |
+|---|---|---|---|
+| SW44 `[3,6]` | `KC_SCRL` (Scroll Lock) | `QK_BOOT` (bootloader) | Scroll Lock: Adjust + `Caps`. Bootloader: Adjust + `Tab` |
+| SW43 `[3,7]` | `MS_BTN2` (right click) | `DB_TOGG` (debug) | Right click: 2-finger tap. Debug: Adjust + `Esc` |
+
+- **Adjust = hold `Lower` and `Raise`.** The copies sit in its left column, which was transparent.
+- **Originals stay in place,** so the keymap still works on an unmodified board.
+- **Left click:** the stock keymap has no left-click key. Tap the pad.
+- **Drag:** press-and-hold on the pad (enabled by default, see [Config knobs](#config-knobs-ithalatconfigh)).
+- **Side effect:** Adjust + `Tab` / `Esc` / `Caps` no longer fall through to `` ` `` / `Delete` / Caps Lock.
+
+### Keyboard source
+
+- **Where `keyboards/yakamoz` comes from:** `yakamoz/` in [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk), pinned to `d6b6212`. That is the keyboard's own QMK repo. Yakamoz is not in upstream QMK.
+- **One fix in the build copy:** `build.sh` renames `info.json` → `keyboard.json`. Current QMK only finds keyboards that have a `keyboard.json` (`lib/python/qmk/path.py`). The content is unchanged.
+
+<details><summary>Why not another copy, and why the stock keymaps are not built</summary>
+
+- **`user_song_list.h` is needed.** The keyboard's `config.h` sets the startup song to `STAR_WARS_IMPERIAL_MARCH`, which only `yakamoz/user_song_list.h` defines. Copies of `keyboards/yakamoz` without that file (some QMK forks have one) fail with `'STAR_WARS_IMPERIAL_MARCH' undeclared` as soon as a keymap enables audio, as the stock keymap does.
+- **The stock keymaps do not build on current QMK.** `default`, `default_trackball` and `vial*` still use the removed `RGB_xxx` / `KC_MS_BTN2` names. `build.sh` drops them from the build copy; only the keymap of this folder is built.
+- **Other source?** `KB_REPO`, `KB_REF` and `KB_PATH` override it ([Building locally](#building-locally-docker-only)).
+
+</details>
+
+<details><summary>Why there is no stock image</summary>
+
+- **`ithalat` already behaves like stock without a pad:** every stock keycode is in place. The trackpad code then only pings the pad's address once a second, which an absent pad NACKs at once.
+- **A "stock" image would not be stock either:** the unmodified stock keymap no longer compiles on current QMK (see Keycode renames above).
+- **One image** is less to keep in sync.
+
+</details>
 
 ## Wiring summary (firmware view)
 
@@ -70,40 +165,29 @@ Wired the rest already? Beep-test the wiring first ([wiring.md, Step 4](../wirin
 - **RDY is not needed:** the firmware times its reads to the pad's report window. RDY would only avoid clock-stretching waits on the shared bus.
 - **RDY over USB-C:** an optional SBU mod adds it ([wiring-details.md, RDY over SBU](../docs/wiring-details.md#rdy-over-sbu-advanced)).
 - **USB-C voltage:** the pad runs at about 3.0–3.1 V after the diode. That changes nothing for the firmware.
-
-### Porting from cost_crafter40
-
-- **Do not copy its I2C pins.** If you port trackpad code from the owner's `cost_crafter40` keymap (another keyboard with the same TPS65 driver), skip its `I2C1_SDA_PIN GP18` / `I2C1_SCL_PIN GP19`. On Yakamoz those are matrix columns 8 and 9.
-- **No keymap-level `mcuconf.h`:** the keyboard-level `mcuconf.h` in the fork already enables `RP_I2C_USE_I2C1`, unlike cost_crafter40.
+- **Porting trackpad code from another RP2040 board?** Skip its `I2C1_SDA_PIN GP18` / `I2C1_SCL_PIN GP19`. On Yakamoz those are matrix columns 8 and 9. No keymap-level `mcuconf.h` is needed: the keyboard's own enables `RP_I2C_USE_I2C1`.
 
 ## Building locally (docker only)
 
 ```sh
 cd firmware
-./build.sh                                  # both keymaps, QMK master, output in firmware/build/
+./build.sh                                  # the ithalat keymap, QMK master, output in firmware/build/
 QMK_REF=33292390974c75362ca30873c482d052e0bd7a63 ./build.sh   # the exact QMK commit verified here
-KEYMAPS=ardakilic_trackpad ./build.sh       # only the trackpad keymap
 WORK_DIR=/path/to/scratch ./build.sh        # where qmk_firmware is cloned (default: $TMPDIR/yakamoz-qmk-build)
 ```
 
 - **Docker only:** the script runs everything inside `ghcr.io/qmk/qmk_cli` (verified with image digest `sha256:b7d7fa8f…`).
 - **Strict:** any `warning:` or `error:` counts as a failure.
 - **Idempotent:** re-runs reset the clone to `QMK_REF` and re-copy everything.
-- **Output:** `build.sh` overwrites the two `.uf2` files in `build/`.
+- **Reproducible:** two runs on the same commits give a byte-identical `.uf2`.
+- **Output:** `build.sh` overwrites `build/yakamoz_ithalat.uf2`.
 
 <details><summary>What the script does, step by step</summary>
 
 1. A shallow clone of `qmk/qmk_firmware` with submodules at `QMK_REF`.
-2. `keyboards/yakamoz` from `Ardakilic/qmk_firmware@7bed308` (`FORK_REF`).
-3. The baseline `ardakilic` keymap from `Ardakilic/qmk_userspace@ef35653` (`USERSPACE_REF`).
-4. The keymaps in `qmk_userspace/keyboards/yakamoz/keymaps/`.
-5. `qmk compile` for each keymap, with fresh objects every time.
-
-**keyboard.json:**
-
-- The fork already ships `keyboards/yakamoz/keyboard.json`, which current QMK requires (`lib/python/qmk/path.py`). No fix was needed.
-- `build.sh` only renames `info.json` → `keyboard.json` in the scratch copy if an older definition without `keyboard.json` is used.
-- The fork's own keymaps (`default`, `default_trackball`, `vial`) are dropped from the scratch copy because they are not built.
+2. `yakamoz/` from `ozkan/Yakamoz-qmk@d6b6212` (`KB_REPO`, `KB_REF`, `KB_PATH`), copied to `keyboards/yakamoz`, with `info.json` renamed to `keyboard.json` and the stock keymaps dropped ([Keyboard source](#keyboard-source)).
+3. The keymap in `qmk_userspace/keyboards/yakamoz/keymaps/ithalat/`.
+4. `qmk compile -kb yakamoz -km ithalat`, with fresh objects every time.
 
 </details>
 
@@ -113,19 +197,20 @@ The simplest route is `./build.sh` (above), which needs only Docker. To build th
 
 1. **Copy the folder:**
    ```sh
-   cp -R firmware/qmk_userspace/keyboards/yakamoz/keymaps/ardakilic_trackpad \
+   cp -R firmware/qmk_userspace/keyboards/yakamoz/keymaps/ithalat \
          <path to the qmk_userspace>/keyboards/yakamoz/keymaps/
    ```
-2. **Register the build target.** Either run `qmk userspace-add -kb yakamoz -km ardakilic_trackpad`, or add this entry to `build_targets` in `qmk.json`:
+2. **Put the keyboard into your QMK tree:** copy `yakamoz/` from [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) to `qmk_firmware/keyboards/yakamoz` and rename its `info.json` to `keyboard.json`.
+3. **Register the build target** (after step 2: `qmk userspace-add` rejects `-kb yakamoz` until the keyboard is installed). Either run `qmk userspace-add -kb yakamoz -km ithalat`, or add this entry to `build_targets` in `qmk.json`:
    ```json
-   ["yakamoz", "ardakilic_trackpad"]
+   ["yakamoz", "ithalat"]
    ```
-3. **Build it** against a QMK tree that has `keyboards/yakamoz` (from the [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware) fork) and up-to-date submodules.
+4. **Build it** with up-to-date submodules: `qmk compile -kb yakamoz -km ithalat`.
 
 > [!NOTE]
-> **The fork's own CI needs a submodule fix first.** See [Maintainer notes](#maintainer-notes-ardakilicqmk_userspace).
+> **A userspace holds keymaps, not keyboards.** QMK looks for keyboard definitions only in `qmk_firmware/keyboards/` (checked on master `33292390974c`). So step 2 is needed.
 
-## Config knobs (`ardakilic_trackpad/config.h`)
+## Config knobs (`ithalat/config.h`)
 
 All knobs are also documented inline in `config.h`.
 
@@ -177,7 +262,7 @@ All knobs are also documented inline in `config.h`.
 
 **`AZOTEQ_IQS5XX_PRESS_AND_HOLD_ENABLE`**
 
-- **Why:** drag-and-drop without the removed click keys.
+- **Why:** drag-and-drop without a click key (stock has no left-click key, and its right-click key is removed).
 - **How:** rest one finger without moving for **~450 ms**, then move with the left button held. Lift to release.
 - **Timing:** Tap time + Hold time (datasheet 6.2). Driver defaults: `AZOTEQ_IQS5XX_TAP_TIME` 150 ms + `AZOTEQ_IQS5XX_HOLD_TIME` 300 ms.
 - **Change the delay:** define `AZOTEQ_IQS5XX_HOLD_TIME`.
@@ -212,8 +297,8 @@ All knobs are also documented inline in `config.h`.
 2. **Slide one finger** slowly to the right.
 3. **Then slide away from you** (toward the keyboard).
 4. **Compare** with the table below and set the fix in `config.h`.
-5. **Rebuild** with `KEYMAPS=ardakilic_trackpad ./build.sh` (about a minute).
-6. **Enter the bootloader:** double-tap reset (`RP2040_BOOTLOADER_DOUBLE_TAP_RESET`) or use `QK_BOOT` on the SODA layer.
+5. **Rebuild** with `./build.sh` (about a minute).
+6. **Enter the bootloader:** Adjust + `Tab` (`QK_BOOT`), or double-tap reset.
 7. **Flash:** drop the `.uf2` onto `RPI-RP2`.
 
 | What the cursor does | Fix in `config.h` |
@@ -283,6 +368,7 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 - **Read:** the keymap reads System Info 0 (`0x000F`).
 - **No answer = unplugged.** The keymap sets the status to `FAILED` (which stops the driver hitting a missing device every 11 ms), releases any pad button and sends the report.
 - **`SHOW_RESET` (bit 7) set = power-cycled.** The pad was re-plugged faster than the check interval, or its watchdog fired, and the QMK settings are gone. The keymap re-initialises.
+- **Re-init fails** (e.g. the contact drops during it): the driver stops sending, so the keymap releases any pad button and sends the report, as on unplug. Buttons held by keys stay pressed.
 - **Reset ack:** after every init the flag is acknowledged via System Control 0 (`0x0431`, bit 7 `ACK_RESET`, write `0x80`; the other bits are no-op commands when 0).
 
 <details><summary>Timing: how the read avoids stalling the shared bus</summary>
@@ -316,16 +402,16 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 
 - **Run:** `./test.sh` (docker only; needs the clone from `./build.sh`).
 - **What it builds:** QMK's gtest harness with the real `pointing_device.c` and `azoteq_iqs5xx.c`, on top of a simulated IQS5xx on a mocked I2C bus.
-- **Keymap code:** the keymap block is extracted verbatim from `keymap.c`.
+- **Keymap code:** the trackpad block is extracted verbatim from `ithalat/keymap.c`.
 - **Files:** `test.sh` and `tests/azoteq_scenarios/` (with and without the RDY wire).
 - **Four variants:** `test.sh` builds the four below. The exit code reflects the two "must pass" ones.
 
-| Variant | What it is | Must pass? |
-|---|---|---|
-| **stock** | QMK as is | no (informational) |
-| **control** | the block with `TRACKPAD_NO_TAP_LATCH_FIX`; shows what the workaround fixes | no (informational) |
-| **block, no RDY** | polled every 11 ms | yes |
-| **block + RDY** | with `POINTING_DEVICE_MOTION_PIN`; `gpio_read_pin()` reads the simulated RDY line | yes |
+| Variant | What it is | Must pass? | Result on `33292390974c` |
+|---|---|---|---|
+| **stock** | QMK as is | no (informational) | 1 of 3 pass (the 2 tap tests fail, as expected) |
+| **control** | the block with `TRACKPAD_NO_TAP_LATCH_FIX`; shows what the workaround fixes | no (informational) | 7 of 18 pass |
+| **block, no RDY** | polled every 11 ms | yes | 18 of 18 pass |
+| **block + RDY** | with `POINTING_DEVICE_MOTION_PIN`; `gpio_read_pin()` reads the simulated RDY line | yes | 18 of 18 pass |
 
 > [!NOTE]
 > **It is a model.** It covers the chip's register and window behaviour. It does not model bit-level I2C timing, the pad's own I2C timeout or electrical effects.
@@ -337,6 +423,7 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 - A transfer outside the window is a forced read: the clock is stretched and the simulated time advances.
 - A tap is reported in one cycle only, so a window ended without its data being read loses that cycle.
 - The test loop calls `matrix_scan_user()` before `keyboard_task()` in every pass, because QMK's test matrix (`CUSTOM_MATRIX = yes`) has an empty `matrix_scan_kb()`.
+- The simulated clock moves only between passes, so RDY never changes within a pass by itself. `iqs_mock_open_window_now()` opens the next window at once; the RDY race test calls it between `matrix_scan_user()` and `keyboard_task()`.
 
 </details>
 
@@ -353,8 +440,22 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 | HotplugCheckNeitherStallsTheBusNorLosesACycle (10 s running) | – | pass | pass: 0 forced, 0 lost cycles | pass: 0 forced, 0 lost cycles |
 | EveryTapIsDelivered (400 taps, one every 37 ms) | – | **FAIL**: 1 press, 0 releases | pass: 400/400 | pass: 400/400 |
 | OneFailedReadDuringHoldReleasesOnce (pins the known limit: 2 presses, 2 releases) | – | **FAIL** (button still latched) | pass | pass |
+| MouseKeyDuringDragKeepsTheDragHeld (40 `MS_BTN2` taps during a hold: button 1 pressed and released once) | – | **FAIL** | pass | pass |
+| MouseKeyTapInTheReadWindowKeepsTheDragHeld (a macro key does `tap_code(MS_BTN1)` whenever the pad's window is open during a hold: button 1 pressed and released once) | – | **FAIL** | pass | pass |
+| MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld (an `MS_BTN1` key held across driver reads during a hold, 10 times, released while the pad still holds: no release of button 1 until the lift, then exactly one) | – | **FAIL** | pass | pass |
+| RdyRiseBetweenScanAndReadKeepsTheDragHeld (RDY rises between the RDY sample in `matrix_scan_user()` and the one in `pointing_device_task()`, and a hold is first seen in that read; before the next window an `MS_BTN2` key is tapped, and in a second round an `MS_BTN1` key held since before the hold is released: button 1 released only at the lift) | – | **FAIL** | pass | pass |
+| FailedReinitReleasesTheDragButKeepsKeyButtons (pad drag + `MS_BTN2` key) | – | **FAIL** (button 1 still latched from earlier tests) | pass | pass |
+| FailedReinitReleasesPadButtonKeepsKeyButton1 (pad button 2 + `MS_BTN1` key) | – | pass | pass | pass |
 
-**The first version of this keymap** had the release and the hot-plug check in `housekeeping_task_user()`.
+**MouseKeyDuringDragKeepsTheDragHeld and the two FailedReinit tests** fail in both "must pass" builds without the mouse-key and failed-re-init handling (12 of 15, before MouseKeyTapInTheReadWindowKeepsTheDragHeld was added).
+
+**MouseKeyTapInTheReadWindowKeepsTheDragHeld** fails in both "must pass" builds without the mouse-key handling. It also fails with the handler's first version, which added the pad's buttons before the key's own transition (15 of 16).
+
+**MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld** fails in both "must pass" builds with the previous version, which recorded only the buttons that no key held (16 of 17). While the key held button 1, the pad's button 1 was not recorded, so every key release sent a release of button 1 and the pad's next read pressed it again: 11 presses and 11 releases instead of 1 and 1.
+
+**RdyRiseBetweenScanAndReadKeepsTheDragHeld** fails in "block + RDY" with an intermediate version of the two-owner fix, which recorded the pad's buttons only after a read from an emptied report (17 of 18). `pointing_device_task()` samples RDY again after `matrix_scan_user()`. When RDY rose in between, the driver read the hold from a report that had not been emptied, and the result was not recorded. The host then saw button 1 released right after the key event and pressed again at the next window, in both rounds. Recording `(report & ~keys) | (recorded & keys)` in such passes fixes the `MS_BTN2` round but not the `MS_BTN1` one, because the key's button 1 was already in the report the driver read from. The version before the two-owner fix, which recorded in every pass, fails only the `MS_BTN1` round, in both builds (16 of 18 with MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld). "block, no RDY" has no such race.
+
+**The first version of this trackpad code** had the release and the hot-plug check in `housekeeping_task_user()`.
 
 - It passes "block, no RDY".
 - It fails "block + RDY" in PressAndHoldStaysPressedUntilLifted (click stream).
@@ -367,9 +468,9 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 Do these in order on first flash.
 
 1. [ ] **Without the pad plugged in:**
-   - The keyboard types normally, the startup song plays, and the OLED shows bitmap, layer, caps and `Pad: --`.
-   - Layers, Turkish macros, audio and RGB behave as with `ardakilic`.
-   - On SODA, `[3,4]` (the `Lower` key) now cycles the audio voice and `[3,9]` (the `Raise` key) toggles music mode. These are the copies of the removed `[3,6]`/`[3,7]`.
+   - The keyboard types normally, the startup song (Imperial March) plays, and the OLED shows the picture, layer, caps and `Pad: --`.
+   - Layers, RGB and audio behave as stock. Adjust + `Qwerty`/`Colemak`/`Dvorak` still switch the base layer, and the OLED keeps showing it after `Lower` and `Raise` are released.
+   - Adjust + `Caps` toggles Scroll Lock. (Adjust + `Tab` enters the bootloader, so try that one last.)
 2. [ ] **Plug the pad in:**
    - **Pogo:** USB disconnected the first time, because the pogo does not mate GND first.
    - **USB-C:** mates GND first. If you hot-plug it, fit the 10 Ω resistor or PTC in its 3V3 wire ([wiring.md, Plugging and unplugging](../wiring.md#plugging-and-unplugging)).
@@ -399,101 +500,23 @@ Do these in order on first flash.
 - **Factory axis orientation:** best guess, see [Calibration](#calibration-30-seconds).
 - **Nothing timed on hardware.** That includes the claim that the running-state check adds no clock stretching (shown only in the simulation), and the I2C signal integrity of either connector (pogo or USB-C) at 400 kHz.
 - **Dropped drags:** a dropped I2C read during a press-and-hold drag releases the button for one read (see the caveat under [Tap-latch finding](#tap-latch-finding-qmk--0340)). If the pogo cable turns out flaky, this shows as dropped drags.
-- **Needs mousekey:** the tap-latch workaround depends on `MOUSEKEY_ENABLE` (set in `keyboards/yakamoz/rules.mk`) to tell keyboard buttons from pad buttons. Without mousekey, a held keyboard mouse button would be released after one report.
+- **RDY sampled twice:** with `POINTING_DEVICE_MOTION_PIN`, only a read from an emptied report can release a pad button, i.e. one in a window whose RDY rise `matrix_scan_user()` saw. A window that opens between that sample and the one in `pointing_device_task()` delays a release by one window (10 ms). If that happened in every window, a pad button would stay pressed. The simulation shows this when every window is forced to open in between; earlier versions of this code behave the same. With every 2nd or 3rd window it releases correctly. How often it happens on hardware is not measured.
+- **Needs mousekey:** the tap-latch workaround depends on `MOUSEKEY_ENABLE` (set in the keyboard's `rules.mk`) to know which mouse buttons keys hold. Without mousekey, a held keyboard mouse button would be released after one report.
 - **Pinned QMK:** built and tested against QMK master `33292390974c`. Later QMK changes to the azoteq driver or pointing core may change the picture. Re-run `./build.sh` and `./test.sh` after bumping QMK.
 
-## Keymap details
-
-### Files in this folder
+## Files in this folder
 
 | Path | What |
 |---|---|
-| `qmk_userspace/keyboards/yakamoz/keymaps/ardakilic_trackpad/keymap.c` | the owner's `ardakilic` keymap plus the trackpad code and an OLED status line |
-| `.../ardakilic_trackpad/config.h` | the `ardakilic` config plus the trackpad settings |
-| `.../ardakilic_trackpad/rules.mk` | the `ardakilic` rules plus the pointing-device driver |
+| `qmk_userspace/keyboards/yakamoz/keymaps/ithalat/keymap.c` | the stock `default` keymap plus the trackpad code and an OLED status line |
+| `.../ithalat/config.h` | the stock config plus the trackpad settings |
+| `.../ithalat/rules.mk` | the stock rules plus the pointing-device driver |
 | `build.sh` | reproducible docker-only build |
 | `test.sh`, `tests/azoteq_scenarios/` | docker-only scenario tests |
-| `build/` | prebuilt `.uf2` files |
+| `build/yakamoz_ithalat.uf2` | prebuilt image, committed for flashing without a build; anything else in `build/` is git-ignored |
 
-- **`keymap.c`:** the trackpad code covers CPI, hot-plug and the tap-latch workaround.
-- **`config.h`:** all knobs are documented inline.
-- **`rules.mk`:** adds `POINTING_DEVICE_ENABLE = yes` and `POINTING_DEVICE_DRIVER = azoteq_iqs5xx`.
-- **`build.sh`:** builds `ardakilic` (baseline) and `ardakilic_trackpad`.
-- **`test.sh`:** real QMK pointing code with a simulated IQS5xx (with and without the RDY wire).
-- **`build/`:** prebuilt `yakamoz_ardakilic.uf2` (baseline) and `yakamoz_ardakilic_trackpad.uf2`, committed for flashing without a build. Built against QMK master `33292390974c` (see [Firmware size](#firmware-size)). `build.sh` overwrites them; anything else in `build/` is git-ignored.
-
-**Where the rest comes from**
-
-- **Baseline keymap:** `ardakilic` lives in the owner's [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace) repo.
-- **Keyboard definition:** `keyboards/yakamoz` comes from the [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware) fork.
-- **Layout:** the folder layout here matches a QMK userspace, so the keymap folder can be copied straight into one.
-
-### Changes vs. `ardakilic`
-
-- **Diff base:** `Ardakilic/qmk_userspace@ef35653` `keyboards/yakamoz/keymaps/ardakilic`.
-- **Only additions,** plus exactly two changed lines: the SODA layer's bottom row and its diagram line in `keymap.c`.
-- **No original line was removed.**
-
-| Area | Change (short) |
-|---|---|
-| Layers, keycodes, Turkish-Q macros | unchanged, except one SODA addition |
-| SODA layer | two audio keycodes copied to `[3,4]` and `[3,9]` |
-| OLED | one new line: `Pad: on` / `Pad: --` |
-| Audio (Rick Roll), WPM, caps LED GP25 | unchanged |
-| `rules.mk` | enables the azoteq pointing driver |
-| `config.h` | adds the trackpad settings |
-| `keymap.c` | adds init, hot-plug and tap-latch code |
-| Removed keys | SW44/SW43 (`[3,6]`/`[3,7]`) are physically removed |
-
-<details><summary>Every change in full</summary>
-
-**Layers, keycodes, Turkish-Q macros**
-
-- Unchanged, except one SODA addition (next item).
-- Every keycode stays where it was, so the keymap still works on an unmodified board.
-- `MS_BTN1`/`MS_BTN2` sit at `[3,6]`/`[3,7]` on every layer except SODA, which has `QK_AUDIO_VOICE_NEXT`/`QK_MUSIC_TOGGLE` there.
-
-**SODA layer**
-
-- Those two audio keycodes would be lost with the removed switches.
-- So they are **copied** to free (previously transparent) SODA positions next to the other music/audio keys: `QK_AUDIO_VOICE_NEXT` to `[3,4]` and `QK_MUSIC_TOGGLE` to `[3,9]`.
-- Side effect: SODA + `[3,4]` / `[3,9]` no longer falls through to the base layer's `Lower`/`Raise` keys.
-
-**OLED (SH1107 64x128, Darth Vader bitmap, layer, caps)**
-
-- Unchanged, plus one line `Pad: on` / `Pad: --` on text line 13.
-- Lines 0-7 are the bitmap, 9 the layer, 11-12 caps.
-- The line is 10 characters, so it is fully overwritten every frame.
-
-**Audio (Rick Roll), WPM, caps LED GP25**
-
-- Unchanged.
-
-**`rules.mk`**
-
-- Adds `POINTING_DEVICE_ENABLE = yes` and `POINTING_DEVICE_DRIVER = azoteq_iqs5xx`.
-
-**`config.h`**
-
-- Adds `AZOTEQ_IQS5XX_TPS65`.
-- Adds the I2C bus (`I2CD1`, GP2/GP3, the existing OLED bus) and `I2C1_CLOCK_SPEED 400000`.
-- Adds an optional RDY pin (commented out) and rotation options (commented out).
-- Adds `TRACKPAD_CPI 500`, `TRACKPAD_HOTPLUG_INTERVAL_MS 1000` and `AZOTEQ_IQS5XX_PRESS_AND_HOLD_ENABLE true`.
-
-**`keymap.c`**
-
-- `pointing_device_init_user()` re-applies CPI and acknowledges the pad's reset flag.
-- `matrix_scan_user()` runs the hot-plug check and the tap-latch workaround. It runs before `pointing_device_task()` in each main-loop pass (see [Tap-latch finding](#tap-latch-finding-qmk--0340)).
-- `pointing_device_task_user()` records which buttons came from the pad.
-- The trackpad code is inside `#ifdef POINTING_DEVICE_ENABLE`.
-
-**Removed keys**
-
-- The two front-row centre switches (SW44/SW43, matrix `[3,6]`/`[3,7]`) are **physically removed** to make room for the connector dock.
-- The trackpad replaces their `MS_BTN1`/`MS_BTN2`: 1-finger tap = left click, 2-finger tap = right click, press-and-hold = left button held for drag-and-drop (enabled by default, see [Config knobs](#config-knobs-ardakilic_trackpadconfigh)).
-- Their SODA functions are copied to other keys (see SODA layer above).
-
-</details>
+- **Layout:** the folder layout matches a QMK userspace, so the keymap folder can be copied straight into one.
+- **Prebuilt image:** QMK master `33292390974c`, keyboard `ozkan/Yakamoz-qmk@d6b6212`. `build.sh` overwrites it.
 
 ### Firmware size
 
@@ -501,8 +524,8 @@ QMK master `33292390974c`, measured with `arm-none-eabi-size`:
 
 | keymap | text | bss | .uf2 |
 |---|---|---|---|
-| `ardakilic` (baseline) | 48 012 B | 265 048 B | 96 256 B |
-| `ardakilic_trackpad` | 50 640 B (+2 628 B) | 265 040 B | 101 376 B |
+| stock `default` (renames only, not shipped) | 48 160 B | 265 024 B | 96 768 B |
+| `ithalat` | 50 960 B (+2 800 B) | 265 016 B | 102 400 B |
 
 - **Not a concern:** the Pico has 2 MB of flash.
 
@@ -519,7 +542,7 @@ QMK master `33292390974c`, measured with `arm-none-eabi-size`:
 - **Versions:** it is contained in tag `0.34.0` and not in `0.33.13` (checked with `gh api compare`).
 - **The change:** one line in `drivers/sensors/azoteq_iqs5xx.c`. The report now starts from the incoming buttons instead of from an empty report.
 - **Result:** a tap's BUTTON1 is sent once and then fed back into the driver on every poll, and it is never released.
-- **Only release path:** `pointing_device_keycode_handler()` (lines 574-579), which runs on a real `MS_BTN1` key release. On this build those keys are physically gone.
+- **Only release path:** `pointing_device_keycode_handler()` (lines 574-579), which runs on a real `MS_BTN1` key release. The stock keymap has no such key.
 - **Side effect:** `pointing_device_send()` keeps returning true while a button is held. So the pointing device counts as "active" and the OLED never times out.
 
 <details><summary>Code evidence and upstream history</summary>
@@ -556,18 +579,21 @@ All 8 `pointing_device_handle_buttons()` calls in the driver (lines 371-397) pas
 
 ### The workaround
 
-- **Record:** `pointing_device_task_user()` stores `buttons & ~mousekey_get_report().buttons`, i.e. the buttons that no key holds, which are the pad's.
-- **Release:** `matrix_scan_user()` removes those bits from the report with `pointing_device_get_report()` and `pointing_device_set_report()`, just before the driver reads the pad again. That read then starts without them.
-- **Timing:** it runs in `matrix_task()`, before `pointing_device_task()` in the same main-loop pass.
-  - **Without RDY:** it removes them in the next pass. `pointing_device_task()` is throttled to 11 ms and returns before sending anything until its next poll, which reads the pad first.
+- **Release:** `matrix_scan_user()` removes every button from the report with `pointing_device_get_report()` and `pointing_device_set_report()`, just before the driver reads the pad again. That read then starts from no buttons, as it did before 0.34.0.
+- **Record:** the driver's result then holds exactly the pad's buttons. `pointing_device_task_user()` stores them after each read, including a button that a key holds at the same time. `pointing_device_task()` adds the keys' buttons (`mousekey_get_report().buttons`) before it sends.
+- **Timing:** `matrix_scan_user()` runs in `matrix_task()`, before `pointing_device_task()` in the same main-loop pass.
+  - **Without RDY:** it removes the buttons in every pass. `pointing_device_task()` is throttled to 11 ms and returns before sending anything until its next poll, which reads the pad first.
   - **With `POINTING_DEVICE_MOTION_PIN`:** it removes them only while RDY is high, i.e. in the pass where the driver reads. There is no throttle then: `pointing_device_task()` sends on every pass but reads only while RDY is high.
-  - **Why not later:** a release done after the send (the first version of this keymap did it in `housekeeping_task_user()`) reached the host in the passes between two reads. A press-and-hold then became a ~100 Hz click stream.
+  - **RDY rising in between:** `pointing_device_task()` samples RDY again later in the same pass. If RDY rose after `matrix_scan_user()` saw it low, the driver reads from a report that was not emptied. So in a pass where RDY was low, `matrix_scan_user()` leaves only the recorded pad buttons in the report (the keys' buttons are added back before every send), and `pointing_device_task_user()` records the result too. Such a read can add pad buttons, also one that a key holds, but cannot clear one; the next read from an emptied report does, a window later (see [Known open points](#known-open-points)).
+  - **Why not later:** a release done after the send (the first version of this code did it in `housekeeping_task_user()`) reached the host in the passes between two reads. A press-and-hold then became a ~100 Hz click stream.
+- **Mouse keys in between:** an `MS_BTNx` key sends its report at once (`register_mouse()` → `pointing_device_keycode_handler()`), also between the release and the driver's read. The keymap replaces QMK's weak handler with the same logic, but that report also carries every button the pad (from its last read) or another key still holds. They are added after the key's own press or release, and removed again right after the send, for the driver.
+- **Two owners:** button 1 can be held by an `MS_BTN1` key and by a pad drag at once. It stays pressed until both have let go. Releasing the key during a drag does not release it, and neither does the pad lifting while the key is held.
 
 ### What the host sees
 
 - **Tap:** a press, then a release one report (10-11 ms) later. That is the same timing as before 0.34.0.
 - **Press-and-hold:** one press and one release, with or without RDY. The pad re-asserts the gesture on every read, and an unchanged report is not resent.
-- **Keyboard mouse buttons** are untouched.
+- **Keyboard mouse buttons** (for example the stock right-click key on an unmodified board) stay pressed while their keys are held. Pressing or releasing one during a drag does not drop the drag, also when it is `MS_BTN1`.
 - **QMK < 0.34.0:** the workaround is a no-op, because the driver ignores incoming buttons there.
 
 > [!NOTE]
@@ -587,78 +613,6 @@ All 8 `pointing_device_handle_buttons()` calls in the driver (lines 371-397) pas
 
 ## License
 
-- **`firmware/` is GPL-2.0-or-later.** QMK is [GPL-2.0-or-later](https://github.com/qmk/qmk_firmware/blob/master/LICENSE), and this keymap is based on ozkan's GPL keymap (`keymap.c` header: "Copyright 2023 ozkan").
-- **The prebuilt `.uf2` images** in `build/` are built from QMK, so they fall under the GPL too.
-- **The root MIT [LICENSE](../LICENSE) does not cover** `firmware/` or the `.uf2` images.
-
-## Maintainer notes (Ardakilic/qmk_userspace)
-
-- **For the owner's other repos:** [Ardakilic/qmk_userspace](https://github.com/Ardakilic/qmk_userspace) and the [Ardakilic/qmk_firmware](https://github.com/Ardakilic/qmk_firmware) fork.
-- **You do not need these** to build or flash ithalat: `./build.sh` already works around the problem below.
-
-### qmk_userspace CI and the fork's stale submodules
-
-**What is broken**
-
-- **Last green build:** the `Ardakilic/qmk_userspace` `main` branch last built green on 2026-03-29 (run `23719399243`, at `ef35653`). That was before the fork sync of 2026-09-24.
-- **Latest run:** `36069148228`, 2026-09-24, on the `migrate/keyboard-json` branch of the open PR #1, not on `main`. It failed every ChibiOS target, `yakamoz:ardakilic` included, with:
-
-```
-./lib/chibios/os/hal/include/hal.h:136:2: error: #error "obsolete or unknown configuration file"
-```
-
-- **Next push will fail too:** that CI builds against the fork's current `master` (`.github/workflows/build_binaries.yaml`: `qmk_repo: Ardakilic/qmk_firmware`, `qmk_ref: master`). So the next push to `main`, for example one that adds `ardakilic_trackpad`, will very likely hit the same error on every RP2040 target.
-- **Cause:** the fork (`master` @ `7bed308`, "sync fork") merged upstream's code but kept **old submodule pointers**. The new ChibiOS config templates therefore meet an old ChibiOS.
-
-| submodule | Ardakilic/qmk_firmware | upstream master |
-|---|---|---|
-| `lib/chibios` | `2365f844…` | `6170ddf92d55be54c89b708d1882eea229edeb2c` |
-| `lib/chibios-contrib` | `8d863d9e…` | `5a9ad82b6ba4f649cdb800e8c2bbc9be2d3ce767` |
-| `lib/pico-sdk` | `a3398d8d…` | `d0c5cac430cc955b65efa0e899748853d9a80928` |
-
-<details><summary>Supporting evidence</summary>
-
-- `build.sh` builds the fork's **unchanged** `keyboards/yakamoz` and the **unchanged** `ardakilic` keymap against upstream master with correct submodules. Both compile with zero warnings.
-- The keyboard definition and keymap are fine; only the gitlinks are stale.
-- The fork tree itself was not rebuilt locally. The error text above comes from the CI log.
-
-</details>
-
-**The fix**
-
-Run this in a clone of the fork. It records upstream's gitlinks.
-
-```sh
-git update-index --cacheinfo 160000,6170ddf92d55be54c89b708d1882eea229edeb2c,lib/chibios
-git update-index --cacheinfo 160000,5a9ad82b6ba4f649cdb800e8c2bbc9be2d3ce767,lib/chibios-contrib
-git update-index --cacheinfo 160000,d0c5cac430cc955b65efa0e899748853d9a80928,lib/pico-sdk
-git update-index --cacheinfo 160000,6910c9d9165801d8827d628cb72eb7ea9dd538c5,lib/googletest
-git commit -m "chore: sync submodule pointers with upstream qmk_firmware"
-git push
-```
-
-- **SHAs:** upstream master as of 2026-11-12.
-- **Future syncs:** merge `upstream/master` normally, then run `git submodule update --init --recursive`.
-- **Why the release is incomplete:** the CI's `publish` job runs on `always()`, which is why the current `latest` release holds only the four AVR binaries.
-- **Alternative (untested), no fork maintenance:** build against `qmk/qmk_firmware` and use the reusable workflow's `preparation_command` to copy `keyboards/yakamoz` and `keyboards/cost_crafter40` from the fork into `./qmk_firmware/keyboards/`. That is exactly what `build.sh` does.
-
-### cost_crafter40: tap latch and CPI
-
-**Tap latch**
-
-- The fork's `master` (synced 2026-09-24) contains `0d401d1182`.
-- So the `cost_crafter40` trackpad keymap will latch taps too on its next build (see [Tap-latch finding](#tap-latch-finding-qmk--0340)).
-- The same two functions fix it there.
-
-**CPI never applied**
-
-- **Bug:** `cost_crafter40/keymaps/ardakilic/keymap.c` (and `woodpecker`) wraps `pointing_device_set_cpi(500)` in `#ifdef POINTING_DEVICE_DRIVER`. That macro does not exist for keymap code.
-- **Result:** the CPI line has never been compiled, and that board runs at the pad's native ~1200 CPI.
-- **Fix:** use `#ifdef POINTING_DEVICE_ENABLE`. Better, set the CPI in `pointing_device_init_user()` (as `ardakilic_trackpad` does), so it is re-applied after any re-init.
-
-<details><summary>Why the macro does not exist</summary>
-
-- For this driver the build defines only `-DPOINTING_DEVICE_DRIVER_azoteq_iqs5xx`, `-DPOINTING_DEVICE_DRIVER_AZOTEQ_IQS5XX`, `-DPOINTING_DEVICE_DRIVER_NAME=azoteq_iqs5xx` and `-DPOINTING_DEVICE_ENABLE` (checked in this build's `cflags.txt`).
-- The function-like `POINTING_DEVICE_DRIVER(name)` is private to `pointing_device.c`.
-
-</details>
+- **`firmware/` is GPL-2.0-or-later.** QMK is [GPL-2.0-or-later](https://github.com/qmk/qmk_firmware/blob/master/LICENSE), and this keymap is ozkan's GPL stock keymap plus the trackpad code (`keymap.c` header: "Copyright 2023 ozkan").
+- **The prebuilt `.uf2` image** in `build/` is built from QMK and the Yakamoz keyboard definition, so it falls under the GPL too.
+- **The root MIT [LICENSE](../LICENSE) does not cover** `firmware/` or the `.uf2` image.

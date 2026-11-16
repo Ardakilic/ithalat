@@ -413,6 +413,53 @@ table { border-collapse: collapse; width: 100%; }
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent);
   transform: translateY(1px);
 }
+/* Download STLs: the files the picked variant + connector need */
+.dl-for b { font-weight: 600; color: var(--ink); }
+.dl-all {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 var(--fs-md)/1.2 var(--font-text);
+  cursor: pointer;
+}
+.dl-all:hover { background: color-mix(in srgb, var(--accent) 84%, var(--ink)); }
+.dl-all:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.dl-all[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
+.dl-sum { font: 500 var(--fs-xs)/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+.dl-progress {
+  appearance: none; -webkit-appearance: none;
+  width: 100%; height: 6px; margin: 0;
+  border: 0; border-radius: 3px;
+  background: var(--rule); color: var(--accent);
+  overflow: hidden;
+}
+.dl-progress::-webkit-progress-bar { background: var(--rule); }
+.dl-progress::-webkit-progress-value { background: var(--accent); }
+.dl-progress::-moz-progress-bar { background: var(--accent); }
+.dl-status:empty { display: none; }
+.dl-status.err { color: var(--warn); }
+.dl-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.dl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 0; }
+.dl-row:not([hidden]) ~ .dl-row { border-top: 1px solid var(--rule); } /* a rule above every row but the first shown */
+.dl-what { display: grid; gap: 1px; min-width: 0; }
+.dl-name { font-weight: 600; font-size: var(--fs-sm); }
+.dl-file { font-size: var(--fs-xs); color: var(--ink-soft); overflow-wrap: anywhere; }
+.dl-file code { color: var(--ink); }
+.dl-get {
+  padding: 3px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  font-size: var(--fs-sm);
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dl-get:hover { border-color: var(--accent); background: var(--accent-wash); }
+.dl-get:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .kv tr.conn-row th { color: var(--accent); }
 .fine { margin: 0; font-size: var(--fs-xs); color: var(--ink-soft); }
 .notes { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: var(--fs-sm); max-width: 65ch; }
@@ -526,6 +573,11 @@ table { border-collapse: collapse; width: 100%; }
         </div>
       </section>
 
+      <section class="block" aria-labelledby="h-download">
+        <h2 id="h-download">Download STLs</h2>
+        <p class="fine dl-for">For <b id="dl-sel">With glass · Magnetic pogo</b></p><button type="button" class="dl-all" id="dl-all" data-lib="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" data-sri="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" aria-describedby="dl-status">Download all <span class="dl-sum">(<span id="dl-count">2 files, 5.3 MB</span>)</span></button><progress class="dl-progress" id="dl-progress" max="1" value="0" aria-label="Zip progress" hidden></progress><p class="fine dl-status" id="dl-status" role="status" aria-live="polite"></p><ul class="dl-list" id="dl-list" aria-label="STL files for this pick"><li class="dl-row" data-dl="rest-glass"><div class="dl-what"><span class="dl-name">Wrist rest (With glass)</span><span class="dl-file"><code>ithalat-glass.stl</code> <span class="size">5.2 MB</span></span></div><a class="dl-get" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-glass.stl" download="ithalat-glass.stl" data-site="stl/ithalat-glass.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-glass.stl" aria-label="Download ithalat-glass.stl, 5.2 MB">Download</a></li><li class="dl-row" data-dl="rest-bare" hidden><div class="dl-what"><span class="dl-name">Wrist rest (Without glass)</span><span class="dl-file"><code>ithalat-bare.stl</code> <span class="size">5.2 MB</span></span></div><a class="dl-get" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-bare.stl" download="ithalat-bare.stl" data-site="stl/ithalat-bare.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-bare.stl" aria-label="Download ithalat-bare.stl, 5.2 MB">Download</a></li><li class="dl-row" data-dl="dock-pogo"><div class="dl-what"><span class="dl-name">Dock (Magnetic pogo)</span><span class="dl-file"><code>ithalat-dock-pogo.stl</code> <span class="size">97 kB</span></span></div><a class="dl-get" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-dock-pogo.stl" download="ithalat-dock-pogo.stl" data-site="stl/ithalat-dock-pogo.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-dock-pogo.stl" aria-label="Download ithalat-dock-pogo.stl, 97 kB">Download</a></li><li class="dl-row" data-dl="dock-usbc" hidden><div class="dl-what"><span class="dl-name">Dock (USB-C)</span><span class="dl-file"><code>ithalat-dock-usbc.stl</code> <span class="size">114 kB</span></span></div><a class="dl-get" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-dock-usbc.stl" download="ithalat-dock-usbc.stl" data-site="stl/ithalat-dock-usbc.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-dock-usbc.stl" aria-label="Download ithalat-dock-usbc.stl, 114 kB">Download</a></li><li class="dl-row" data-dl="usbc-retainer" hidden><div class="dl-what"><span class="dl-name">USB-C board retainer + clip lock</span><span class="dl-file"><code>ithalat-usbc-retainer.stl</code> <span class="size">66 kB</span></span></div><a class="dl-get" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-retainer.stl" download="ithalat-usbc-retainer.stl" data-site="stl/ithalat-usbc-retainer.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-usbc-retainer.stl" aria-label="Download ithalat-usbc-retainer.stl, 66 kB">Download</a></li><li class="dl-row" data-dl="usbc-grip-top" hidden><div class="dl-what"><span class="dl-name">USB-C grip, top half</span><span class="dl-file"><code>ithalat-usbc-grip-top.stl</code> <span class="size">78 kB</span></span></div><a class="dl-get" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-grip-top.stl" download="ithalat-usbc-grip-top.stl" data-site="stl/ithalat-usbc-grip-top.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-usbc-grip-top.stl" aria-label="Download ithalat-usbc-grip-top.stl, 78 kB">Download</a></li><li class="dl-row" data-dl="usbc-grip-bottom" hidden><div class="dl-what"><span class="dl-name">USB-C grip, bottom half</span><span class="dl-file"><code>ithalat-usbc-grip-bottom.stl</code> <span class="size">110 kB</span></span></div><a class="dl-get" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-grip-bottom.stl" download="ithalat-usbc-grip-bottom.stl" data-site="stl/ithalat-usbc-grip-bottom.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-usbc-grip-bottom.stl" aria-label="Download ithalat-usbc-grip-bottom.stl, 110 kB">Download</a></li></ul><p class="fine" id="dl-buy"><span data-connector="pogo">Pogo needs no screws. </span><span data-connector="usbc" hidden>USB-C also needs 4 × M2x4 self-tapping screws and 2-part epoxy. </span>Everything else to buy: <a href="https://github.com/Ardakilic/ithalat#what-you-need">What you need</a>.</p>
+      </section>
+
       <section class="block" aria-labelledby="h-dims">
         <h2 id="h-dims">Dimensions <small>mm</small></h2>
         <table class="kv" id="dims-table"><tbody><tr><th scope="row">Width</th><td>270.98 mm</td></tr><tr><th scope="row">Depth</th><td>85.00 mm (+1.5 mm gap to the keyboard)</td></tr><tr><th scope="row">Max height</th><td>11.80 mm (trackpad island = keyboard 11.80 mm)</td></tr><tr><th scope="row">Top profile</th><td>back 11.80 → peak 11.80 at 28 mm → front 6.50 mm (convex, C1)</td></tr><tr><th scope="row">Edge rounds</th><td>back R1.2, ends R5, front nose 9 x 4.5 mm</td></tr><tr><th scope="row">Plan corners</th><td>front R16, back R2.8, ends bulge 2 mm; bottom chamfer 0.5 mm</td></tr><tr><th scope="row">Trackpad pocket</th><td>65.50 x 49.50 mm, R2.50, centre (135.49, 51.25), 9 mm from the back</td></tr><tr><th scope="row">Pocket corners</th><td>R2.5 vs module R4 / glass R4: corner gap 0.97 / 0.97 mm; rim bevel 0.4 x 0.08 mm (wall 0.07 above the surface)</td></tr><tr><th scope="row">Pocket depth (glass)</th><td>2.38 mm → ledge z 9.42, glass top 11.65 mm (0.15 below the rim)</td></tr><tr><th scope="row">Pocket depth (bare)</th><td>1.28 mm → ledge z 10.52, PCB top 11.52 / liner 11.65 mm (0.15 below the rim)</td></tr><tr><th scope="row">Pocket steps</th><td>ledge &gt;= 2 mm, relief 1.6 mm, solder well 3.5 mm, 2 push holes D6</td></tr><tr><th scope="row">Island</th><td>flat 5 mm around the pocket, 14 mm smoothstep blend</td></tr><tr><th scope="row">Cable</th><td>tunnel 4.5 x 4 mm (S-bend strain relief), notch 6 x 4 x 7 mm, riser 5 mm long to z 9.12, pigtail 120 mm, D3.5 (last 15 mm unsleeved)</td></tr><tr><th scope="row">Plug bay</th><td>26 x 7 x 2 mm in the back-top edge at x 135.47, R1 corners, 0.4 mm chamfer</td></tr><tr><th scope="row">Ballast</th><td>78 x 20 x 5 + 78 x 20 x 5 mm steel (+122 g), &gt;= 20 mm from the pad</td></tr><tr><th scope="row">Bumpers</th><td>6 x D10 mm in 0.6 mm recesses: use bumpers 0.6 mm taller than the keyboard&#x27;s</td></tr><tr><th scope="row">Engraving</th><td>&#x27;ithalat&#x27; on the bottom (mirrored), 0.6 mm deep, cap height 12 mm</td></tr><tr><th scope="row">Mass (PLA)</th><td>109 g @15% / 128 g @25% / 266 g solid (glass, approx.)</td></tr><tr><th scope="row">Total on the desk</th><td>~266 g @25% incl. steel, trackpad and glass</td></tr><tr class="conn-row" data-connector="pogo"><th scope="row">Dock (Magnetic pogo)</th><td>36.6 x 19 x 7 mm on the plate, connector axis 3.2 above it, 2.5 mm in front of the OLED cover</td></tr><tr class="conn-row" data-connector="pogo"><th scope="row">Clips</th><td>4 blades (front/inner walls), 45° catch, ~2.5 N release each (2 GPa, mu 0.3)</td></tr><tr class="conn-row" data-connector="pogo"><th scope="row">Plug</th><td>housing 20.1 x 4 x 4.2 mm + relief 20.1 x 3 x 6 mm, down exit; bottom z 12.00 over the bay floor 9.80</td></tr><tr class="conn-row" data-connector="pogo"><th scope="row">Connector</th><td>5-pin magnetic pogo (MG005 20.1 x 4.2 x 4 mm), press fit with 0.25 mm crush ribs</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Dock (USB-C)</th><td>36.6 x 20.9 x 9 mm, axis 4.25 above the plate, 0.6 mm in front of the OLED cover and 0.2 mm below its underside</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Well</th><td>11.64 x 5.95 x 4.45 mm deep, 1 x 45° entry chamfer, grip nose clearance 0.15/side</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Female board</th><td>13 x 13.5 x 1 mm; shell 8.94 x 3.26 x 7.35 through a 9.24 x 3.71 window in a 1.5 mm shoulder; mouth flush with the well floor</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Board capture</th><td>pull → 1.5 mm shoulder, push → 1.25 mm rear stop; retainer on top (2 x M2x4 screws), its ribs press the shell onto the board, the window&#x27;s side ribs grip it 0.1 mm</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Clip retention</th><td>30° catch, blades on the plug back/front walls; 20 N at 20° up: 3.57 N per back blade vs 5.88 N (margin 1.65); lock prongs fitted: margin 16.0</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Grip</th><td>clamshell 18 x 13.3 x 6.5 mm (body 8.65 long + nose 11.34 x 5.5 x 4.65); 2 x M2x4 + 2 pegs; floats 1.6 mm over the rest (1.25 when pulled back 7.5 mm)</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Male board</th><td>8.64 x 16.5 x 0.8 mm incl. plug; shell 8.25 x 2.4, 6.5 exposed, seats 6.2 deep, nose stops 0.3 before the floor</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Male board hold</th><td>epoxy key groove around the plug shell + 2 crush ribs per side under the board (0.3 mm squeeze, 0.2 at 0.2 mm layers); board corners stop on a 0.17 mm collar</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Schottky</th><td>5.2 x Ø2.7 mm in the retainer cradle (anode → Pico 3V3)</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Wires</th><td>4 x 28 AWG GND / 3V3 / SDA / SCL, 12 mm slack S-loop in the plug bay</td></tr><tr class="conn-row" data-connector="usbc" hidden><th scope="row">Metal near the pad</th><td>plug shell 13.0 mm, male board 5.5 mm from the TPS65 (advisory 15)</td></tr></tbody></table>
@@ -533,7 +585,7 @@ table { border-collapse: collapse; width: 100%; }
 
       <section class="block" aria-labelledby="h-parts">
         <h2 id="h-parts">Parts and STLs</h2>
-        <ul class="parts" id="parts-list"><li class="part v-glass" data-part="rest-glass" data-variant="glass"><div class="part-head"><span class="part-name">Wrist rest (With glass)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-glass.stl" download title="Download stl/ithalat-glass.stl from GitHub">stl/ithalat-glass.stl</a> <span class="size">5.2 MB</span></div><div class="part-meta"><span>104 714 triangles</span><span>271.0 × 85.0 × 11.8 mm</span><span>214.5 cm³</span></div><div class="part-mass">PLA 109 g at 15 % infill · 128 g at 25 % infill · 266 g solid</div></li><li class="part v-bare" data-part="rest-bare" data-variant="bare"><div class="part-head"><span class="part-name">Wrist rest (Without glass)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-bare.stl" download title="Download stl/ithalat-bare.stl from GitHub">stl/ithalat-bare.stl</a> <span class="size">5.2 MB</span></div><div class="part-meta"><span>104 716 triangles</span><span>271.0 × 85.0 × 11.8 mm</span><span>218.0 cm³</span></div><div class="part-mass">PLA 110 g at 15 % infill · 129 g at 25 % infill · 270 g solid</div></li><li class="part" data-part="dock-pogo" data-connector="pogo"><div class="part-head"><span class="part-name">Dock (Magnetic pogo)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-dock-pogo.stl" download title="Download stl/ithalat-dock-pogo.stl from GitHub">stl/ithalat-dock-pogo.stl</a> <span class="size">97 kB</span></div><div class="part-meta"><span>1 930 triangles</span><span>36.6 × 19.0 × 10.4 mm</span><span>4.0 cm³</span></div><div class="part-mass">PLA 5.0 g solid</div></li><li class="part" data-part="dock-usbc" data-connector="usbc" hidden><div class="part-head"><span class="part-name">Dock (USB-C)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-dock-usbc.stl" download title="Download stl/ithalat-dock-usbc.stl from GitHub">stl/ithalat-dock-usbc.stl</a> <span class="size">114 kB</span></div><div class="part-meta"><span>2 286 triangles</span><span>36.6 × 20.9 × 12.4 mm</span><span>5.1 cm³</span></div><div class="part-mass">PLA 6.3 g solid</div></li><li class="part" data-part="usbc-retainer" data-connector="usbc" hidden><div class="part-head"><span class="part-name">USB-C board retainer + clip lock</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-retainer.stl" download title="Download stl/ithalat-usbc-retainer.stl from GitHub">stl/ithalat-usbc-retainer.stl</a> <span class="size">66 kB</span></div><div class="part-meta"><span>1 312 triangles</span><span>29.6 × 15.0 × 11.4 mm</span><span>1.0 cm³</span></div><div class="part-mass">PLA 1.2 g solid</div></li><li class="part" data-part="usbc-grip-top" data-connector="usbc" hidden><div class="part-head"><span class="part-name">USB-C grip, top half</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-grip-top.stl" download title="Download stl/ithalat-usbc-grip-top.stl from GitHub">stl/ithalat-usbc-grip-top.stl</a> <span class="size">78 kB</span></div><div class="part-meta"><span>1 558 triangles</span><span>18.0 × 13.3 × 3.9 mm</span><span>0.5 cm³</span></div><div class="part-mass">PLA 0.7 g solid</div></li><li class="part" data-part="usbc-grip-bottom" data-connector="usbc" hidden><div class="part-head"><span class="part-name">USB-C grip, bottom half</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-grip-bottom.stl" download title="Download stl/ithalat-usbc-grip-bottom.stl from GitHub">stl/ithalat-usbc-grip-bottom.stl</a> <span class="size">110 kB</span></div><div class="part-meta"><span>2 200 triangles</span><span>18.0 × 13.3 × 4.1 mm</span><span>0.4 cm³</span></div><div class="part-mass">PLA 0.5 g solid</div></li></ul><div class="hw" data-connector="pogo"><p class="label">Not printed · Magnetic pogo</p><ul class="hw-list"><li><span class="hw-chip" style="--chip: var(--mat-plastic)" aria-hidden="true"></span><span>MG005 pogo keyboard half (in the dock)</span></li><li><span class="hw-chip" style="--chip: var(--mat-plastic)" aria-hidden="true"></span><span>MG005 pogo cable half</span></li><li><span class="hw-chip" style="--chip: var(--mat-plastic)" aria-hidden="true"></span><span>solder tails + heat-shrink / glue</span></li><li><span class="hw-chip" style="--chip: var(--mat-magnet)" aria-hidden="true"></span><span>NdFeB magnet (cable half) <b>× 2</b></span></li><li><span class="hw-chip" style="--chip: var(--mat-magnet)" aria-hidden="true"></span><span>NdFeB magnet (keyboard half) <b>× 2</b></span></li></ul></div><div class="hw" data-connector="usbc" hidden><p class="label">Not printed · USB-C</p><ul class="hw-list"><li><span class="hw-chip" style="--chip: var(--mat-pcb-blue)" aria-hidden="true"></span><span>USB-C female breakout (blue, pads G D D V)</span></li><li><span class="hw-chip" style="--chip: var(--mat-metal)" aria-hidden="true"></span><span>USB-C receptacle shell</span></li><li><span class="hw-chip" style="--chip: var(--mat-pcb-green)" aria-hidden="true"></span><span>USB-C male breakout (green, pads V D- D+ G)</span></li><li><span class="hw-chip" style="--chip: var(--mat-metal)" aria-hidden="true"></span><span>USB-C plug shell</span></li><li><span class="hw-chip" style="--chip: var(--mat-diode)" aria-hidden="true"></span><span>Series Schottky (1N5817, anode to Pico 3V3)</span></li></ul></div><p class="fine">File names download the STLs committed on the main branch of the <a href="https://github.com/Ardakilic/ithalat">GitHub repository</a>. Masses are PLA at the configured density.</p>
+        <ul class="parts" id="parts-list"><li class="part v-glass" data-part="rest-glass" data-variant="glass"><div class="part-head"><span class="part-name">Wrist rest (With glass)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-glass.stl" download="ithalat-glass.stl" data-site="stl/ithalat-glass.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-glass.stl" title="Download stl/ithalat-glass.stl">stl/ithalat-glass.stl</a> <span class="size">5.2 MB</span></div><div class="part-meta"><span>104 714 triangles</span><span>271.0 × 85.0 × 11.8 mm</span><span>214.5 cm³</span></div><div class="part-mass">PLA 109 g at 15 % infill · 128 g at 25 % infill · 266 g solid</div></li><li class="part v-bare" data-part="rest-bare" data-variant="bare"><div class="part-head"><span class="part-name">Wrist rest (Without glass)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-bare.stl" download="ithalat-bare.stl" data-site="stl/ithalat-bare.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-bare.stl" title="Download stl/ithalat-bare.stl">stl/ithalat-bare.stl</a> <span class="size">5.2 MB</span></div><div class="part-meta"><span>104 716 triangles</span><span>271.0 × 85.0 × 11.8 mm</span><span>218.0 cm³</span></div><div class="part-mass">PLA 110 g at 15 % infill · 129 g at 25 % infill · 270 g solid</div></li><li class="part" data-part="dock-pogo" data-connector="pogo"><div class="part-head"><span class="part-name">Dock (Magnetic pogo)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-dock-pogo.stl" download="ithalat-dock-pogo.stl" data-site="stl/ithalat-dock-pogo.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-dock-pogo.stl" title="Download stl/ithalat-dock-pogo.stl">stl/ithalat-dock-pogo.stl</a> <span class="size">97 kB</span></div><div class="part-meta"><span>1 930 triangles</span><span>36.6 × 19.0 × 10.4 mm</span><span>4.0 cm³</span></div><div class="part-mass">PLA 5.0 g solid</div></li><li class="part" data-part="dock-usbc" data-connector="usbc" hidden><div class="part-head"><span class="part-name">Dock (USB-C)</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-dock-usbc.stl" download="ithalat-dock-usbc.stl" data-site="stl/ithalat-dock-usbc.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-dock-usbc.stl" title="Download stl/ithalat-dock-usbc.stl">stl/ithalat-dock-usbc.stl</a> <span class="size">114 kB</span></div><div class="part-meta"><span>2 286 triangles</span><span>36.6 × 20.9 × 12.4 mm</span><span>5.1 cm³</span></div><div class="part-mass">PLA 6.3 g solid</div></li><li class="part" data-part="usbc-retainer" data-connector="usbc" hidden><div class="part-head"><span class="part-name">USB-C board retainer + clip lock</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-retainer.stl" download="ithalat-usbc-retainer.stl" data-site="stl/ithalat-usbc-retainer.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-usbc-retainer.stl" title="Download stl/ithalat-usbc-retainer.stl">stl/ithalat-usbc-retainer.stl</a> <span class="size">66 kB</span></div><div class="part-meta"><span>1 312 triangles</span><span>29.6 × 15.0 × 11.4 mm</span><span>1.0 cm³</span></div><div class="part-mass">PLA 1.2 g solid</div></li><li class="part" data-part="usbc-grip-top" data-connector="usbc" hidden><div class="part-head"><span class="part-name">USB-C grip, top half</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-grip-top.stl" download="ithalat-usbc-grip-top.stl" data-site="stl/ithalat-usbc-grip-top.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-usbc-grip-top.stl" title="Download stl/ithalat-usbc-grip-top.stl">stl/ithalat-usbc-grip-top.stl</a> <span class="size">78 kB</span></div><div class="part-meta"><span>1 558 triangles</span><span>18.0 × 13.3 × 3.9 mm</span><span>0.5 cm³</span></div><div class="part-mass">PLA 0.7 g solid</div></li><li class="part" data-part="usbc-grip-bottom" data-connector="usbc" hidden><div class="part-head"><span class="part-name">USB-C grip, bottom half</span></div><div class="part-file"><a class="file" href="https://github.com/Ardakilic/ithalat/raw/main/stl/ithalat-usbc-grip-bottom.stl" download="ithalat-usbc-grip-bottom.stl" data-site="stl/ithalat-usbc-grip-bottom.stl" data-fetch="https://raw.githubusercontent.com/Ardakilic/ithalat/main/stl/ithalat-usbc-grip-bottom.stl" title="Download stl/ithalat-usbc-grip-bottom.stl">stl/ithalat-usbc-grip-bottom.stl</a> <span class="size">110 kB</span></div><div class="part-meta"><span>2 200 triangles</span><span>18.0 × 13.3 × 4.1 mm</span><span>0.4 cm³</span></div><div class="part-mass">PLA 0.5 g solid</div></li></ul><div class="hw" data-connector="pogo"><p class="label">Not printed · Magnetic pogo</p><ul class="hw-list"><li><span class="hw-chip" style="--chip: var(--mat-plastic)" aria-hidden="true"></span><span>MG005 pogo keyboard half (in the dock)</span></li><li><span class="hw-chip" style="--chip: var(--mat-plastic)" aria-hidden="true"></span><span>MG005 pogo cable half</span></li><li><span class="hw-chip" style="--chip: var(--mat-plastic)" aria-hidden="true"></span><span>solder tails + heat-shrink / glue</span></li><li><span class="hw-chip" style="--chip: var(--mat-magnet)" aria-hidden="true"></span><span>NdFeB magnet (cable half) <b>× 2</b></span></li><li><span class="hw-chip" style="--chip: var(--mat-magnet)" aria-hidden="true"></span><span>NdFeB magnet (keyboard half) <b>× 2</b></span></li></ul></div><div class="hw" data-connector="usbc" hidden><p class="label">Not printed · USB-C</p><ul class="hw-list"><li><span class="hw-chip" style="--chip: var(--mat-pcb-blue)" aria-hidden="true"></span><span>USB-C female breakout (blue, pads G D D V)</span></li><li><span class="hw-chip" style="--chip: var(--mat-metal)" aria-hidden="true"></span><span>USB-C receptacle shell</span></li><li><span class="hw-chip" style="--chip: var(--mat-pcb-green)" aria-hidden="true"></span><span>USB-C male breakout (green, pads V D- D+ G)</span></li><li><span class="hw-chip" style="--chip: var(--mat-metal)" aria-hidden="true"></span><span>USB-C plug shell</span></li><li><span class="hw-chip" style="--chip: var(--mat-diode)" aria-hidden="true"></span><span>Series Schottky (1N5817, anode to Pico 3V3)</span></li></ul></div><p class="fine"><a href="#h-download">Download STLs</a> above has just the files your pick needs; each file name here downloads one STL. Masses are PLA at the configured density.</p>
       </section>
 
       <section class="block" aria-labelledby="h-pinout">
@@ -595,6 +647,7 @@ function hasWebGL() {
 // ---- variant UI works without WebGL too -------------------------------------
 // one radio per manifest variant (tools/build_preview.py); the first one starts
 // checked, and a restored check on an unknown / hidden radio is ignored
+let refreshDownloads = () => {}; // set by the Download STLs block below
 const variantIds = (DATA.variants || []).map((v) => v.id);
 for (const input of document.querySelectorAll('input[name="variant"]')) {
   if (!variantIds.includes(input.value)) { input.hidden = true; input.checked = false; if (input.nextElementSibling) input.nextElementSibling.hidden = true; }
@@ -610,6 +663,7 @@ function setVariantUI(v) {
   $("tb-variant").textContent = variantLabel(v);
   for (const li of document.querySelectorAll(".part[data-variant]")) li.classList.toggle("dim", li.dataset.variant !== v);
   const r = document.querySelector(`input[name="variant"][value="${CSS.escape(v)}"]`); if (r) r.checked = true;
+  refreshDownloads();
 }
 setVariantUI(initialVariant());
 
@@ -635,18 +689,114 @@ function setConnectorUI(c) {
   for (const el of document.querySelectorAll("[data-connector]")) el.hidden = el.dataset.connector !== c;
   for (const el of document.querySelectorAll("[data-hide-for]")) el.hidden = el.dataset.hideFor.split(" ").includes(c);
   const r = c && document.querySelector(`input[name="connector"][value="${CSS.escape(c)}"]`); if (r) r.checked = true;
+  refreshDownloads();
 }
 setConnectorUI(initialConnector());
+
+// ---- Download STLs: the files the picked variant + connector need, also without WebGL
+// One row per part (tools/build_preview.py, data-dl = part id); filesFor() mirrors its
+// files_for(). On *.github.io (the Pages site, forks too) `make site` serves the STLs
+// next to this page, so the links and "Download all" use stl/<file> there; anywhere else
+// (a local copy, other hosts) the links keep the committed files on GitHub and the zip
+// fetches them from raw.githubusercontent.com (CORS-enabled).
+const PARTS = DATA.parts || [];
+function filesFor(v, c) {
+  const rests = PARTS.filter((p) => p.role === "rest");
+  const rest = rests.find((p) => p.variant === v && p.connector === c) || rests.find((p) => p.variant === v && !p.connector)
+    || rests.find((p) => p.variant === v) || rests[0];
+  return (rest ? [rest] : []).concat(PARTS.filter((p) => p.role !== "rest"
+    && (!p.connector || p.connector === c) && (!p.variant || p.variant === v)));
+}
+const onPages = /^https?:$/.test(location.protocol) && /(^|\.)github\.io$/i.test(location.hostname);
+if (onPages) for (const a of document.querySelectorAll("a[data-site]")) a.href = a.dataset.site;
+const fmtBytes = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${(n / 1e3).toFixed(0)} kB` : `${n} B`);
+const filesTxt = (files) => `${files.length} file${files.length === 1 ? "" : "s"}, ${fmtBytes(files.reduce((s, p) => s + (p.file_bytes || 0), 0))}`;
+const pickNow = () => ({ v: initialVariant(), c: initialConnector() }); // the checked radios
+const dlAll = $("dl-all"), dlStatus = $("dl-status"), dlBar = $("dl-progress");
+let dlBusy = false, dlPick = null;
+refreshDownloads = () => { // runs on every applyState(); acts only when the pick changed
+  const { v, c } = pickNow();
+  if (dlPick === `${v}|${c}`) return;
+  dlPick = `${v}|${c}`;
+  const files = filesFor(v, c), ids = new Set(files.map((p) => p.id));
+  for (const li of document.querySelectorAll(".dl-row")) li.hidden = !ids.has(li.dataset.dl);
+  $("dl-count").textContent = filesTxt(files);
+  $("dl-sel").textContent = [variantIds.length ? variantLabel(v) : "", connIds.length > 1 ? connLabel(c) : ""].filter(Boolean).join(" · ");
+  if (dlStatus && !dlBusy) { dlStatus.textContent = ""; dlStatus.classList.remove("err"); } // an old result no longer applies
+};
+refreshDownloads();
+// standalone page only: tools/build_preview.py cuts this out of the artifact
+if (dlAll) {
+  // JSZip (exact pin + SRI on the button) loads on the first click only
+  let zipLib = null;
+  const loadZip = () => (zipLib ||= new Promise((resolve, reject) => {
+    if (window.JSZip) { resolve(window.JSZip); return; }
+    const s = document.createElement("script");
+    s.src = dlAll.dataset.lib; s.integrity = dlAll.dataset.sri; s.crossOrigin = "anonymous";
+    s.onload = () => (window.JSZip ? resolve(window.JSZip) : reject(new Error("the zip library did not start")));
+    s.onerror = () => { s.remove(); reject(new Error("the zip library (cdnjs.cloudflare.com) did not load")); };
+    document.head.append(s);
+  }).catch((err) => { zipLib = null; throw err; }));
+  const say = (text, err) => { dlStatus.textContent = text; dlStatus.classList.toggle("err", !!err); };
+  async function fetchStl(url, name, onBytes) {
+    let res;
+    try { res = await fetch(url); } catch (e) { throw new Error(`${name} could not be fetched (offline?)`); }
+    if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
+    if (!res.body) return new Uint8Array(await res.arrayBuffer());
+    const reader = res.body.getReader(), chunks = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); onBytes(value.length);
+    }
+    return new Uint8Array(await new Blob(chunks).arrayBuffer());
+  }
+  dlAll.addEventListener("click", async () => {
+    if (dlBusy) return;
+    const { v, c } = pickNow(), files = filesFor(v, c);
+    const zipName = ["ithalat", v, c].filter(Boolean).join("-") + ".zip";
+    const total = files.reduce((s, p) => s + (p.file_bytes || 0), 0) || 1;
+    dlBusy = true; dlAll.setAttribute("aria-disabled", "true");
+    dlBar.value = 0; dlBar.hidden = false;
+    try {
+      say("Loading the zip library…");
+      const JSZip = await loadZip(), zip = new JSZip();
+      let got = 0;
+      for (const [i, p] of files.entries()) {
+        const a = document.querySelector(`.dl-row[data-dl="${CSS.escape(p.id)}"] a[data-site]`);
+        if (!a) throw new Error(`no link for ${p.stl}`);
+        const name = a.getAttribute("download");
+        say(`Fetching ${i + 1} of ${files.length}: ${name}`);
+        zip.file(name, await fetchStl(onPages ? a.dataset.site : a.dataset.fetch, name,
+          (n) => { got += n; dlBar.value = 0.9 * Math.min(1, got / total); }));
+      }
+      say(`Packing ${zipName}…`);
+      const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
+        (m) => { dlBar.value = 0.9 + 0.1 * (m.percent / 100); });
+      const href = URL.createObjectURL(blob), link = document.createElement("a");
+      link.href = href; link.download = zipName; link.hidden = true;
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 60000);
+      say(`Saved ${zipName} (${filesTxt(files)}; ${fmtBytes(blob.size)} zipped).`);
+    } catch (err) {
+      say(`Couldn’t make the zip: ${err && err.message || err}. Use the Download link of each file below instead.`, true);
+    } finally {
+      dlBusy = false; dlAll.removeAttribute("aria-disabled"); dlBar.hidden = true;
+    }
+  });
+}
+
+// the panels follow the radios at once, also while (or if) the 3D view is not up yet
+document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventListener("change", () => {
+  if (el.checked) setVariantUI(el.value);
+}));
+document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => {
+  if (el.checked) setConnectorUI(el.value);
+}));
 
 if (!hasWebGL()) {
   showMessage("3D preview needs WebGL",
     "This browser has WebGL turned off or unavailable. The dimensions, parts list and pinout beside the viewer still apply.");
-  document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventListener("change", () => {
-    if (el.checked) setVariantUI(el.value);
-  }));
-  document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => {
-    if (el.checked) setConnectorUI(el.value);
-  }));
 } else {
   boot().catch((err) => {
     console.error(err);

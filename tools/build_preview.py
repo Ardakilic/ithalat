@@ -4,10 +4,15 @@
 Writes two outputs from one template (preview/template.html):
 
   preview/index.html   complete standalone page (local viewing, GitHub Pages),
-                       with a "Source on GitHub" link in the header; every STL
-                       file name links to the committed file on the main branch
-                       (REPO_URL/raw/main/stl/<file>), so the links work both
-                       from a local copy and from the Pages site
+                       with a "Source on GitHub" link in the header and a
+                       "Download STLs" block that lists the files the picked
+                       variant + connector need (one link each, plus "Download
+                       all" as a .zip built in the browser with JSZip from
+                       cdnjs).  Every STL link points at the committed file on
+                       the main branch (REPO_URL/raw/main/stl/<file>); the page
+                       script switches the links to the site's own stl/<file>
+                       when it is served from *.github.io (the Pages site, also
+                       forks), where `make site` puts the STLs next to it
   build/artifact.html  the same app as an HTML *fragment* for publishing as a
                        claude.ai Artifact: no <!doctype>/<html>/<head>/<body>,
                        starts with <title> + the viewport-fit meta, then
@@ -60,6 +65,13 @@ REPO_ROOT = os.path.dirname(HERE)
 # committed on the main branch there.
 REPO_URL = "https://github.com/Ardakilic/ithalat"
 RAW_URL = REPO_URL + "/raw/main/"
+# the same files from GitHub's CORS-enabled raw host: "Download all" fetches them from
+# here when the page is not on *.github.io (local copy, other hosts)
+FETCH_URL = "https://raw.githubusercontent.com/Ardakilic/ithalat/main/"
+STL_FOLDER_URL = REPO_URL + "/tree/main/stl"
+# "Download all" zips the files in the browser; loaded only on click (exact pin + SRI)
+JSZIP_URL = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+JSZIP_SRI = "sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
 
 TARGET_MB = 8.0     # aim for this total page size
 HARD_CAP_MB = 15.0  # refuse to write a page bigger than this
@@ -91,6 +103,11 @@ PINOUT_NOTE = {
             "male. The grip fits the well one way up only; most female boards tie both D+ and both D- "
             "contacts together, so check both plug orientations with the bare male board before you "
             "close the grip. Never plug either half into a real USB port or charger.",
+}
+# what the download list's buy note adds per connector type (README "Screws and epoxy")
+BUY_NOTE = {
+    "pogo5": "Pogo needs no screws.",
+    "usbc": "USB-C also needs 4 × M2x4 self-tapping screws and 2-part epoxy.",
 }
 
 # hardware material -> CSS token (preview/template.html :root) for the parts-list swatch
@@ -535,8 +552,8 @@ def html_parts(parts, mode, conns, cvars):
         st = p["stats"]
         cls = "part" + (f" v-{p['variant']}" if p.get("variant") else "")
         if mode == "standalone":
-            file_html = (f'<a class="file" href="{esc(p["href"])}" download '
-                         f'title="Download {esc(p["stl"])} from GitHub">{esc(p["stl"])}</a>'
+            file_html = (f'<a class="file" href="{esc(p["href"])}"{stl_link_attrs(p)} '
+                         f'title="Download {esc(p["stl"])}">{esc(p["stl"])}</a>'
                          f' <span class="size">{esc(fmt_bytes(p["file_bytes"]))}</span>')
         else:
             file_html = (f'<code class="file">{esc(p["stl"])}</code>'
@@ -557,18 +574,90 @@ def html_parts(parts, mode, conns, cvars):
                    f'{repo_link(mode, "GitHub repository")}. Download them there; this page can’t '
                    'offer files. Masses are PLA at the configured density.</p>')
     else:
-        out.append(f'<p class="fine">File names download the STLs committed on the main branch of the '
-                   f'{repo_link(mode, "GitHub repository")}. Masses are PLA at the configured density.</p>')
+        out.append('<p class="fine"><a href="#h-download">Download STLs</a> above has just the files your '
+                   'pick needs; each file name here downloads one STL. Masses are PLA at the configured '
+                   'density.</p>')
     return "".join(out)
 
 
-def repo_link(mode, text, cls=None, path=None):
-    """Link to the GitHub repository (or to `path` on its main branch); the artifact opens
-    it in a new tab (the claude.ai frame can't show github.com)."""
+def files_for(parts, v, c):
+    """The STLs one build needs: the rest for variant v (its connector-c copy if the
+    rests differ per connector), plus every other part that belongs to connector c (or
+    to none) and to variant v (or to none).  The page script mirrors this (filesFor)."""
+    rests = [p for p in parts if p.get("role") == "rest"]
+    rest = (next((p for p in rests if p.get("variant") == v and p.get("connector") == c), None)
+            or next((p for p in rests if p.get("variant") == v and not p.get("connector")), None)
+            or next((p for p in rests if p.get("variant") == v), None)
+            or (rests[0] if rests else None))
+    return ([rest] if rest else []) + [
+        p for p in parts if p.get("role") != "rest"
+        and (not p.get("connector") or p.get("connector") == c)
+        and (not p.get("variant") or p.get("variant") == v)]
+
+
+def stl_link_attrs(p):
+    """Download attributes of an STL link: data-site = the path on the Pages site (make
+    site copies stl/*.stl next to index.html), data-fetch = the CORS-enabled raw copy."""
+    name = posixpath.basename(str(p["stl"]).replace(os.sep, "/"))
+    return (f' download="{esc(name)}" data-site="stl/{esc(urllib.parse.quote(name))}"'
+            f' data-fetch="{esc(p["fetch"])}"')
+
+
+def html_downloads(parts, mode, variants, conns):
+    """The "Download STLs" block: one row per part, only the default pick's rows shown; the
+    page script re-filters the rows (filesFor) and the totals when the radios change."""
+    v0 = variants[0].get("id") if variants else None
+    c0 = conns[0]["id"] if conns else None
+    pick = files_for(parts, v0, c0)
+    keep = {p["id"] for p in pick}
+    order = [p for p in parts if p.get("role") == "rest"] + [p for p in parts if p.get("role") != "rest"]
+    total = sum(p["file_bytes"] for p in pick)
+    sel = " · ".join(esc(x) for x in ((variants[0].get("label") or v0) if variants else None,
+                                      conns[0]["label"] if len(conns) > 1 else None) if x)
+    count = (f'<span id="dl-count">{len(pick)} file{"" if len(pick) == 1 else "s"}, '
+             f'{esc(fmt_bytes(total))}</span>')
+    if mode == "standalone":
+        out = [f'<p class="fine dl-for">For <b id="dl-sel">{sel}</b></p>',
+               f'<button type="button" class="dl-all" id="dl-all" data-lib="{esc(JSZIP_URL)}" '
+               f'data-sri="{esc(JSZIP_SRI)}" aria-describedby="dl-status">'
+               f'Download all <span class="dl-sum">({count})</span></button>'
+               '<progress class="dl-progress" id="dl-progress" max="1" value="0" '
+               'aria-label="Zip progress" hidden></progress>'
+               '<p class="fine dl-status" id="dl-status" role="status" aria-live="polite"></p>']
+    else:
+        out = [f'<p class="fine dl-for">For <b id="dl-sel">{sel}</b> · {count}</p>']
+    out.append('<ul class="dl-list" id="dl-list" aria-label="STL files for this pick">')
+    for p in order:
+        name = posixpath.basename(str(p["stl"]).replace(os.sep, "/"))
+        size = fmt_bytes(p["file_bytes"])
+        get = ""
+        if mode == "standalone":
+            get = (f'<a class="dl-get" href="{esc(p["href"])}"{stl_link_attrs(p)} '
+                   f'aria-label="Download {esc(name)}, {esc(size)}">Download</a>')
+        out.append(f'<li class="dl-row" data-dl="{esc(p["id"])}"{"" if p["id"] in keep else " hidden"}>'
+                   f'<div class="dl-what"><span class="dl-name">{esc(p["label"])}</span>'
+                   f'<span class="dl-file"><code>{esc(name)}</code> <span class="size">{esc(size)}</span></span></div>'
+                   f'{get}</li>')
+    out.append("</ul>")
+    if mode == "artifact":
+        out.append('<p class="fine">Get these from the <a href="' + esc(STL_FOLDER_URL)
+                   + '" target="_blank" rel="noopener noreferrer"><code>stl/</code> folder on GitHub</a>; '
+                   'this page can’t offer downloads.</p>')
+    multi = len(conns) > 1
+    buy = "".join(f'<span{conn_attr(c["id"], c0, multi)}>{esc(BUY_NOTE[c["type"]])} </span>'
+                  for c in conns if c.get("type") in BUY_NOTE)
+    out.append(f'<p class="fine" id="dl-buy">{buy}Everything else to buy: '
+               f'{repo_link(mode, "What you need", anchor="what-you-need")}.</p>')
+    return "".join(out)
+
+
+def repo_link(mode, text, cls=None, path=None, anchor=None):
+    """Link to the GitHub repository (or to `path` on its main branch, or to a README
+    `anchor`); the artifact opens it in a new tab (the claude.ai frame can't show github.com)."""
     attrs = f' class="{cls}"' if cls else ""
     if mode == "artifact":
         attrs += ' target="_blank" rel="noopener noreferrer"'
-    href = REPO_URL + (f"/blob/main/{path}" if path else "")
+    href = REPO_URL + (f"/blob/main/{path}" if path else "") + (f"#{anchor}" if anchor else "")
     return f'<a{attrs} href="{esc(href)}">{text}</a>'
 
 
@@ -738,8 +827,9 @@ def main(argv=None):
         for pid, (_, b64) in enc.items())
     head_notes, tail_notes = print_notes(cfg, man)
 
-    for p in parts:  # the committed copy on GitHub: works locally and on the Pages site alike
-        p["href"] = RAW_URL + urllib.parse.quote(posixpath.normpath(str(p["stl"]).replace(os.sep, "/")))
+    for p in parts:  # the committed copy on GitHub (the page swaps in stl/<file> on *.github.io)
+        rel = urllib.parse.quote(posixpath.normpath(str(p["stl"]).replace(os.sep, "/")))
+        p["href"], p["fetch"] = RAW_URL + rel, FETCH_URL + rel
 
     def render(mode, out_path):
         out_dir = os.path.dirname(os.path.abspath(out_path))
@@ -752,6 +842,7 @@ def main(argv=None):
             "<!--@MESHES@-->": meshes_html,
             "<!--@DIMENSIONS@-->": html_dimensions(man, conns, cvars),
             "<!--@PARTS@-->": html_parts(parts, mode, conns, cvars),
+            "<!--@DOWNLOADS@-->": html_downloads(parts, mode, variants, conns),
             "<!--@PINOUT@-->": html_pinout(conns, cvars),
             "<!--@WIRING-LINK@-->": html_wiring_link(mode),
             "<!--@NOTES@-->": html_notes(head_notes, tail_notes, conns, cvars),
@@ -766,7 +857,12 @@ def main(argv=None):
             if k not in doc:
                 raise SystemExit(f"template is missing the {k} placeholder")
             doc = doc.replace(k, v)
+        # the "Download all" zip code (JSZip) runs on the standalone page only
+        zip_re = r"/\*@ZIP-START@\*/.*?/\*@ZIP-END@\*/\n?"
+        if not re.search(zip_re, doc, flags=re.S):
+            raise SystemExit("template is missing the /*@ZIP-START@*/ ... /*@ZIP-END@*/ markers")
         if mode == "artifact":
+            doc = re.sub(zip_re, "", doc, flags=re.S)
             def cut(a, b):
                 i, j = doc.index(a), doc.index(b)
                 return doc[i + len(a):j].strip("\n")
@@ -776,6 +872,7 @@ def main(argv=None):
             assert not bad, f"artifact fragment contains {bad.group(0) if bad else ''}"
             assert doc.startswith("<title>"), "artifact must begin with <title>"
         else:
+            doc = re.sub(r"/\*@ZIP-(START|END)@\*/ ?\n?", "", doc)
             doc = re.sub(r"<!--@[A-Z-]+@-->\n?", "", doc)
         doc = re.sub(r"<!--@NOTE.*?-->\n?", "", doc, flags=re.S)
         size = len(doc.encode("utf-8"))
