@@ -4,7 +4,7 @@ QMK keymap `ithalat` for [Yakamoz](https://github.com/ozkan/Yakamoz) (Raspberry 
 
 ## TL;DR
 
-- **What it is:** the stock keymap from [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) plus an Azoteq TPS65 trackpad (IQS550 controller) in the ithalat rest, on a pluggable cable. Nothing else changes ([What changes vs. stock](#what-changes-vs-stock)).
+- **What it is:** the stock keymap from [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) plus an Azoteq TPS65 trackpad (IQS550 controller) in the ithalat rest, on a pluggable cable. Nothing else changes, apart from a small OLED layer-line fix ([What changes vs. stock](#what-changes-vs-stock)).
 - **Trackpad:** tap = left click, 2-finger tap = right click, press-and-hold = drag, 2-finger scroll. The OLED shows `Pad: on` / `Pad: --`.
 - **Flash it:** drop the prebuilt `build/yakamoz_ithalat.uf2` onto `RPI-RP2`. No build needed ([Flash it](#flash-it)).
 - **Two keys go:** the dock replaces the two front-row centre switches. Their functions move to the Adjust layer or to the pad ([Removed keys](#removed-keys)).
@@ -53,14 +53,14 @@ Wired the rest already? Beep-test the wiring first ([wiring.md, Step 4](../wirin
 ## What changes vs. stock
 
 - **Diff base:** `yakamoz/keymaps/default` in [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) @ `d6b6212` (its `master`, 2024-06-30).
-- **Nothing removed:** every stock line is still there. The changes are additions, keycode renames and three keycodes on Adjust keys that were transparent.
+- **Nothing removed:** every stock line is still there (one OLED line is fixed in place). The changes are additions, keycode renames, three keycodes on Adjust keys that were transparent, and that OLED fix.
 
 | Area | Change |
 |---|---|
 | Layers (Qwerty, Colemak, Dvorak, Lower, Raise, Adjust) | unchanged, except the renames and the 3 Adjust copies below |
 | Keycode renames | `RGB_xxx` → `UG_xxx`, `KC_MS_BTN2` → `MS_BTN2`: same functions, new names |
 | Adjust layer | copies of the removed keys' functions: `QK_BOOT` on `Tab`, `DB_TOGG` on `Esc`, `KC_SCRL` on `Caps` |
-| OLED (picture, layer, caps) | unchanged, plus one line `Pad: on` / `Pad: --` |
+| OLED (picture, layer, caps) | unchanged, except the layer line now shows the selected Colemak/Dvorak base layer (fix); plus one line `Pad: on` / `Pad: --` |
 | Audio (Imperial March), RGB, WPM, caps LED GP25 | unchanged |
 | `rules.mk` | adds the azoteq pointing driver |
 | `config.h` | adds the trackpad settings |
@@ -77,8 +77,10 @@ Wired the rest already? Beep-test the wiring first ([wiring.md, Step 4](../wirin
 
 **OLED (SH1107 64x128, VS Code picture, layer, caps)**
 
+- **Layer line fix:** stock reads `get_highest_layer(layer_state)`. The `Qwerty`/`Colemak`/`Dvorak` keys set the default layer, which lives in `default_layer_state`, so stock showed `L: QWERTY` whenever `Lower`/`Raise` were not held. It now reads `layer_state | default_layer_state`, the pattern QMK's own docs use (`docs/features/rgb_matrix.md`).
+- **Caps line pinned to line 11** (one added `oled_set_cursor(0, 10)`, part of the fix). The 10-character `L: COLEMAK` would push it to line 12, and the screen is not cleared between frames, so a layer change left a stale second caps line. Stock never showed `COLEMAK`, so it never hit this.
 - One new line `Pad: on` / `Pad: --` on text line 14.
-- Lines 0-7 are the picture and 9 the layer. Caps is on 11, or on 12 after the 10-character `L: COLEMAK`. `Caps: OFF  ` wraps its last blank onto the next line (13 at most), so line 14 is always free.
+- Lines 0-7 are the picture, 9 the layer and 11 caps. `Caps: OFF  ` wraps its last blank onto line 12, so line 14 is always free.
 - The line is 10 characters, so it is fully overwritten every frame.
 
 **`rules.mk`**
@@ -198,15 +200,15 @@ The simplest route is `./build.sh` (above), which needs only Docker. To build th
    cp -R firmware/qmk_userspace/keyboards/yakamoz/keymaps/ithalat \
          <path to the qmk_userspace>/keyboards/yakamoz/keymaps/
    ```
-2. **Register the build target.** Either run `qmk userspace-add -kb yakamoz -km ithalat`, or add this entry to `build_targets` in `qmk.json`:
+2. **Put the keyboard into your QMK tree:** copy `yakamoz/` from [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) to `qmk_firmware/keyboards/yakamoz` and rename its `info.json` to `keyboard.json`.
+3. **Register the build target** (after step 2: `qmk userspace-add` rejects `-kb yakamoz` until the keyboard is installed). Either run `qmk userspace-add -kb yakamoz -km ithalat`, or add this entry to `build_targets` in `qmk.json`:
    ```json
    ["yakamoz", "ithalat"]
    ```
-3. **Put the keyboard into your QMK tree:** copy `yakamoz/` from [ozkan/Yakamoz-qmk](https://github.com/ozkan/Yakamoz-qmk) to `qmk_firmware/keyboards/yakamoz` and rename its `info.json` to `keyboard.json`.
 4. **Build it** with up-to-date submodules: `qmk compile -kb yakamoz -km ithalat`.
 
 > [!NOTE]
-> **A userspace holds keymaps, not keyboards.** QMK looks for keyboard definitions only in `qmk_firmware/keyboards/` (checked on master `33292390974c`). So step 3 is needed.
+> **A userspace holds keymaps, not keyboards.** QMK looks for keyboard definitions only in `qmk_firmware/keyboards/` (checked on master `33292390974c`). So step 2 is needed.
 
 ## Config knobs (`ithalat/config.h`)
 
@@ -460,7 +462,7 @@ Do these in order on first flash.
 
 1. [ ] **Without the pad plugged in:**
    - The keyboard types normally, the startup song (Imperial March) plays, and the OLED shows the picture, layer, caps and `Pad: --`.
-   - Layers, RGB and audio behave as stock. Adjust + `Qwerty`/`Colemak`/`Dvorak` still switch the base layer.
+   - Layers, RGB and audio behave as stock. Adjust + `Qwerty`/`Colemak`/`Dvorak` still switch the base layer, and the OLED keeps showing it after `Lower` and `Raise` are released.
    - Adjust + `Caps` toggles Scroll Lock. (Adjust + `Tab` enters the bootloader, so try that one last.)
 2. [ ] **Plug the pad in:**
    - **Pogo:** USB disconnected the first time, because the pogo does not mate GND first.
@@ -515,7 +517,7 @@ QMK master `33292390974c`, measured with `arm-none-eabi-size`:
 | keymap | text | bss | .uf2 |
 |---|---|---|---|
 | stock `default` (renames only, not shipped) | 48 160 B | 265 024 B | 96 768 B |
-| `ithalat` | 50 960 B (+2 800 B) | 265 016 B | 102 400 B |
+| `ithalat` | 50 976 B (+2 816 B) | 265 016 B | 102 400 B |
 
 - **Not a concern:** the Pico has 2 MB of flash.
 

@@ -24,6 +24,9 @@
  *     (re)initialised when the cable is plugged in after boot or the pad was reset), and a
  *     keymap-level workaround for the QMK >= 0.34.0 tap-to-click latch
  *   - "Pad: on" / "Pad: --" line on the OLED
+ *   - OLED layer line fix: it also reads default_layer_state, so it shows the selected
+ *     Colemak/Dvorak base layer (stock showed "QWERTY" whenever no momentary layer was held);
+ *     the caps line is pinned to line 11 so the longer "L: COLEMAK" leaves no stale text
  *   - the two front-row centre switches [3,6]/[3,7] (SW44/SW43) are physically removed on the
  *     trackpad build to make room for the connector dock. Stock keycodes there: Scroll Lock and
  *     right click on the three base layers, QK_BOOT and DB_TOGG on Adjust. All of them stay in
@@ -544,7 +547,10 @@ bool render_status(void) {
     oled_set_cursor(0, 9);
     oled_write_P(PSTR("L: "), false);
 
-    switch (get_highest_layer(layer_state)) {
+    // Fix vs. stock (which used layer_state alone): the Qwerty/Colemak/Dvorak keys set the default
+    // layer, which is in default_layer_state, not layer_state. Without it the line read "QWERTY"
+    // whenever Lower/Raise were not held, even with Colemak or Dvorak selected.
+    switch (get_highest_layer(layer_state | default_layer_state)) {
         case 0:
             oled_write_P(PSTR("QWERTY\n"), false);
             break;
@@ -570,13 +576,18 @@ bool render_status(void) {
  
     // Host Keyboard LED Status
     led_t led_state = host_keyboard_led_state();
+    // Part of the fix above: from line 10, the "\r" below moves to line 11, so the caps line is
+    // always line 11. After the 10-character "L: COLEMAK" the cursor would already be on 11, the
+    // caps line would land on 12, and switching layers would leave a stale second caps line (the
+    // screen is not cleared between frames). Unreachable in stock, which never showed "COLEMAK".
+    oled_set_cursor(0, 10);
     oled_write_P(led_state.caps_lock ? PSTR("\rCaps: ON  ") : PSTR("\rCaps: OFF  "), false);
 
 #ifdef POINTING_DEVICE_ENABLE
     // Trackpad status. The 64x128 screen has 16 text lines of 10 characters: the picture uses
-    // lines 0-7, the layer line 9. The caps line is 11, or 12 after the 10-character
-    // "L: COLEMAK", and "Caps: OFF  " wraps its last blank onto the next line (13 at most), so
-    // line 14 is always free. Exactly 10 characters, so the line is fully overwritten every frame.
+    // lines 0-7, the layer line 9, the caps line 11 ("Caps: OFF  " wraps its last blank onto
+    // line 12), so line 14 is always free. Exactly 10 characters, so the line is fully
+    // overwritten every frame.
     oled_set_cursor(0, 14);
     oled_write_P(trackpad_is_active() ? PSTR("Pad: on   ") : PSTR("Pad: --   "), false);
 #endif
