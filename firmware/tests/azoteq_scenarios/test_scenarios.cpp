@@ -26,6 +26,7 @@ void     iqs_mock_fail_base_reads(int n);
 void     iqs_mock_vanish_on_reset(bool on);
 void     iqs_mock_raise_show_reset(void);
 int      iqs_mock_rdy(void);
+void     iqs_mock_open_window_now(void);
 uint16_t iqs_mock_x_res(void);
 uint16_t iqs_mock_y_res(void);
 bool     iqs_mock_show_reset(void);
@@ -329,6 +330,109 @@ TEST_F(Azoteq, MouseKeyTapInTheReadWindowKeepsTheDragHeld) {
     EXPECT_EQ(count_edges(seen, 1, true), 1);
     EXPECT_EQ(count_edges(seen, 1, false), 1);
     EXPECT_EQ(seen.back(), 0);
+}
+
+// Button 1 with two owners: an MS_BTN1 key is pressed during a drag, held across driver reads and
+// released while the pad still holds button 1. The host must keep button 1 pressed until the pad
+// reports the lift, then release it exactly once. The key events land on different phases of the
+// driver's read cycle.
+TEST_F(Azoteq, MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       btn1 = KeymapKey(0, 0, 0, MS_BTN1);
+    set_keymap({btn1});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    iqs_mock_hold(100); // ~1 s of press-and-hold reports
+    run_ms(50);
+    for (int i = 0; i < 10; i++) { // ~380 ms, all inside the hold
+        const uint32_t reads = iqs_mock_base_reads();
+        btn1.press();
+        run_ms(23 + i % 5);
+        ASSERT_GE(iqs_mock_base_reads() - reads, 2u); // held across driver reads
+        btn1.release();
+        run_ms(9 + i % 4);
+    }
+    // The pad still holds: no release of button 1 so far.
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 0);
+    ASSERT_FALSE(seen.empty());
+    EXPECT_TRUE(seen.back() & 1);
+    run_ms(800); // the hold ends: the pad reports the lift
+    EXPECT_EQ(count_edges(seen, 1, true), 1);
+    EXPECT_EQ(count_edges(seen, 1, false), 1);
+    EXPECT_EQ(seen.back(), 0);
+}
+
+// One pass in which RDY rises after matrix_scan_user() has sampled it (low) and before
+// pointing_device_task() samples it again (high), so the driver reads the pad in this pass from a
+// report that the keymap did not empty. On the keyboard the two samples are part of a pass apart.
+static void run_pass_rdy_rises_after_scan(void) {
+    matrix_scan_user();
+    iqs_mock_open_window_now();
+    keyboard_task();
+    housekeeping_task();
+    advance_time(1);
+}
+
+// RDY build: a press-and-hold is first seen in such a read. A mouse key event before the pad's next
+// window must not release the drag on the host:
+//   1. MS_BTN2 pressed and released (its reports carry the pad's buttons);
+//   2. MS_BTN1 held when the drag starts, released before the next window (two owners of button 1).
+// The host must see button 1 released only once, at the lift. Without RDY there is no such race;
+// the same steps run with the driver's first read of the hold in place of the racy read.
+TEST_F(Azoteq, RdyRiseBetweenScanAndReadKeepsTheDragHeld) {
+    ::testing::NiceMock<TestDriver> driver;
+    KeymapKey                       btn1 = KeymapKey(0, 0, 0, MS_BTN1);
+    KeymapKey                       btn2 = KeymapKey(0, 1, 0, MS_BTN2);
+    set_keymap({btn1, btn2});
+    std::vector<uint8_t> seen;
+    record_buttons(driver, seen);
+    for (int btn1_held = 0; btn1_held < 2; btn1_held++) {
+        SCOPED_TRACE(btn1_held ? "MS_BTN1 held when the drag starts" : "MS_BTN2 tapped after the drag starts");
+        run_ms(50);
+        seen.clear();
+        // Let the driver read a window: RDY then stays low for one report period.
+        for (int i = 0; i < 20 && !iqs_mock_rdy(); i++) {
+            run_ms(1);
+        }
+        run_ms(1);
+#ifdef POINTING_DEVICE_MOTION_PIN
+        ASSERT_FALSE(iqs_mock_rdy());
+#endif
+        if (btn1_held) {
+            btn1.press();
+            run_ms(2);
+        }
+        iqs_mock_hold(50); // ~500 ms of press-and-hold reports from the next read on
+        const uint32_t reads = iqs_mock_base_reads();
+        run_pass_rdy_rises_after_scan();
+#ifdef POINTING_DEVICE_MOTION_PIN
+        ASSERT_EQ(iqs_mock_base_reads() - reads, 1u); // the racy read
+#endif
+        for (int i = 0; i < 20 && iqs_mock_base_reads() == reads; i++) { // no RDY: the next poll
+            run_ms(1);
+        }
+        ASSERT_FALSE(seen.empty());
+        ASSERT_TRUE(seen.back() & 1); // the host has button 1
+        run_ms(2);
+        if (btn1_held) {
+            btn1.release();
+            run_ms(2);
+        } else {
+            btn2.press();
+            run_ms(2);
+            btn2.release();
+            run_ms(2);
+        }
+        run_ms(200);
+        EXPECT_EQ(count_edges(seen, 1, false), 0); // the pad still holds
+        run_ms(600);                               // the hold ends: the pad reports the lift
+        EXPECT_EQ(count_edges(seen, 1, true), 1);
+        EXPECT_EQ(count_edges(seen, 1, false), 1);
+        EXPECT_EQ(count_edges(seen, 2, true), btn1_held ? 0 : 1);
+        EXPECT_EQ(count_edges(seen, 2, false), btn1_held ? 0 : 1);
+        EXPECT_EQ(seen.back(), 0);
+    }
 }
 
 // The pad resets during a drag (watchdog or quick re-plug, SHOW_RESET) and stops answering during

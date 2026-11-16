@@ -409,9 +409,9 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 | Variant | What it is | Must pass? | Result on `33292390974c` |
 |---|---|---|---|
 | **stock** | QMK as is | no (informational) | 1 of 3 pass (the 2 tap tests fail, as expected) |
-| **control** | the block with `TRACKPAD_NO_TAP_LATCH_FIX`; shows what the workaround fixes | no (informational) | 7 of 16 pass |
-| **block, no RDY** | polled every 11 ms | yes | 16 of 16 pass |
-| **block + RDY** | with `POINTING_DEVICE_MOTION_PIN`; `gpio_read_pin()` reads the simulated RDY line | yes | 16 of 16 pass |
+| **control** | the block with `TRACKPAD_NO_TAP_LATCH_FIX`; shows what the workaround fixes | no (informational) | 7 of 18 pass |
+| **block, no RDY** | polled every 11 ms | yes | 18 of 18 pass |
+| **block + RDY** | with `POINTING_DEVICE_MOTION_PIN`; `gpio_read_pin()` reads the simulated RDY line | yes | 18 of 18 pass |
 
 > [!NOTE]
 > **It is a model.** It covers the chip's register and window behaviour. It does not model bit-level I2C timing, the pad's own I2C timeout or electrical effects.
@@ -423,6 +423,7 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 - A transfer outside the window is a forced read: the clock is stretched and the simulated time advances.
 - A tap is reported in one cycle only, so a window ended without its data being read loses that cycle.
 - The test loop calls `matrix_scan_user()` before `keyboard_task()` in every pass, because QMK's test matrix (`CUSTOM_MATRIX = yes`) has an empty `matrix_scan_kb()`.
+- The simulated clock moves only between passes, so RDY never changes within a pass by itself. `iqs_mock_open_window_now()` opens the next window at once; the RDY race test calls it between `matrix_scan_user()` and `keyboard_task()`.
 
 </details>
 
@@ -441,12 +442,18 @@ if (pointing_device_get_status() != POINTING_DEVICE_STATUS_SUCCESS) {
 | OneFailedReadDuringHoldReleasesOnce (pins the known limit: 2 presses, 2 releases) | – | **FAIL** (button still latched) | pass | pass |
 | MouseKeyDuringDragKeepsTheDragHeld (40 `MS_BTN2` taps during a hold: button 1 pressed and released once) | – | **FAIL** | pass | pass |
 | MouseKeyTapInTheReadWindowKeepsTheDragHeld (a macro key does `tap_code(MS_BTN1)` whenever the pad's window is open during a hold: button 1 pressed and released once) | – | **FAIL** | pass | pass |
+| MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld (an `MS_BTN1` key held across driver reads during a hold, 10 times, released while the pad still holds: no release of button 1 until the lift, then exactly one) | – | **FAIL** | pass | pass |
+| RdyRiseBetweenScanAndReadKeepsTheDragHeld (RDY rises between the RDY sample in `matrix_scan_user()` and the one in `pointing_device_task()`, and a hold is first seen in that read; before the next window an `MS_BTN2` key is tapped, and in a second round an `MS_BTN1` key held since before the hold is released: button 1 released only at the lift) | – | **FAIL** | pass | pass |
 | FailedReinitReleasesTheDragButKeepsKeyButtons (pad drag + `MS_BTN2` key) | – | **FAIL** (button 1 still latched from earlier tests) | pass | pass |
 | FailedReinitReleasesPadButtonKeepsKeyButton1 (pad button 2 + `MS_BTN1` key) | – | pass | pass | pass |
 
 **MouseKeyDuringDragKeepsTheDragHeld and the two FailedReinit tests** fail in both "must pass" builds without the mouse-key and failed-re-init handling (12 of 15, before MouseKeyTapInTheReadWindowKeepsTheDragHeld was added).
 
 **MouseKeyTapInTheReadWindowKeepsTheDragHeld** fails in both "must pass" builds without the mouse-key handling. It also fails with the handler's first version, which added the pad's buttons before the key's own transition (15 of 16).
+
+**MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld** fails in both "must pass" builds with the previous version, which recorded only the buttons that no key held (16 of 17). While the key held button 1, the pad's button 1 was not recorded, so every key release sent a release of button 1 and the pad's next read pressed it again: 11 presses and 11 releases instead of 1 and 1.
+
+**RdyRiseBetweenScanAndReadKeepsTheDragHeld** fails in "block + RDY" with an intermediate version of the two-owner fix, which recorded the pad's buttons only after a read from an emptied report (17 of 18). `pointing_device_task()` samples RDY again after `matrix_scan_user()`. When RDY rose in between, the driver read the hold from a report that had not been emptied, and the result was not recorded. The host then saw button 1 released right after the key event and pressed again at the next window, in both rounds. Recording `(report & ~keys) | (recorded & keys)` in such passes fixes the `MS_BTN2` round but not the `MS_BTN1` one, because the key's button 1 was already in the report the driver read from. The version before the two-owner fix, which recorded in every pass, fails only the `MS_BTN1` round, in both builds (16 of 18 with MouseButton1HeldAcrossReadsDuringDragKeepsTheDragHeld). "block, no RDY" has no such race.
 
 **The first version of this trackpad code** had the release and the hot-plug check in `housekeeping_task_user()`.
 
@@ -493,7 +500,8 @@ Do these in order on first flash.
 - **Factory axis orientation:** best guess, see [Calibration](#calibration-30-seconds).
 - **Nothing timed on hardware.** That includes the claim that the running-state check adds no clock stretching (shown only in the simulation), and the I2C signal integrity of either connector (pogo or USB-C) at 400 kHz.
 - **Dropped drags:** a dropped I2C read during a press-and-hold drag releases the button for one read (see the caveat under [Tap-latch finding](#tap-latch-finding-qmk--0340)). If the pogo cable turns out flaky, this shows as dropped drags.
-- **Needs mousekey:** the tap-latch workaround depends on `MOUSEKEY_ENABLE` (set in the keyboard's `rules.mk`) to tell keyboard buttons from pad buttons. Without mousekey, a held keyboard mouse button would be released after one report.
+- **RDY sampled twice:** with `POINTING_DEVICE_MOTION_PIN`, only a read from an emptied report can release a pad button, i.e. one in a window whose RDY rise `matrix_scan_user()` saw. A window that opens between that sample and the one in `pointing_device_task()` delays a release by one window (10 ms). If that happened in every window, a pad button would stay pressed. The simulation shows this when every window is forced to open in between; earlier versions of this code behave the same. With every 2nd or 3rd window it releases correctly. How often it happens on hardware is not measured.
+- **Needs mousekey:** the tap-latch workaround depends on `MOUSEKEY_ENABLE` (set in the keyboard's `rules.mk`) to know which mouse buttons keys hold. Without mousekey, a held keyboard mouse button would be released after one report.
 - **Pinned QMK:** built and tested against QMK master `33292390974c`. Later QMK changes to the azoteq driver or pointing core may change the picture. Re-run `./build.sh` and `./test.sh` after bumping QMK.
 
 ## Files in this folder
@@ -517,7 +525,7 @@ QMK master `33292390974c`, measured with `arm-none-eabi-size`:
 | keymap | text | bss | .uf2 |
 |---|---|---|---|
 | stock `default` (renames only, not shipped) | 48 160 B | 265 024 B | 96 768 B |
-| `ithalat` | 50 976 B (+2 816 B) | 265 016 B | 102 400 B |
+| `ithalat` | 50 960 B (+2 800 B) | 265 016 B | 102 400 B |
 
 - **Not a concern:** the Pico has 2 MB of flash.
 
@@ -571,19 +579,21 @@ All 8 `pointing_device_handle_buttons()` calls in the driver (lines 371-397) pas
 
 ### The workaround
 
-- **Record:** `pointing_device_task_user()` stores `buttons & ~mousekey_get_report().buttons`, i.e. the buttons that no key holds, which are the pad's.
-- **Release:** `matrix_scan_user()` removes those bits from the report with `pointing_device_get_report()` and `pointing_device_set_report()`, just before the driver reads the pad again. That read then starts without them.
-- **Timing:** it runs in `matrix_task()`, before `pointing_device_task()` in the same main-loop pass.
-  - **Without RDY:** it removes them in the next pass. `pointing_device_task()` is throttled to 11 ms and returns before sending anything until its next poll, which reads the pad first.
+- **Release:** `matrix_scan_user()` removes every button from the report with `pointing_device_get_report()` and `pointing_device_set_report()`, just before the driver reads the pad again. That read then starts from no buttons, as it did before 0.34.0.
+- **Record:** the driver's result then holds exactly the pad's buttons. `pointing_device_task_user()` stores them after each read, including a button that a key holds at the same time. `pointing_device_task()` adds the keys' buttons (`mousekey_get_report().buttons`) before it sends.
+- **Timing:** `matrix_scan_user()` runs in `matrix_task()`, before `pointing_device_task()` in the same main-loop pass.
+  - **Without RDY:** it removes the buttons in every pass. `pointing_device_task()` is throttled to 11 ms and returns before sending anything until its next poll, which reads the pad first.
   - **With `POINTING_DEVICE_MOTION_PIN`:** it removes them only while RDY is high, i.e. in the pass where the driver reads. There is no throttle then: `pointing_device_task()` sends on every pass but reads only while RDY is high.
+  - **RDY rising in between:** `pointing_device_task()` samples RDY again later in the same pass. If RDY rose after `matrix_scan_user()` saw it low, the driver reads from a report that was not emptied. So in a pass where RDY was low, `matrix_scan_user()` leaves only the recorded pad buttons in the report (the keys' buttons are added back before every send), and `pointing_device_task_user()` records the result too. Such a read can add pad buttons, also one that a key holds, but cannot clear one; the next read from an emptied report does, a window later (see [Known open points](#known-open-points)).
   - **Why not later:** a release done after the send (the first version of this code did it in `housekeeping_task_user()`) reached the host in the passes between two reads. A press-and-hold then became a ~100 Hz click stream.
-- **Mouse keys in between:** an `MS_BTNx` key sends its report at once (`register_mouse()` → `pointing_device_keycode_handler()`), also between the release and the driver's read. The keymap replaces QMK's weak handler with the same logic, but that report still carries the pad buttons removed since the last read; they are removed again right after. They are added after the key's own press or release, so releasing an `MS_BTN1` key does not release a drag the pad still holds.
+- **Mouse keys in between:** an `MS_BTNx` key sends its report at once (`register_mouse()` → `pointing_device_keycode_handler()`), also between the release and the driver's read. The keymap replaces QMK's weak handler with the same logic, but that report also carries every button the pad (from its last read) or another key still holds. They are added after the key's own press or release, and removed again right after the send, for the driver.
+- **Two owners:** button 1 can be held by an `MS_BTN1` key and by a pad drag at once. It stays pressed until both have let go. Releasing the key during a drag does not release it, and neither does the pad lifting while the key is held.
 
 ### What the host sees
 
 - **Tap:** a press, then a release one report (10-11 ms) later. That is the same timing as before 0.34.0.
 - **Press-and-hold:** one press and one release, with or without RDY. The pad re-asserts the gesture on every read, and an unchanged report is not resent.
-- **Keyboard mouse buttons** (for example the stock right-click key on an unmodified board) are untouched. Pressing one during a drag does not drop the drag.
+- **Keyboard mouse buttons** (for example the stock right-click key on an unmodified board) stay pressed while their keys are held. Pressing or releasing one during a drag does not drop the drag, also when it is `MS_BTN1`.
 - **QMK < 0.34.0:** the workaround is a no-op, because the driver ignores incoming buttons there.
 
 > [!NOTE]

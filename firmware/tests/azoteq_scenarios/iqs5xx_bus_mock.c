@@ -86,6 +86,14 @@ int iqs_mock_rdy(void) {
     return m.present && m.win_open;
 }
 
+// Opens the next window now (RDY rises) instead of at its scheduled time. The simulated clock only
+// moves between main-loop passes, so RDY never changes within a pass by itself; the scenario test
+// calls this between matrix_scan_user() and keyboard_task() to make RDY rise between the keymap's
+// RDY sample and the one in pointing_device_task() of the same pass.
+void iqs_mock_open_window_now(void) {
+    if (!m.win_open) m.win_open_at = timer_read32();
+}
+
 static void ensure_window(void) { // forced communication: clock stretching until the window opens
     update_window();
     if (!m.win_open) {
