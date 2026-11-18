@@ -39,11 +39,11 @@ from .text import text_geometry
 LOG = []
 
 
-def log(msg):
+def log(msg, tag="rest"):
     if msg in LOG:      # every variant re-plans the same layout: report once
         return
     LOG.append(msg)
-    print(f"  [rest] {msg}")
+    print(f"  [{tag}] {msg}")
 
 
 # ---------------------------------------------------------------------------

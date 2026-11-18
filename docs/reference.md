@@ -6,16 +6,17 @@ The deep reference for ithalat: why it is shaped this way, what the build makes,
 
 - **Shape:** a crowned bar, 270.98 x 85 mm. The trackpad island is the highest point, level with the switchplate (11.8 mm).
 - **Variants:** `glass` (1.1 mm overlay) or `bare` TPS65. Each one works with both connectors, magnetic pogo or USB-C.
+- **Optional soft top:** a PETG base plus a TPU insert over the front 30.25 mm, the nose and the ends. Together they have exactly the rigid rest's shape ([TPU insert](#tpu-insert-optional-top)).
 - **Docks:** a printed dock replaces the two centre front-row keys. No case modification.
-- **Checks:** `make verify` measures the meshes. The default build passes 365 checks with 5 advisory warnings.
+- **Checks:** `make verify` measures the meshes. The default build passes 434 checks with 5 advisory warnings.
 - **Settings:** every `config.py` constant is in the [Configuration reference](#configuration-reference). Override any of them with `--set NAME=VALUE`.
 - **Stuck?** Go to [Troubleshooting](#troubleshooting).
 
 **Jump to**
 
-- **Understand it:** [Design rationale](#design-rationale) · [Variants](#variants) · [The docks](#the-docks) · [USB-C dock and grip](#usb-c-dock-and-grip)
+- **Understand it:** [Design rationale](#design-rationale) · [Variants](#variants) · [TPU insert](#tpu-insert-optional-top) · [The docks](#the-docks) · [USB-C dock and grip](#usb-c-dock-and-grip)
 - **Build it:** [Outputs](#outputs) · [Verification](#verification) · [Configuration reference](#configuration-reference)
-- **Make it:** [Printing](#printing) · [Assembly order](#assembly-order) · [Ballast and bumpers](#ballast-and-bumpers) · [Glass handling](#glass-handling)
+- **Make it:** [Printing](#printing) · [Printing the TPU top](#printing-the-tpu-top) · [Assembly order](#assembly-order) · [Ballast and bumpers](#ballast-and-bumpers) · [Glass handling](#glass-handling)
 - **Fix it:** [Troubleshooting](#troubleshooting)
 
 **Other docs**
@@ -101,6 +102,9 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
 |---|---|---|
 | `stl/ithalat-glass.stl` | rest for the TPS65 **with** the 1.1 mm glass overlay, both connectors | ~5.2 MB |
 | `stl/ithalat-bare.stl` | rest for the **bare** TPS65, no glass, both connectors | ~5.2 MB |
+| `stl/ithalat-glass-tpu-base.stl` | TPU top only: the glass rest's rigid base, with the tray floor and 4 pegs | ~3.8 MB |
+| `stl/ithalat-bare-tpu-base.stl` | TPU top only: the bare rest's rigid base, with the tray floor and 4 pegs | ~3.8 MB |
+| `stl/ithalat-tpu-insert.stl` | TPU top only: the soft insert, the same for both variants | ~1.6 MB |
 | `stl/ithalat-dock-pogo.stl` | keyboard dock for the magnetic pogo connector | ~0.1 MB |
 | `stl/ithalat-dock-usbc.stl` | keyboard dock for the USB-C female board | ~0.1 MB |
 | `stl/ithalat-usbc-grip-top.stl`, `stl/ithalat-usbc-grip-bottom.stl` | the two clamshell halves of the USB-C grip around the male board | |
@@ -111,6 +115,7 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
 | `build/artifact.html` | the same preview as an HTML fragment for publishing (scratch, git-ignored) | |
 
 - **Print orientation:** both docks, both grip halves and the retainer are already in print orientation.
+- **TPU files:** written only while `TPU_ENABLED` is True. `generate.py` deletes them when you turn it off.
 - **Retainer** (`stl/ithalat-usbc-retainer.stl`): screwed down with 2 x M2x4. It:
   - holds the female board down in the dock;
   - presses the receptacle shell onto the board;
@@ -124,7 +129,8 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
 
 ### Frames and orientation
 
-- **Rest STLs:** exported in the assembly frame, which is also their print orientation (bottom on the bed).
+- **Rest STLs:** exported in the assembly frame, which is also their print orientation (bottom on the bed). The two TPU bases are exported the same way.
+- **TPU insert STL:** also in the assembly frame (z 3.0–11.8), so it loads aligned with a base. Loaded alone, the slicer drops it onto its flat underside.
 - **The assembly frame:**
   - origin at the rest's front-left-bottom corner;
   - +X to the right;
@@ -133,12 +139,16 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
 - **Docks and USB-C parts:** exported in their print orientations (the docks upside down).
 - **Placement in the manifest:** for every part, the manifest gives a 4x4 matrix (three.js `Matrix4.elements` order) that places it in the assembly.
 - **Connector in the manifest:** each part also lists the connector it belongs to (`connector`: `pogo`, `usbc` or none for the rests).
+- **Top in the manifest:** each part has a `top` key: `rigid` for the two rests, `tpu` for the two TPU bases and the insert (role `insert`), none for the docks and USB-C parts. With `TPU_ENABLED`, the manifest also has `tops` (the preview's Top switch) and a `tpu` block with the floor, depth, collar, pegs, thicknesses and mass.
 
 ## Verification
 
 - **Command:** `make verify` (`tools/verify.py`).
 - **Method:** it measures the meshes themselves, using ray casts, slices, point-in-solid tests and signed distances.
-- **Default build:** passes 365 checks with 5 advisory warnings (the pogo plug magnets and the USB-C metal distances, below).
+- **Default build:** passes 434 checks with 5 advisory warnings (the pogo plug magnets and the USB-C metal distances, below).
+- **Rigid build only:** with `--set TPU_ENABLED=False` it runs the 365 checks of the rigid parts, unchanged.
+- **Count changes with the config:** rows for absent features are skipped (for example 424 with `--set TPU_PEGS=[]`, 410 with `--no-ballast`).
+- **TPU top skipped:** a rest override that leaves no room for a sound insert, with no `TPU_*` setting (for example `--set REST_FRONT_HEIGHT=5`), skips the TPU rows with one WARN, just as `generate` skips the TPU STLs.
 - **Failure:** it exits 1 on any failure.
 
 ### What it checks
@@ -153,6 +163,9 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
 | Underside | bumper recesses, ballast, engraving |
 | Docks | watertight, plugs, body fit, connector face, STL matches the build |
 | USB-C parts | dock, retainer, grip, clearances, retention, printability |
+| TPU base | mesh, bounding box, flat tray floor, floor over the recesses, pegs, ballast wall, no new overhang |
+| TPU insert | mesh, bounds, pocket clearance, thickness, front edge angle, prints without supports, bed chamfer, peg holes |
+| TPU split | base + insert = the rigid rest minus only the designed fit slack, no overlap, flush seams |
 | Assembly | manifest, part placement, cable route |
 
 <details><summary>Full list of checks</summary>
@@ -225,8 +238,34 @@ The rest is modelled on a classic walnut keyboard rest, with the trackpad level 
 - **USB-C parts, strength and printing:**
   - dock retention margins: pull with and without the retainer, and push;
   - widest bridge and steepest overhang of each USB-C part in print orientation.
+- **TPU base** (per variant, `stl/ithalat-<variant>-tpu-base.stl`):
+  - STL size, watertight, winding, positive volume, one body;
+  - bounding box = the rigid rest's;
+  - tray floor flat at `TPU_FLOOR_Z` (422 rays);
+  - floor over the front bumper recesses and the bottom engraving ≥ `MIN_FLOOR` (2.4 mm by default);
+  - peg count and position, peg tops at `TPU_FLOOR_Z + TPU_PEG_H`, peg diameter;
+  - rigid wall between the insert and each ballast pocket ≥ `TPU_BALLAST_GAP`;
+  - no new overhang: the same downward-facing area as the rigid rest (44.791 cm²).
+- **TPU insert** (`stl/ithalat-tpu-insert.stl`):
+  - STL size, watertight, winding, positive volume, one body;
+  - flat underside at `TPU_FLOOR_Z`, top at `REST_HEIGHT`, back edge at the insert depth;
+  - clear of the trackpad pocket by `TPU_POCKET_COLLAR`;
+  - with `ENGRAVE_FACE='top'`: clear of the text by `TPU_TEXT_KEEPOUT`;
+  - TPU thickness inside the edge round-overs ≥ `TPU_MIN_T` (1080 rays), plus two rows at the nose crest;
+  - front edge angle ≥ `TPU_MIN_EDGE_ANGLE`, computed and measured on the mesh (the mesh row allows 5° for faceting);
+  - prints alone without supports: no downward faces besides the bed face, the 45° bed chamfers and the peg-hole roofs;
+  - bed chamfer `TPU_BED_CHAMFER` along the seams and round the hole mouths (9 rays);
+  - peg-hole roof bridges ≤ Ø4, hole Ø = `TPU_PEG_D` + 2 × `TPU_PEG_CLEARANCE`, hole depth = `TPU_PEG_H` + `TPU_PEG_HEADROOM`, TPU over the holes ≥ `TPU_PEG_MIN_COVER`.
+- **TPU split** (per variant, base + insert):
+  - no overlap;
+  - (base + insert) adds nothing to the rigid rest (≤ 0.002 cm³);
+  - what it lacks lies only in the bed-chamfer strip and the peg holes. This carries every rigid-rest check (pocket, cable, plug, ballast) over to the TPU build;
+  - that relief volume = the designed one (0.059 cm³ by default);
+  - the insert's bed face = the tray floor minus the chamfer strips and hole mouths;
+  - flush back seam and collar seams.
 - **Assembly** (`build/manifest.json`):
-  - manifest built with the same config;
+  - manifest built with the same config (the TPU settings included);
+  - with `TPU_ENABLED`: `tops`, the rests tagged `rigid`, the TPU parts listed with their STLs, and the `tpu` block equal to the generator's values (or, when the TPU top is skipped, no `tops` and no TPU parts);
   - all parts and STLs present;
   - keyboard origin;
   - dock matrix = placement × inverse print transform;
@@ -301,6 +340,145 @@ The pigtail runs from the TPS65 pads to the dock, in this order:
 - **Into the grip:** the four loose wires rise straight up into the grip's underside. Its wire slot sits right above the riser.
 - **Slack loop:** a 12 mm slack S-loop (`USBC_WIRE_SLACK`) is stored in the plug bay. It lets you pull the grip back the 10.65 mm it takes for the plug to clear the well.
 - **Float:** the plugged grip floats about 1.6 mm above the rest (1.25 mm when pulled back 7.5 mm), so wrist movement never pushes on it.
+
+## TPU insert (optional top)
+
+A second, optional top: a rigid base plus a soft TPU insert over the front of the rest, where wrists and palms land (`geometry/tpu.py`).
+
+- **Files:** `stl/ithalat-<variant>-tpu-base.stl` (PETG or PLA) plus `stl/ithalat-tpu-insert.stl` (TPU), *instead of* `stl/ithalat-<variant>.stl`.
+- **Same shape:** base + insert has the rigid rest's outside, its 11.8 mm back and its pocket with the pad 0.15 mm below the rim. The only difference is hidden fit slack at the floor (0.059 cm³): a 0.4 mm chamfer on the insert's underside edges and peg holes 0.4 mm deeper than the pegs ([Pegs](#pegs)).
+- **Some give:** 5.2–8.8 mm of TPU, firm-rubber feel, firmest at the nose. About 29 g of TPU at 10 % gyroid.
+- **Front slope only:** the crown behind the insert, its highest part, stays PETG.
+- **One pair of STLs, two routes:** print the insert alone and press it onto 4 pegs, or print both in one multi-material job ([Printing the TPU top](#printing-the-tpu-top)).
+- **One insert for both variants:** the glass and bare bases take the same insert.
+- **Turn it off:** `--set TPU_ENABLED=False` builds only the rigid parts. verify then runs the 365 rigid checks.
+- **Skipped on its own:** if a rest override (for example `--set REST_FRONT_HEIGHT=5`) leaves no room for a sound insert and you set no `TPU_*` constant, `generate` logs `WARNING: TPU top skipped` and builds the rigid parts as before. With any `TPU_*` override it is a config error instead.
+- **Untested in print:** the feel, the peg fit and the one-job bond. Print the [test slice](#tpu-test-slice) first.
+
+### Why an insert
+
+The concern: printed PETG/PLA is hard, and the gently curved crown prints as wide layer terraces. A TPU top changes the feel, but only if it is thick.
+
+- **Thin solid TPU feels like hard rubber.** A 1.2–2.4 mm TPU skin over PETG is matte and grippy, but firm.
+- **Softness needs thickness and air:** about 4 mm or more of TPU (ideally 5–8 mm) with 5–15 % gyroid under a ≥ 1.2 mm top skin. Low-density gyroid compresses smoothly, while 2D infill patterns buckle and feel harsh (Nace et al., 2021).
+- **Expect a firm rubber pad, not foam:** 95A–98A is hard for a TPU. Thin TPU with walls, top and bottom skins is nearly solid, so the nose (2–5 mm of TPU) is the firmest part.
+- **Only 95A–98A TPU was in stock** in the Turkish shops checked on 2026-11-18 ([where to buy](where-to-buy.md#tpu-filament-tpu-top-only)). So the softness has to come from the geometry, not from a softer filament.
+
+| Option | Verdict | Why |
+|---|---|---|
+| **Flat-bottomed front insert** (this) | **chosen** | prints on any TPU printer, flat side down, no supports; one STL pair for both routes; 5–9 mm of TPU gives some cushion even in 98A |
+| Thin conformal skin (1.6 mm) over the whole top | not in v1 | feels like hard rubber; printed alone it needs supports under 166 cm² of curved underside, so it is multi-material only; at most 1.88 mm at the nose |
+| Flat pads printed touch side down, bent into recesses | rejected | only fits the parts of the top that unroll flat; leaves seams in the contact zone; thin, so hard rubber |
+| Pause at one height and swap filament | rejected | a flat cut: TPU lands only above it (the back plateau), not at the front, and the pocket walls turn TPU |
+| Whole rest in TPU | rejected | the pocket ledge gives and the pad rocks; the dock alignment suffers |
+| Stick-on covers, soft-touch paint, cast silicone, a gel pad | rejected | covers add height and peel; soft-touch coatings turn sticky; platinum silicone is import-only; a gel pad is not part of the rest |
+
+### What is TPU and what stays rigid
+
+| Zone | Material | Detail |
+|---|---|---|
+| Front 30.25 mm, the nose, the front corners, the front of both ends | **TPU** | 76 cm² footprint; x 0.17–270.81, y 0.20–30.25, z 3.0–11.8. The depth is automatic: `TPU_BALLAST_GAP` (2 mm) in front of the ballast pockets |
+| Trackpad pocket plus a 3 mm collar (`TPU_POCKET_COLLAR`) | rigid | rim, bevel, walls, ledge, relief, well and push holes. The seam lies on the flat island, flush at 11.8 mm. The TPU stays ≥ 3.25 mm from the module |
+| Everything behind y 30.25 | rigid | ballast, cable tunnel, riser, notch, plug bay, R1.2 back edge |
+| The tray floor, z 0–3.0 (`TPU_FLOOR_Z`) | rigid | every bottom feature. 2.4 mm of floor over the 3 front bumper recesses and the bottom engraving (≥ `MIN_FLOOR` 2); 2.0 mm of rigid wall to each ballast pocket |
+| Top engraving (`--engrave-face top` only) | rigid | the text's bounding box + 1 mm (`TPU_TEXT_KEEPOUT`) stays rigid, and the insert goes around it. `generate` logs a NOTE |
+
+**Thickness and edges** (default config):
+
+| Where | Value |
+|---|---|
+| TPU inside the edge round-overs | 5.16–8.80 mm (verify measures ≥ 5.27 mm on 1080 rays; the limit is `TPU_MIN_T` 3) |
+| On the nose (wing): y 2 / 4 / 6 / 9 mm | 2.2 / 3.5 / 4.3 / 5.0 mm |
+| Nose crest (y 9) | 5.04 mm (wing), 5.16 mm (centre) |
+| Front edge | a 65.9° wedge where the floor plane meets the nose (68.8° measured on the mesh), flush with the PETG nose foot below |
+| Back seam (y 30.25) | vertical TPU/PETG face, flush on top. The PETG top there is 10.63 mm; the crown peaks at 11.8 mm at y 57 |
+| Collar seam | vertical face, 8.8 mm tall, flush at 11.8 mm on the flat island |
+| Seam bottoms | a 0.4 mm 45° chamfer on the insert's underside edge along every seam (`TPU_BED_CHAMFER`): room for elephant foot and the base's inside corner |
+| Volume | 42.77 cm³ of TPU; the glass base is 171.67 cm³ (the rigid rest: 214.50) |
+
+- **Lower floor = thicker, softer TPU,** but the floor must leave `MIN_FLOOR` over the bumper recesses (`TPU_FLOOR_Z` ≥ 2.6) and keep the front edge at 45° or more (`TPU_FLOOR_Z` ≤ 4.0).
+- **Wrist contact:** the palm heel lands on the front 0–30 mm and the nose while you type, and on the nose when your hand is on the pad. This is an estimate from the keyboard geometry, not a measurement.
+- **The crown stays PETG:** everything behind y 30.25, including the highest part. Under load the TPU sinks a little and the PETG edge at the seam can stand proud. For a deeper insert, see [Deeper cushion](#deeper-cushion-and-other-options).
+
+### Pegs
+
+- **Where:** 4 pegs on the tray floor, 2 per wing, at x 31.44 / 70.31 / 200.68 / 239.55 and y 24.2 (`TPU_PEGS = None`, auto: 0.8 × the insert depth). That is near the back of the insert, where the TPU is thickest (7.05 mm), behind the middle of the estimated palm band.
+- **Shape:** Ø5 x 2.5 mm with a 0.5 mm 45° top chamfer (`TPU_PEG_D`, `TPU_PEG_H`, `TPU_PEG_CHAMFER`).
+- **Holes in the insert:** Ø5 (`TPU_PEG_CLEARANCE` 0) and 2.9 mm deep: 0.4 mm deeper than the pegs are tall (`TPU_PEG_HEADROOM`). So a sagging roof bridge or a slightly tall peg cannot lift the insert.
+- **Above the holes:** Ø4 roof bridges with 3.9–4.2 mm of TPU over them. A 0.4 mm 45° countersink round each mouth guides the peg in.
+- **Fit:** printed TPU holes come out slightly small, so the fit is a snug press fit. In a one-job print the pegs fuse and key the two parts.
+- **Locked in every direction:** the back wall stops it moving back, the collar notch and the pegs stop it moving sideways, the pegs stop it moving forward, and friction (or glue) holds it down.
+- **Other layouts:** `--set TPU_PEGS=[]` for no pegs (glue only), or your own, for example `--set "TPU_PEGS=[(40,15),(230,15)]"`.
+
+### Fit and attachment
+
+- [ ] **Press it on:** set the base on the desk, line the insert's holes up with the pegs, and press down from the back to the front.
+- [ ] **Permanent (optional):** coat the floor and the insert's underside with contact cement (polychloroprene, for example Pattex or UHU Kontakt), wait until touch-dry, then press. Test the solvent on a PETG scrap first. A flexible glue (E6000-type, or a flexible CA such as Loctite 406) also works.
+- **Avoid tape under the insert:** even thin double-sided tape (about 0.1 mm) lifts it and leaves a step at every seam, including the collar beside the trackpad. Use contact cement or a flexible glue instead.
+- **Avoid:** epoxy (rigid, and weak in peel on TPU: 0.2 N/mm in a TPU bonding benchmark), and plain CA on PETG.
+- **To remove it:** lift the front edge with a fingernail or a spudger. There is no PETG wall at the front.
+- **Fit problems:** see [Troubleshooting, TPU top](#tpu-top).
+
+### Feel and care
+
+- **Hardness:** 98A is about a hard skate wheel, 95A about a shopping-cart wheel. Nominal ratings run high: BASF's "TPU 95A" measures 92 Shore A.
+- **Surface:** matte and grippier than PETG. Friction rises when the skin is wet, so sweaty wrists grip more. Resting is fine; sliding drags a little. 95A–98A is less tacky than 85A.
+- **Give:** a little, like a firm rubber pad, not foam. Firmest at the nose, where the TPU is only 2–5 mm thick and prints nearly solid. For more give, use 2 walls and 5 % gyroid.
+- **Layer lines stay:** the insert's top prints facing up. TPU softens how the steps feel; it does not remove them. Use thin layers (0.1 mm, see [Printing the TPU top](#printing-the-tpu-top)).
+- **Sanding:** sanding along the curve (400 → 800, then wet from about 1000 to 1500 grit) smooths the PETG crown behind the insert and the whole rigid rest. PETG is tougher to sand than PLA; water keeps it from heating up. It does not work on TPU. Keep off the pocket rim.
+- **Clean it** with mild soap and water, then dry it. A quick alcohol wipe is fine. Never soak it in alcohol, and never use acetone (it swells TPU).
+- **Colour:** pick a dark or mid colour. TPU yellows slowly (UV, heat), and white or natural shows skin oil.
+- **Heat and dents:** TPU's heat deflection temperature is about 50 °C, and it gets softer when warm. BASF 95A's compression set is 38 % at 23 °C but 90 % at 70 °C, so a rest left under a heavy object in a hot car can keep a dent.
+- **Wear:** TPU resists abrasion far better than a PETG/PLA surface.
+- **Skin contact:** none of the Turkish listings claim a skin-contact certification (ISO 10993), or say whether the TPU is polyether (resists sweat better over years) or polyester.
+- **Keep the ballast:** a grippier top pushes the rest sideways harder.
+
+> [!WARNING]
+> **Non-conductive TPU only.** Azoteq says the trackpad's stack must contain no conductive material, and conductive parts close to the sensor cut its sensitivity. Carbon-filled TPU really conducts (NinjaTek Eel: 5,500 Ω/sq). Never use carbon, CF, ESD/antistatic, conductive, metal-filled or glitter TPU. Unsure about a black TPU? A multimeter on a printed scrap should read open (MΩ or more).
+
+### Deeper cushion and other options
+
+| Override | Insert | Note |
+|---|---|---|
+| default | 30.25 mm deep, 42.77 cm³ (about 29 g) | the crown (peak 11.8 mm at y 57) stays PETG; verify: 434 checks |
+| `--set BALLAST_CENTER_Y=57` | 44.75 mm deep, 66.35 cm³ (about 40 g) | the bars stay 78 mm. Moves the ballast back, in the rigid rest too, so the rigid STLs change; verify: 434 checks |
+| `--set BALLAST_CENTER_Y=70` | 57.75 mm deep, 88.82 cm³ (about 50 g) | reaches the crown's peak. The bars shorten to 64.5 mm (about 101 g instead of 122 g: buy that size); the rigid STLs change; verify: 430 checks, plus 4 ballast WARNs |
+| `--no-ballast` | 42.5 mm deep, 62.54 cm³ | not recommended: the grippier top needs the ballast; verify: 410 checks |
+| `--set REST_DEPTH=90` | 32.75 mm deep | verify: 434 checks |
+| `--engrave-face top` | goes around the text | the text area stays rigid; verify: 433 checks |
+| `--glass-t 0.7` | unchanged | verify: 434 checks |
+| `--set REST_FRONT_HEIGHT=5` | none: skipped with a WARNING | the floor plane would cut the lower nose too thin. The rigid parts build as before (verify: 366 checks, 1 extra WARN). Add `--set TPU_FLOOR_Z=2.7` to get the insert (434 checks) |
+
+- **Not built (owner decision):** a TPU-only ballast position, so a deeper insert leaves the rigid STLs alone, or a 45° scarf back seam, so the cushion fades out instead of ending at a step. Both would change the "base + insert = rigid rest" rule that lets verify carry the rigid checks over.
+
+**Config errors.** A TPU setting that cannot give a sound part stops `generate` and `verify` with `config error: ...`. The message names the setting and ends with "(or --set TPU_ENABLED=False)". A rest-only override with no `TPU_*` setting is not an error: the TPU top is skipped with a WARNING (last row above).
+
+| Override | Why it stops |
+|---|---|
+| `TPU_FLOOR_Z=4.5` | the front edge would be 36.8°, below `TPU_MIN_EDGE_ANGLE` (45°): keep `TPU_FLOOR_Z` ≤ 4.0 |
+| `TPU_FLOOR_Z=2.0` | only 1.40 mm of floor over a bumper recess, below `MIN_FLOOR`: raise `TPU_FLOOR_Z` |
+| `TPU_INSERT_DEPTH=40` | runs into the ballast pocket: keep it ≤ 30.25 |
+| `TPU_POCKET_COLLAR=6` (or 1.0) | must stay between `POCKET_RIM_CHAMFER` + 1 (1.4) and `TP_BEZEL` (5), so the seam stays on the flat island |
+| `TPU_INSERT_DEPTH=8` | an insert shallower than `REST_FRONT_NOSE_R` + 3 (12 mm) |
+| `TPU_PEGS=[(5,15)]` | a peg outside the insert, or closer than `TPU_PEG_EDGE` to its edge |
+| `TPU_PEG_H=6` | less than `TPU_PEG_MIN_COVER` (2 mm) of TPU over the peg hole |
+| `TPU_PEG_H=0.8` | the 0.4 mm bed chamfer must stay below the straight part of the pegs (`TPU_PEG_H` − `TPU_PEG_CHAMFER` = 0.3) |
+| `REST_FRONT_HEIGHT=5` plus any `TPU_*` setting | the floor plane would leave a feather edge at the nose (38.6°): keep `TPU_FLOOR_Z` ≤ 2.7. Without a `TPU_*` setting the TPU top is skipped instead |
+
+<details><summary>Sources for this section</summary>
+
+- Azoteq, [AZD008 design guidelines for touchpads](https://www.azoteq.com/images/stories/pdf/azd008_design_guidelines_for_touchpads.pdf) and [AZD061 auto-tuning article](https://www.azoteq.com/images/stories/pdf/azd061_azoteq_auto_tuning_article.pdf): no conductive overlay, conductive housings cut sensitivity.
+- NinjaTek, [Eel TDS](https://ninjatek.com/wp-content/uploads/TDS_EEL-Revision1_26-06_V1.pdf): carbon-filled TPU, 5,500 Ω/sq.
+- BASF, [Ultrafuse TPU 95A TDS](https://cdn.shopify.com/s/files/1/0264/8791/4555/files/Ultrafuse_TPU_95A_TDS_EN_v1.0.pdf): 92 Shore A, abrasion, compression set, drying.
+- UltiMaker, [TPU 95A TDS](https://um-support-files.ultimaker.com/materials/2.85mm/tds/TPU-95A/TDS-TPU95A-V2.01-250915.pdf): HDT about 50 °C, chemical resistance.
+- Nace et al., [compression of TPU printed in four infill patterns for comfort applications](https://emerald.com/insight/content/doi/10.1108/RPJ-07-2020-0155/full/html), Rapid Prototyping Journal 27(11), 2021.
+- Printed TPU friction, higher wet than dry: [Friction (Springer), 2020](https://link.springer.com/article/10.1007/s40544-020-0472-2).
+- TPU bonding benchmark (CA + primer, epoxy, MMA): [Weerasinghe et al., Scientific Reports, 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC12824215/).
+- Polyether vs polyester TPU: [Wikipedia, Thermoplastic polyurethane](https://en.wikipedia.org/wiki/Thermoplastic_polyurethane).
+- Sanding prints: [Prusa blog, post-processing step by step](https://blog.prusa3d.com/postprocessing-of-3d-prints-step-by-step_29270/) (coarse to fine grit, dry or wet) and [3D Insider, PETG post-processing](https://3dinsider.com/petg-post-processing) (PETG is ductile and harder to sand; wet-sand from about 1000 grit).
+- Printer support for soft TPU: see [Printing the TPU top](#printing-the-tpu-top).
+
+</details>
 
 ## The docks
 
@@ -431,7 +609,7 @@ A rounded block, 36.6 x 19 x 7 mm, that sits on the switchplate.
 - **TPS65 front view:** x from the module's left edge looking at the touch side, y from the long edge with the connector.
 - **Dock-local frame:** origin midway between the two removed switch centres on the switchplate top (see `geometry/dock.py`).
 
-**Groups** (319 constants):
+**Groups** (336 constants):
 
 | Group | Count | Covers |
 |---|---|---|
@@ -445,6 +623,7 @@ A rounded block, 36.6 x 19 x 7 mm, that sits on the switchplate.
 | [Engraving](#engraving) | 8 | text, face, depth, font |
 | [Underside: bumpers and ballast](#underside-bumpers-and-ballast) | 15 | bumpers, ballast bars |
 | [Material and mass estimate](#material-and-mass-estimate) | 3 | density, shell, STL size |
+| [TPU insert](#tpu-insert) | 17 | on/off, floor, depth, collar, pegs, limits, TPU mass |
 | [Connector variants](#connector-variants) | 3 | which connectors, ids, labels |
 | [Keyboard dock](#keyboard-dock) | 23 | cut-out, plugs, body, housing, pinout |
 | [Keyboard dock internals](#keyboard-dock-internals) | 38 | clips, connector pocket, cavity, JST |
@@ -688,6 +867,37 @@ The cable half of the connector, and the plug bay in the rest.
 | `PLA_DENSITY` | `1.24` | g/cm3 |
 | `MASS_SHELL_T` | `1.2` | avg solid shell (perimeters + top/bottom) for the infill mass approximation |
 | `STL_MAX_MB` | `12` | verify: max size of a rest STL |
+
+</details>
+
+### TPU insert
+
+Optional second "Top" (`geometry/tpu.py`). A flat-bottomed soft TPU insert replaces the front of the rest: base + insert has exactly the rigid rest's shape, with a little hidden fit slack at the floor. See [TPU insert (optional top)](#tpu-insert-optional-top).
+
+<details><summary>TPU insert: 20 constants (on/off, labels, floor, depth, collar, text keep-out, limits, pegs and their fit slack, TPU density and mass)</summary>
+
+| Name | Default | Meaning |
+|---|---|---|
+| `TPU_ENABLED` | `True` | also write `stl/ithalat-<variant>-tpu-base.stl` + `stl/ithalat-tpu-insert.stl`. If another override leaves no room for a sound insert and no TPU_* constant was set, generate / verify skip the TPU top with a WARNING (rigid parts only); with any TPU_* override it is a config error |
+| `TPU_TOP_LABELS` | `{'rigid': 'Rigid', 'tpu': 'TPU insert'}` | preview "Top" switch / manifest labels |
+| `TPU_FLOOR_Z` | `3` | tray floor = the insert's flat underside (z above the bed). Must leave MIN_FLOOR over every underside recess below the insert (bumpers and bottom engraving, 0.6 deep -> >= 2.6) and keep the front edge at least TPU_MIN_EDGE_ANGLE (-> <= ~4.0). Lower = thicker, softer TPU |
+| `TPU_INSERT_DEPTH` | `None` | insert back edge, mm from the front; None = auto: TPU_BALLAST_GAP in front of the ballast pockets (30.25), REST_DEPTH / 2 without ballast |
+| `TPU_BALLAST_GAP` | `2` | rigid wall between the insert and a ballast pocket (plan, >= 4 lines) |
+| `TPU_POCKET_COLLAR` | `3` | rigid collar around the pocket opening: rim, walls and ledge stay PETG/PLA. <= TP_BEZEL keeps the seam on the flat island (flush at H) |
+| `TPU_TEXT_KEEPOUT` | `1` | ENGRAVE_FACE='top': the text's bounding box + this stays rigid |
+| `TPU_MIN_T` | `3` | config error / verify: min TPU thickness (vertical) inside the edge round-overs; thinner TPU gives no cushion |
+| `TPU_MIN_EDGE_ANGLE` | `45` | config error: min angle (deg) between the insert's flat underside and the outer surface where the floor plane cuts the nose / ends |
+| `TPU_PEGS` | `None` | locating pegs on the tray floor [(x, y), ...]; None = auto: 2 per wing at 25 % / 75 % of the wing span, y = 0.8 x the insert depth (the peg edge >= TPU_PEG_EDGE + 0.5 from the insert's back edge): near the back of the insert, where the TPU over them is thickest; [] = none |
+| `TPU_PEG_D` | `5` | peg diameter (the insert's hole: + 2 x TPU_PEG_CLEARANCE) |
+| `TPU_PEG_H` | `2.5` | peg height above the floor (hole depth: + TPU_PEG_HEADROOM) |
+| `TPU_PEG_CHAMFER` | `0.5` | 45 deg chamfer on the peg top (lead-in; the hole roof bridges D - 2 x this) |
+| `TPU_PEG_HEADROOM` | `0.4` | hole deeper than the peg is tall: a sagging TPU roof bridge or a tall peg cannot lift the insert off the floor |
+| `TPU_PEG_CLEARANCE` | `0` | radial peg -> hole clearance (printed TPU holes come out a little small: 0 = a snug press fit) |
+| `TPU_BED_CHAMFER` | `0.4` | 45 deg chamfer on the insert's underside edges along the seams and round the peg-hole mouths: room for elephant foot and the base's inside corners, so the insert seats flush (0 = none) |
+| `TPU_PEG_MIN_COVER` | `2` | config error: min TPU above a peg-hole roof |
+| `TPU_PEG_EDGE` | `3` | config error: min plan distance peg edge -> insert edge |
+| `TPU_DENSITY` | `1.21` | g/cm3, TPU 95A-98A (mass estimate only) |
+| `TPU_MASS_INFILLS` | `(5, 10, 15)` | % gyroid the insert mass is estimated at (10 = recommended) |
 
 </details>
 
@@ -978,9 +1188,10 @@ Print the rest, plus the parts for **your** connector:
 
 - **Magnetic pogo:** the pogo dock.
 - **USB-C:** the USB-C dock, both grip halves and the retainer.
+- **Soft top (optional):** the TPU base *instead of* the rest, plus the TPU insert ([Printing the TPU top](#printing-the-tpu-top)).
 
 > [!WARNING]
-> **No conductive or metal-filled filament** near the trackpad.
+> **No conductive or metal-filled filament** near the trackpad. That includes TPU: no carbon, CF, ESD or conductive TPU.
 
 ### Slicer settings
 
@@ -1020,12 +1231,94 @@ Print the rest, plus the parts for **your** connector:
 - **Infill:** 100 %, because these are small parts that take the 8–20 N unplug force.
 - **First layer:** keep elephant-foot off the nose, or it binds in the well.
 
+### Printing the TPU top
+
+Two routes, with the same two STLs: the base for your variant and the insert.
+
+| | Separate print (default) | One multi-material job |
+|---|---|---|
+| Printers | any printer that prints 95A–98A TPU. Direct drive preferred; 98A also goes through a Bowden tube, slowly | a printer that feeds soft TPU next to PETG: a second nozzle, a toolchanger or an IDEX |
+| Loading | base and insert as separate prints | base and insert loaded **together** as one object with two parts |
+| Joint | flush seams, 4 pegs; glue optional. A 0.4 mm bed chamfer and 0.4 mm of peg headroom leave room for elephant foot and a sagging hole roof | fused; the pegs key the parts |
+| Layer height | **0.1 mm on both parts** (or 0.2 mm on both), so the seams meet on a layer line | any: both parts share one layer grid |
+| Supports | none | none |
+
+**Which printers can co-print soft TPU:**
+
+| Printer or system | Soft TPU next to PETG in one job? |
+|---|---|
+| Bambu H2D (two nozzles) | yes, with TPU on the right nozzle only |
+| Prusa XL (toolchanger) | yes, with care: long filament path |
+| Snapmaker U1 (toolchanger), J1 / J1s (IDEX) | yes, TPU 90A or harder |
+| Other IDEX printers with direct drive on both heads | probably; not checked |
+| Bambu AMS, AMS lite, AMS 2 Pro, AMS HT on one nozzle | **no**: soft TPU is not AMS-compatible |
+| Prusa MMU3 | **no** |
+| Creality CFS (K2 series) | **no**: "CFS does not support TPU" |
+| Any single-nozzle printer | separate print only |
+
+- **Bambu "TPU for AMS"** feeds through an AMS, but it is 68D and nearly rigid: no cushion.
+- **Bed size:** the base is 271 x 85 mm, like the rest (diagonal on a 256 x 256 bed). The insert is 271 x 30 mm: turn it about 30° on a 256 x 256 or 250 x 210 bed.
+
+**Separate print settings:**
+
+| Setting | TPU base | TPU insert |
+|---|---|---|
+| Material | PETG (preferred) or PLA | TPU 95A–98A, non-conductive, dark or mid colour |
+| Before printing | as usual | dry the TPU: 55–70 °C for 4–8 h (wet TPU strings and pits) |
+| Orientation | as exported, bottom down | as loaded: the slicer drops it onto its flat underside |
+| Supports | none | none |
+| Layer height | **0.1 mm** (first layer 0.2 or 0.1 mm), the same as the insert | **0.1 mm** (first layer 0.2 or 0.1 mm), the same as the base |
+| Elephant foot | as the rest (its 0.5 mm bottom chamfer absorbs it) | compensation about 0.15 mm. The seams have a 0.4 mm chamfer; the outer front edge has none |
+| Walls | 4 perimeters | 2–3 (2 gives more give) |
+| Top / bottom | as the rest | top ≥ 1.2 mm (12 layers at 0.1 mm), 3–4 bottom; monotonic top lines |
+| Infill | 25–40 % gyroid | **10 % gyroid** (5 % softer, 15 % firmer) |
+| Speed | as the rest | 20–40 mm/s (about 3–4 mm³/s); short or no retraction; part fan on |
+| Temperatures | as the rest | follow the spool: Porima 98A 220–240 °C, bed 50–70 °C; Filamix 95A 210–250 °C, bed 40–60 °C |
+| Bed surface | as the rest | textured PEI needs no glue. On smooth PEI, use glue stick as a release layer: TPU can tear PEI |
+
+- **Why 0.1 mm on both parts:** the floor (3.0 mm), the insert's height (8.8 mm) and the rim (11.8 mm) then all land on a layer line, in both prints. With 0.12 mm layers and a 0.2 mm first layer they fall between layers (3.0 lies between 2.96 and 3.08), so a seam can step by up to about 0.1 mm. 0.2 mm on both parts also lines up, but shows coarser steps on the top. Variable layer heights break the match.
+- **The tray floor** of the base is a flat top face. Ironing it is optional.
+- **Z contouring:** OrcaSlicer 2.4 or newer can raise top-surface lines to follow the curve. It is untested on TPU. Ironing does not help a TPU top.
+
+**One multi-material job:**
+
+- [ ] **Load both STLs in one import** and answer *Yes* to "load as a single object with multiple parts". Never load the insert alone for this route: it would drop to the bed.
+- [ ] **Assign filaments:** PETG (or PLA) for the base, TPU for the insert.
+- [ ] **Insert settings per part:** 10 % gyroid, 2–3 walls, top ≥ 1.2 mm.
+- [ ] **Prime tower on,** with PETG as the tower filament. **Interface shells on.**
+- [ ] **Beam interlocking:** optional. The TPU is ≥ 3 mm thick, so it has room; check the slicer preview. The pegs already key the parts.
+- [ ] **Bed at the PETG temperature:** the first 3 mm are all PETG. Leave the door or lid open: a warm chamber softens TPU in the feed path.
+- [ ] **TPU speed** limited by flow, for example 3.6 mm³/s for Bambu TPU 95A HF.
+- **Expect** one material change per layer from z 3 to 11.8: about 44 layers at 0.2 mm, or 74 at 0.12 mm.
+
+<details><summary>Sources for the printing notes</summary>
+
+- Bambu Lab, [H2D soft and hard filament multi-material guide](https://wiki.bambulab.com/en/h2/manual/soft-and-hard-filament-multi-material-printing-guide) (TPU on the right nozzle, beam interlocking).
+- Bambu Lab store, [TPU 95A HF](https://us.store.bambulab.com/products/tpu-95a-hf) ("All AMS Series NOT Compatible") and [TPU for AMS](https://us.store.bambulab.com/products/tpu-for-ams); [TPU for AMS TDS](https://cdn.shopify.com/s/files/1/1339/4265/files/Bambu_TPU_for_AMS_Technical_Data_Sheet.pdf) (68D).
+- Prusa, [Flexible materials](https://help.prusa3d.com/article/flexible-materials_2057) (speed, retraction, glue stick on smooth PEI) and [Combining materials (XL)](https://help.prusa3d.com/article/combining-materials-xl_498103); [TPU on the MMU3](https://forum.prusa3d.com/forum/original-prusa-i3-mmu3-hardware-firmware-and-software-help/tpu-on-mmu3) (forum).
+- Creality, [K2 Plus CFS FAQ](https://forum.creality.com/t/creality-k2-plus-cfs-frequently-asked-questions-you-should-know/21698).
+- Snapmaker, [U1 FAQ](https://wiki.snapmaker.com/en/FAQ/u1) and [J1 product page](https://shop.snapmaker.com/products/snapmaker-j1-independent-dual-extruder-3D-printer).
+- OrcaSlicer wiki, [Z contouring](https://www.orcaslicer.com/wiki/print_settings/quality/quality_settings_z_contouring) and [multimaterial (interlocking) settings](https://www.orcaslicer.com/wiki/print_settings/multimaterial/multimaterial_settings_advanced.html).
+
+</details>
+
 ### Fit test
 
 - [ ] **Dock first:** print one dock as a fit test. It should click into the two cut-outs and come out again with a firm pull.
 - [ ] **USB-C dock:** with the retainer fitted, the dock should not come out under a firm pull.
 - [ ] **USB-C boards, before you solder:** test-fit the bare female board in the USB-C dock and the bare male board in the grip.
 - [ ] **USB-C nose:** check that the grip's nose slides into the well without force.
+
+### TPU test slice
+
+Try the feel and the fit before you print the whole insert. No extra STL is needed.
+
+- [ ] **Cut a slice:** with the slicer's cut tool, cut a 40–50 mm slice out of both the base and the insert, around one peg, for example x 10–55 mm round the peg at x 31.44.
+- [ ] **Print that pair** with the settings you plan to use (0.1 mm layers on both).
+- [ ] **Check the feel** at 5 / 10 / 15 % gyroid, and 95A vs 98A.
+- [ ] **Press right over the peg:** you should not feel a hard spot. If you do, try `--set TPU_PEG_H=2.0`.
+- [ ] **Run a fingertip across the seams:** the back seam and the collar should be flush, with no step. If not, see [Troubleshooting, TPU top](#tpu-top).
+- [ ] **Check the peg fit:** snug, and the insert sits flat on the floor.
 
 ### Bridges and overhangs
 
@@ -1038,6 +1331,8 @@ Things that print over air:
   - Any tuned printer bridges this.
   - A little sag is hidden and is absorbed by the 0.25 mm depth clearance.
   - If your printer can't bridge it, use 10 mm-wide bars (one per side) and `--set "BALLAST_SIZE=(78,10,5)"`. That makes a 10.5 mm bridge and halves the ballast to about 61 g.
+- **TPU base:** the same bridges as the rest, and no new overhang (verify: 44.791 cm² of downward-facing area, the same as the rigid rest). The tray floor is a flat top face, and the pegs have 45° top chamfers.
+- **TPU insert:** flat on the bed. Its only other downward faces are the four peg-hole roofs: Ø4 bridges with a 45° chamfer ring.
 - **Docks:** the pocket, cavity and plug floors are flat bridges of at most 20.4 mm. The lips and the top edge are 45° overhangs.
 - **USB-C dock, retainer and grip:**
   - The widest bridge is 10.0 mm (the leg relief under the female board).
@@ -1060,6 +1355,16 @@ Approximate mass of the default glass rest in PLA, from the generator output:
 - **Pogo dock:** about 5 g.
 - **USB-C parts:** the dock is about 6.3 g, the grip about 1.2 g (both halves) and the retainer about 1.2 g (solid PLA).
 
+**TPU top:**
+
+| Part | 5 % | 10 % | 15 % | 25 % | solid |
+|---|---|---|---|---|---|
+| Glass TPU base (PLA) | | | ~103 g | ~116 g | ~213 g |
+| TPU insert (TPU, gyroid) | ~28 g | **~29 g** | ~30 g | | ~52 g |
+
+- **The base** is about 20 % smaller in volume than the rigid rest (171.67 vs 214.50 cm³). The bare base: ~104 g / ~117 g / ~217 g.
+- **The insert estimate** uses a 1.2 mm solid shell (`MASS_SHELL_T`) and 1.21 g/cm³ (`TPU_DENSITY`).
+
 ## Assembly order
 
 The short version. The full steps and pinout are in [wiring.md](../wiring.md), the protection parts in [wiring-details.md](wiring-details.md#optional-protection-parts); the parts are in [bom.md](bom.md).
@@ -1069,7 +1374,7 @@ The short version. The full steps and pinout are in [wiring.md](../wiring.md), t
 
 1. **Order and print**
    - [ ] Buy the parts for your connector in [bom.md](bom.md).
-   - [ ] Print the rest variant that matches your trackpad (glass / bare).
+   - [ ] Print the rest variant that matches your trackpad (glass / bare). For the soft top, print that variant's TPU base and the TPU insert instead ([Printing the TPU top](#printing-the-tpu-top)).
    - [ ] Print the parts for your connector ([Printing](#printing)).
 2. **Keyboard side, both connectors** (full steps: [wiring.md, Step 1](../wiring.md#step-1-keyboard-side-both-connectors))
    - [ ] Pull SW44/SW43 and take off the OLED cover. Nothing else is opened, cut or filed.
@@ -1115,6 +1420,7 @@ The short version. The full steps and pinout are in [wiring.md](../wiring.md), t
      - [ ] Store the 12 mm slack loop in the plug bay.
      - [ ] Let the epoxy cure before the first plug-in.
 6. **Fit the module**
+   - [ ] **TPU top:** press the insert onto the base's 4 pegs first. Glue is optional ([Fit and attachment](#fit-and-attachment)).
    - [ ] **Glass variant:** bond the glass to the module first (see [Glass handling](#glass-handling)).
    - [ ] Drop the module in, touch side up, with the pad/ZIF edge toward the keyboard. It rests on the ledge.
    - No glue is needed. A few dots of thin double-sided tape on the ledge keep it from lifting.
@@ -1235,6 +1541,23 @@ Find your symptom, then follow the fix.
 | Dock is loose / too tight in the cut-outs | Adjust `DOCK_PLUG_SIZE` (default 13.85 for a 14.0 cut-out) or `DOCK_CLIP_LIP`.<br>Print in PETG. |
 | Pogo receptacle loose in the dock | Raise `DOCK_CONN_RIB_H`, or measure the housing and set `DOCK_CONN_W/H/D`.<br>Glue it with CA. |
 | Rest sits lower than the switchplate | The rest's bumpers are the keyboard's height.<br>Use bumpers 0.6 mm taller. |
+
+### TPU top
+
+| Symptom | Cause and fix |
+|---|---|
+| `config error: TPU_...` | A TPU setting cannot give a sound part (floor too high or too low, insert too deep, collar too wide, a peg in the wrong place).<br>The message names the limit. See the config errors in [Deeper cushion and other options](#deeper-cushion-and-other-options), or add `--set TPU_ENABLED=False`. |
+| verify fails on TPU rows after a `TPU_*` override | Stale STLs or manifest.<br>Run `make generate verify GEN_ARGS="..."` with the same arguments. |
+| `WARNING: TPU top skipped` | A rest override (for example `REST_FRONT_HEIGHT=5`) leaves no room for a sound insert. The rigid parts build as before; the message names the limit.<br>Adjust the `TPU_*` setting it names (then a remaining problem is a config error), or add `--set TPU_ENABLED=False` to silence it. |
+| Insert sits proud at the seams (separate print) | Elephant foot on the insert, a sagging hole roof, layer rounding, or tape under it.<br>Use elephant-foot compensation of about 0.15 mm, 0.1 mm layers on both parts, and glue instead of tape. If the pegs still lift it, raise `TPU_PEG_HEADROOM`. |
+| Insert sits proud or off to one side in a multi-material job | The two STLs were loaded as separate objects, so the slicer arranged them apart.<br>Load both in one import as one object with two parts. |
+| Insert is too tight on the pegs | Printed TPU holes come out a little small.<br>Reprint the insert with X-Y hole compensation of +0.05 to +0.1 mm (OrcaSlicer, Bambu Studio), or XY size compensation of −0.05 to −0.1 mm (PrusaSlicer). |
+| Insert is tight against the collar or the back wall | Reprint the insert with X-Y contour compensation of −0.05 to −0.1 mm. |
+| Insert is loose on the pegs | Put a drop of flexible glue in each hole, or glue the whole floor ([Fit and attachment](#fit-and-attachment)). |
+| Front edge of the insert lifts | Glue it down with contact cement or a flexible glue. |
+| Strings, bubbles or pits on the TPU | Wet filament.<br>Dry it (55–70 °C, 4–8 h), print slower, use short or no retraction. |
+| TPU top feels hard | Too much infill or too thick a top skin.<br>Use 5–10 % gyroid, 2–3 walls, a top of about 1.2 mm. |
+| Erratic tracking after fitting the insert | A conductive TPU (carbon, CF, ESD).<br>Check a scrap with a multimeter (it should read open), and reprint in a plain TPU. |
 
 ### USB-C
 

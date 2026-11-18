@@ -254,6 +254,54 @@ MASS_SHELL_T = 1.2           # avg solid shell (perimeters + top/bottom) for the
 STL_MAX_MB = 12.0            # verify: max size of a rest STL
 
 # ---------------------------------------------------------------------------
+# TPU insert: optional second "Top" (geometry/tpu.py). A flat-bottomed soft TPU
+# insert replaces the front of the rest - nose, front corners, ends and the front
+# slope up to the ballast - where wrists and palms land. It is cut out of the
+# rigid rest's own envelope (base + insert == the rigid rest, minus a hidden fit
+# relief at the floor: TPU_BED_CHAMFER, TPU_PEG_HEADROOM), so the outside shape,
+# the pocket and every fit stay as checked. One pair of STLs serves both routes:
+# print the insert alone (flat side down, no supports) and press it onto the
+# base's pegs, or print base + insert as one multi-material object.
+# ---------------------------------------------------------------------------
+TPU_ENABLED = True           # also write stl/ithalat-<variant>-tpu-base.stl + stl/ithalat-tpu-insert.stl.
+                             # If another override leaves no room for a sound insert and no TPU_*
+                             # constant was set, generate / verify skip the TPU top with a WARNING
+                             # (rigid parts only); with any TPU_* override it is a config error
+TPU_TOP_LABELS = {'rigid': 'Rigid', 'tpu': 'TPU insert'}   # preview "Top" switch / manifest labels
+TPU_FLOOR_Z = 3.0            # tray floor = the insert's flat underside (z above the bed). Must leave
+                             # MIN_FLOOR over every underside recess below the insert (bumpers and
+                             # bottom engraving, 0.6 deep -> >= 2.6) and keep the front edge at
+                             # least TPU_MIN_EDGE_ANGLE (-> <= ~4.0). Lower = thicker, softer TPU
+TPU_INSERT_DEPTH = None      # insert back edge, mm from the front; None = auto: TPU_BALLAST_GAP in
+                             # front of the ballast pockets (30.25), REST_DEPTH / 2 without ballast
+TPU_BALLAST_GAP = 2.0        # rigid wall between the insert and a ballast pocket (plan, >= 4 lines)
+TPU_POCKET_COLLAR = 3.0      # rigid collar around the pocket opening: rim, walls and ledge stay
+                             # PETG/PLA. <= TP_BEZEL keeps the seam on the flat island (flush at H)
+TPU_TEXT_KEEPOUT = 1.0       # ENGRAVE_FACE='top': the text's bounding box + this stays rigid
+TPU_MIN_T = 3.0              # config error / verify: min TPU thickness (vertical) inside the edge
+                             # round-overs; thinner TPU gives no cushion
+TPU_MIN_EDGE_ANGLE = 45.0    # config error: min angle (deg) between the insert's flat underside and
+                             # the outer surface where the floor plane cuts the nose / ends
+TPU_PEGS = None              # locating pegs on the tray floor [(x, y), ...]; None = auto: 2 per wing at
+                             # 25 % / 75 % of the wing span, y = 0.8 x the insert depth (the peg edge
+                             # >= TPU_PEG_EDGE + 0.5 from the insert's back edge): near the back of
+                             # the insert, where the TPU over them is thickest; [] = none
+TPU_PEG_D = 5.0              # peg diameter (the insert's hole: + 2 x TPU_PEG_CLEARANCE)
+TPU_PEG_H = 2.5              # peg height above the floor (hole depth: + TPU_PEG_HEADROOM)
+TPU_PEG_CHAMFER = 0.5        # 45 deg chamfer on the peg top (lead-in; the hole roof bridges D - 2 x this)
+TPU_PEG_HEADROOM = 0.4       # hole deeper than the peg is tall: a sagging TPU roof bridge or a tall
+                             # peg cannot lift the insert off the floor
+TPU_PEG_CLEARANCE = 0.0      # radial peg -> hole clearance (printed TPU holes come out a little
+                             # small: 0 = a snug press fit)
+TPU_BED_CHAMFER = 0.4        # 45 deg chamfer on the insert's underside edges along the seams and
+                             # round the peg-hole mouths: room for elephant foot and the base's
+                             # inside corners, so the insert seats flush (0 = none)
+TPU_PEG_MIN_COVER = 2.0      # config error: min TPU above a peg-hole roof
+TPU_PEG_EDGE = 3.0           # config error: min plan distance peg edge -> insert edge
+TPU_DENSITY = 1.21           # g/cm3, TPU 95A-98A (mass estimate only)
+TPU_MASS_INFILLS = (5, 10, 15)  # % gyroid the insert mass is estimated at (10 = recommended)
+
+# ---------------------------------------------------------------------------
 # Connector variants (the builder picks one; every listed variant is generated)
 # ---------------------------------------------------------------------------
 CONNECTORS = ('pogo5', 'usbc')  # connector variants to generate (--connector NAME,

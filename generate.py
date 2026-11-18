@@ -13,6 +13,13 @@ Writes (paths relative to this folder):
     stl/ithalat-usbc-grip-top.stl   USB-C only: grip clamshell halves and the
     stl/ithalat-usbc-grip-bottom.stl  board retainer + clip lock (print
     stl/ithalat-usbc-retainer.stl     orientation)
+    stl/ithalat-<variant>-tpu-base.stl  TPU_ENABLED: the rigid base of the "TPU
+    stl/ithalat-tpu-insert.stl          insert" top (one per variant) + the soft
+                                    TPU insert shared by every variant, both in
+                                    the assembly frame (base + insert == the
+                                    rigid rest minus a hidden fit relief at the
+                                    floor; the insert rests on its flat
+                                    underside when loaded alone)
     build/manifest.json             everything the preview needs
 
 Overrides: --height, --depth, --width, --glass-t, --tp-back-margin,
@@ -39,6 +46,7 @@ from geometry import common as C  # noqa: E402
 from geometry import connectors as CN  # noqa: E402
 from geometry import plug  # noqa: E402
 from geometry import rest  # noqa: E402
+from geometry import tpu  # noqa: E402
 from geometry import usbc  # noqa: E402
 from geometry.cfg import config_from_argv, config_names  # noqa: E402
 
@@ -46,6 +54,8 @@ STL_DIR = os.path.join(HERE, "stl")
 BUILD_DIR = os.path.join(HERE, "build")
 # generated connector STLs (stale ones from other CONNECTORS are removed)
 CONNECTOR_STL_GLOBS = ("ithalat-dock*.stl", "ithalat-usbc-*.stl")
+# generated TPU-top STLs (removed with TPU_ENABLED=False or other VARIANTS)
+TPU_STL_GLOBS = ("ithalat-*-tpu-base.stl", "ithalat-tpu-insert.stl")
 
 
 # ---------------------------------------------------------------------------
@@ -166,19 +176,62 @@ def _jsonable(v):
 # build
 # ---------------------------------------------------------------------------
 
+def build_tpu(cfg, mans, plans, parts):
+    """TPU top (geometry/tpu.py): one base per variant + the shared insert, cut
+    from the finished rigid rests. Adds the parts; returns (TpuPlan, info), or
+    (None, None) when the TPU top is skipped."""
+    t0 = time.time()
+    vids = list(cfg.VARIANTS)
+    try:
+        tp = tpu.params(cfg, *plans[vids[0]])
+    except ValueError as e:
+        if tpu.overridden(cfg):               # a TPU_* setting was asked for: config error
+            raise
+        # a rest-only override (REST_FRONT_HEIGHT, ...) left no room for a sound
+        # insert: build the rigid parts as before and say why
+        rest.log(f"WARNING: TPU top skipped, rigid parts only: {e}", tag="tpu")
+        return None, None
+    out = tpu.split(cfg, mans, tp)
+    for note in tp.notes:
+        rest.log(note, tag="tpu")
+    top = cfg.TPU_TOP_LABELS["tpu"]
+    for vid in vids:
+        tm = C.to_trimesh(out["bases"][vid])
+        if not tm.is_watertight or tm.volume <= 0:
+            raise RuntimeError(f"rest-{vid}-tpu: mesh not watertight / non-positive volume")
+        parts[f"rest-{vid}-tpu"] = {
+            "mesh": tm, "role": "rest", "variant": vid, "connector": None, "moves_with": None, "top": "tpu",
+            "label": f"Wrist rest base ({cfg.VARIANT_LABELS.get(vid, vid)}, {top})",
+            "stl": f"stl/ithalat-{vid}-tpu-base.stl", "matrix": np.eye(4)}
+    tm = C.to_trimesh(out["insert"])
+    if not tm.is_watertight or tm.volume <= 0:
+        raise RuntimeError("tpu-insert: mesh not watertight / non-positive volume")
+    every = {1: "", 2: " (both variants)"}.get(len(vids), " (every variant)")
+    parts["tpu-insert"] = {
+        "mesh": tm, "role": "insert", "variant": None, "connector": None, "moves_with": None, "top": "tpu",
+        "label": f"{top}{every}", "stl": "stl/ithalat-tpu-insert.stl", "matrix": np.eye(4)}
+    info = out["info"]
+    print(f"tpu top: insert {info['insert_depth']:.2f} mm deep, floor z {tp.floor_z:g}, "
+          f"{len(tp.pegs)} pegs, {info['insert_volume_cm3']:.2f} cm3 in {time.time() - t0:.1f} s")
+    return tp, info
+
+
 def build_all(cfg, with_dock=True):
-    """Build every part in memory. Returns (parts, plans, conns)."""
-    parts, plans = {}, {}
+    """Build every part in memory. Returns (parts, plans, conns, tpu_info);
+    tpu_info is None unless TPU_ENABLED."""
+    parts, plans, mans = {}, {}, {}
     rest.LOG.clear()
     for vid, glass_t in cfg.VARIANTS.items():
         t0 = time.time()
         print(f"rest '{vid}' (glass {glass_t:.2f} mm) ...")
         man, info = rest.build_rest(cfg, vid, glass_t)
+        mans[vid] = man
         tm = C.to_trimesh(man)
         if not tm.is_watertight or tm.volume <= 0:
             raise RuntimeError(f"rest-{vid}: mesh not watertight / non-positive volume")
         parts[f"rest-{vid}"] = {"mesh": tm, "role": "rest", "variant": vid, "connector": None,
-                                "moves_with": None, "label": f"Wrist rest ({cfg.VARIANT_LABELS.get(vid, vid)})",
+                                "moves_with": None, "top": "rigid",
+                                "label": f"Wrist rest ({cfg.VARIANT_LABELS.get(vid, vid)})",
                                 "stl": f"stl/ithalat-{vid}.stl", "matrix": np.eye(4),
                                 "seconds": time.time() - t0, "mesh_info": info["mesh"]}
         plans[vid] = info["layout"], info["surface"]
@@ -187,7 +240,10 @@ def build_all(cfg, with_dock=True):
         c = build_connector(cfg, ctype, with_dock)
         conns[c["id"]] = c
         parts.update(c["parts"])
-    return parts, plans, conns
+    tpu_info = None
+    if cfg.TPU_ENABLED:
+        _, tpu_info = build_tpu(cfg, mans, plans, parts)
+    return parts, plans, conns, tpu_info
 
 
 def mass_estimates(cfg, tm):
@@ -345,7 +401,7 @@ def _usbc_variant(cfg, conn, plans, vids, parts):
     }, routes
 
 
-def write_manifest(cfg, parts, plans, conns, path):
+def write_manifest(cfg, parts, plans, conns, path, tpu_info=None):
     vids = list(cfg.VARIANTS)
     lay0, surf0 = plans[vids[0]]
     D, H = cfg.REST_DEPTH, cfg.REST_HEIGHT
@@ -375,6 +431,9 @@ def write_manifest(cfg, parts, plans, conns, path):
         if p["role"] == "rest":
             masses[pid] = mass_estimates(cfg, p["mesh"])
             stats[pid]["mass_g_estimate"] = masses[pid]
+        if p["role"] == "insert" and tpu_info:
+            stats[pid]["mass_g_solid_tpu"] = round(float(p["mesh"].volume) / 1000.0 * cfg.TPU_DENSITY, 1)
+            stats[pid]["mass_g_estimate_tpu"] = tpu_info["insert_tpu_g"]
         stats[pid]["stl_bytes"] = 84 + 50 * len(p["mesh"].faces)
 
     ballast = [{"side": b["side"], "pocket": [round(b["x0"], 3), round(b["y0"], 3), round(b["x1"], 3),
@@ -449,6 +508,19 @@ def write_manifest(cfg, parts, plans, conns, path):
                           f"({vids[0]}, approx.)")
         add("Total on the desk", f"~{m0['25%'] + steel_g + module_g + glass_g:.0f} g @25% incl. steel, "
                                  f"trackpad{' and glass' if glass_g else ''}")
+    if tpu_info:
+        ti = tpu_info
+        th = ti["thickness"]
+        g = ti["insert_tpu_g"]
+        pct = "10%" if "10%" in g else next(iter(g))
+        foot = next((t for y, t in th["nose_profile"] if abs(y - 4.0) < 1e-9 and t is not None), None)
+        dims.append({"label": cfg.TPU_TOP_LABELS["tpu"], "top": "tpu", "value": (
+            f"front {round(ti['insert_depth'], 2):g} mm + nose + ends ({ti['insert_plan_cm2']:.0f} cm²), rigid floor "
+            f"{ti['floor_z']:g} mm, TPU {th['min_inside']:.1f}–{th['max']:.1f} mm"
+            + (f" ({foot:.1f} at y 4 on the nose)" if foot is not None else "")
+            + f", rigid {ti['collar']:g} mm collar, "
+            + (f"{len(ti['pegs'])} × Ø{ti['peg_d']:g} pegs" if ti["pegs"] else "no pegs")
+            + f"; ~{g[pct]:.0f} g TPU at {pct.rstrip('%')} % gyroid")})
 
     kb_y0 = D + cfg.REST_KEYBOARD_GAP
     v0 = variants_c[first]
@@ -459,8 +531,8 @@ def write_manifest(cfg, parts, plans, conns, path):
         "variants": [{"id": v, "label": cfg.VARIANT_LABELS.get(v, v), "glass_t": cfg.VARIANTS[v]} for v in vids],
         "connectors": [{"id": c["id"], "type": c["type"], "label": c["label"]} for c in conns.values()],
         "parts": [{"id": pid, "variant": p["variant"], "role": p["role"], "connector": p.get("connector"),
-                   "moves_with": p.get("moves_with"), "label": p.get("label", pid), "stl": p["stl"],
-                   "matrix": C.mat4_to_list(p["matrix"])} for pid, p in parts.items()],
+                   "moves_with": p.get("moves_with"), "top": p.get("top"), "label": p.get("label", pid),
+                   "stl": p["stl"], "matrix": C.mat4_to_list(p["matrix"])} for pid, p in parts.items()],
         "trackpad": {
             "center": [round(lay0.tp_cx, 4), round(lay0.tp_cy, 4)],
             "width": cfg.TP_WIDTH, "depth": cfg.TP_DEPTH, "corner_r": cfg.TP_CORNER_R,
@@ -500,6 +572,12 @@ def write_manifest(cfg, parts, plans, conns, path):
         "dimensions": dims,
         "log": list(rest.LOG),
     }
+    if tpu_info:
+        # the "Top" axis: Rigid (stl/ithalat-<v>.stl) or the TPU insert top
+        # (stl/ithalat-<v>-tpu-base.stl + stl/ithalat-tpu-insert.stl)
+        manifest["tops"] = [{"id": t, "label": cfg.TPU_TOP_LABELS[t]} for t in ("rigid", "tpu")]
+        manifest["tpu"] = tpu_info
+        manifest["masses"]["insert_tpu_g"] = tpu_info["insert_tpu_g"]
     manifest = _jsonable(manifest)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
@@ -509,7 +587,7 @@ def write_manifest(cfg, parts, plans, conns, path):
 
 def remove_stale_stls(parts):
     keep = {os.path.normpath(os.path.join(HERE, p["stl"])) for p in parts.values()}
-    for pat in CONNECTOR_STL_GLOBS:
+    for pat in CONNECTOR_STL_GLOBS + TPU_STL_GLOBS:
         for f in glob.glob(os.path.join(STL_DIR, pat)):
             if os.path.normpath(f) not in keep:
                 os.remove(f)
@@ -525,8 +603,8 @@ def main(argv=None):
     print("connectors: " + ", ".join(f"{CN.cid(cfg, c)} ({c})" for c in cfg.CONNECTORS))
     t0 = time.time()
     try:
-        parts, plans, conns = build_all(cfg)
-    except ValueError as e:          # config that cannot produce a valid rest / dock
+        parts, plans, conns, tpu_info = build_all(cfg)
+    except ValueError as e:          # config that cannot produce a valid rest / dock / TPU insert
         raise SystemExit(f"config error: {e}")
     os.makedirs(STL_DIR, exist_ok=True)
     print()
@@ -539,10 +617,10 @@ def main(argv=None):
         print(f"  {p['stl']:34s} {ext[0]:7.2f} x {ext[1]:6.2f} x {ext[2]:6.2f} mm  "
               f"bbox [{b[0][0]:.2f},{b[0][1]:.2f},{b[0][2]:.2f}]..[{b[1][0]:.2f},{b[1][1]:.2f},{b[1][2]:.2f}]  "
               f"{p['mesh'].volume / 1000:7.2f} cm3  {len(p['mesh'].faces):7d} tris  {mb:5.2f} MB")
-        if p["role"] == "rest" and mb > cfg.STL_MAX_MB:
+        if p["role"] in ("rest", "insert") and mb > cfg.STL_MAX_MB:
             print(f"WARNING: {p['stl']} is {mb:.1f} MB (> {cfg.STL_MAX_MB} MB) - raise MESH_EDGE_LEN")
     remove_stale_stls(parts)
-    man = write_manifest(cfg, parts, plans, conns, os.path.join(BUILD_DIR, "manifest.json"))
+    man = write_manifest(cfg, parts, plans, conns, os.path.join(BUILD_DIR, "manifest.json"), tpu_info)
     print("\n  " + "\n  ".join(f"{d['label']:18s} {d['value']}" for d in man["dimensions"]))
     for c in man["connectors"]:
         print(f"\n  [{c['label']}]")

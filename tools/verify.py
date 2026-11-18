@@ -35,6 +35,23 @@ must hold no printed material beyond the designed crush interference; the
 clip retention calculation must keep USBC_RETENTION_MIN; every USB-C part is
 checked for support-free printing (widest bridge / steep overhang in print
 orientation). WARN rows are advisories and never fail the run.
+
+TPU top (TPU_ENABLED; stl/ithalat-<variant>-tpu-base.stl + the shared
+stl/ithalat-tpu-insert.stl): each base keeps the rigid rest's bbox, a flat tray
+floor at TPU_FLOOR_Z with MIN_FLOOR over the bumper recesses and the bottom
+engraving, the locating pegs (count, top, diameter), the rigid wall in front
+of the ballast and no new overhang; the insert is one watertight body from
+TPU_FLOOR_Z to REST_HEIGHT, clear of the pocket by the collar, at least
+TPU_MIN_T thick inside the edge round-overs, with no feather edge, and prints
+alone without supports (its only downward faces are the bed face, its 45 deg
+bed chamfers and the peg-hole roofs), with holes TPU_PEG_HEADROOM deeper and
+TPU_PEG_CLEARANCE wider than the pegs and a TPU_BED_CHAMFER along every seam;
+base and insert do not overlap, base + insert adds nothing to the rigid rest
+STL and lacks only the designed relief (the bed-chamfer strip and the peg
+holes) - which carries every rigid-rest check above over to the TPU build -
+and the seams are flush. The manifest must list the Top axis and the TPU parts.
+When a rest-only override leaves no room for a sound insert (no TPU_* set),
+the TPU rows are skipped with one WARN, as generate.py skips the TPU STLs.
 """
 
 import argparse
@@ -1110,6 +1127,391 @@ def verify_usbc_vs_rest(R, cfg, cid, vid, glass_t, rest_mesh, usb):
 
 
 # ---------------------------------------------------------------------------
+# TPU top (geometry/tpu.py): the bases, the shared insert, base + insert
+# ---------------------------------------------------------------------------
+
+def _z_span(mesh, xs, ys):
+    """Vertical lines through (xs, ys) in one batched ray cast: the lowest and
+    highest z of the surfaces each line crosses (NaN where it crosses none)."""
+    xs = np.asarray(xs, dtype=float).ravel()
+    ys = np.asarray(ys, dtype=float).ravel()
+    n = len(xs)
+    lo, hi = np.full(n, np.inf), np.full(n, -np.inf)
+    if n:
+        nx, ny = nudge(xs, ys)
+        o = np.column_stack([nx, ny, np.full(n, -50.0)])
+        d = np.tile([0.0, 0.0, 1.0], (n, 1))
+        loc, idx, _ = mesh.ray.intersects_location(o, d, multiple_hits=True)
+        loc = np.asarray(loc).reshape(-1, 3)
+        idx = np.asarray(idx, dtype=int)
+        if len(idx):
+            np.minimum.at(lo, idx, loc[:, 2])
+            np.maximum.at(hi, idx, loc[:, 2])
+    lo[~np.isfinite(lo)] = np.nan
+    hi[~np.isfinite(hi)] = np.nan
+    return lo, hi
+
+
+def _grid(region, step):
+    """Points of a step x step grid inside a shapely region."""
+    if region is None or region.is_empty:
+        return np.zeros(0), np.zeros(0)
+    x0, y0, x1, y1 = region.bounds
+    gx, gy = np.meshgrid(np.arange(x0 + step / 2, x1, step), np.arange(y0 + step / 2, y1, step))
+    gx, gy = gx.ravel(), gy.ravel()
+    m = shapely.contains_xy(region, gx, gy)
+    return gx[m], gy[m]
+
+
+def _down_area(mesh):
+    """Downward-facing area off the bed (cm2): what a slicer has to support or bridge."""
+    n = mesh.face_normals
+    c = mesh.triangles_center[:, 2]
+    return float(mesh.area_faces[(n[:, 2] < -0.05) & (c > 0.01)].sum()) / 100.0
+
+
+def _seam_step(insert, base, p, u):
+    """Height step across a TPU / rigid seam at plan point p (u = unit vector from
+    the insert side to the base side): each top is sampled 0.3 and 0.9 mm from
+    the seam and extrapolated linearly onto it, so the crown's slope cancels."""
+    p, u = np.asarray(p, dtype=float), np.asarray(u, dtype=float)
+    zi = [first_down(insert, *(p - s * u)) for s in (0.3, 0.9)]
+    zb = [first_down(base, *(p + s * u)) for s in (0.3, 0.9)]
+    if None in zi or None in zb:
+        return None
+    return abs((zi[0] + 0.5 * (zi[0] - zi[1])) - (zb[0] + 0.5 * (zb[0] - zb[1])))
+
+
+def _tpu_seams(tp, lay, W):
+    """{name: [(point, u)]}: the back seam on both wings, the collar (or top-text
+    keep-out) seam in front of the pocket, the collar's sides."""
+    seams = {"back seam": [((x, tp.depth), (0.0, 1.0)) for x in tp.wing_x]}
+    g = LineString([(lay.tp_cx, -2.0), (lay.tp_cx, tp.depth + 2.0)]).intersection(tp.plan)
+    segs = [s for s in getattr(g, "geoms", [g]) if s.length > 0]
+    if segs:
+        y_s = min(segs, key=lambda s: s.bounds[1]).bounds[3]
+        if y_s < tp.depth - 1.0:
+            seams["collar seam in front of the pocket"] = [((lay.tp_cx, y_s), (0.0, 1.0))]
+    y_m = tp.depth - 1.0
+    g = LineString([(-2.0, y_m), (W + 2.0, y_m)]).intersection(tp.plan)
+    segs = sorted((s for s in getattr(g, "geoms", [g]) if s.length > 0), key=lambda s: s.bounds[0])
+    if len(segs) >= 2:
+        seams["collar side seams"] = [((segs[0].bounds[2], y_m), (1.0, 0.0)),
+                                      ((segs[-1].bounds[0], y_m), (-1.0, 0.0))]
+    return seams
+
+
+def verify_tpu(R, cfg, rests, rebuild):
+    """TPU top: each base, the shared insert, and base + insert == the rigid rest
+    minus only the designed relief (which carries every rigid-rest check over to
+    the TPU build)."""
+    from geometry import tpu
+    vids = list(cfg.VARIANTS)
+    lay, surf = rest.plan(cfg, cfg.VARIANTS[vids[0]])
+    tp = tpu.params(cfg, lay, surf)
+    z_f, r, h, ch = tp.floor_z, tp.peg_d / 2.0, tp.peg_h, tp.peg_ch
+    r_h, h_h, bch = tp.hole_d / 2.0, tp.hole_h, tp.bed_chamfer
+    H, W = cfg.REST_HEIGHT, cfg.REST_WIDTH
+    outline = surf.outline.polygon
+
+    built = {}
+
+    def build():                     # in memory, only when needed
+        if not built:
+            mans = {v: rest.build_rest(cfg, v, g)[0] for v, g in cfg.VARIANTS.items()}
+            built.update(tpu.split(cfg, mans, tp))
+        return built
+
+    def load(path, get):
+        if os.path.exists(path) and not rebuild:
+            return trimesh.load(path), "stl/" + os.path.basename(path), os.path.getsize(path) / 1e6
+        return C.to_trimesh(get()), "in-memory build", None
+    bases = {v: load(os.path.join(ROOT, "stl", f"ithalat-{v}-tpu-base.stl"), lambda v=v: build()["bases"][v])
+             for v in vids}
+    insert, isrc, imb = load(os.path.join(ROOT, "stl", "ithalat-tpu-insert.stl"), lambda: build()["insert"])
+    peg_disks = lambda m: shapely.union_all([Point(p).buffer(r + m, quad_segs=16) for p in tp.pegs])  # noqa: E731
+    hole_disks = lambda m: shapely.union_all([Point(p).buffer(r_h + bch + m, quad_segs=16)  # noqa: E731
+                                              for p in tp.pegs])
+
+    # ---- bases --------------------------------------------------------------
+    for v in vids:
+        mesh, src, mb = bases[v]
+        rigid = rests[v]
+        sc = f"rest-{v}-tpu ({src})"
+        if mb is not None:
+            R.at_most(sc, "STL size", mb, cfg.STL_MAX_MB, unit="MB")
+        R.check(sc, "watertight", mesh.is_watertight)
+        R.check(sc, "winding consistent", mesh.is_winding_consistent)
+        R.check(sc, "positive volume", mesh.volume > 0, f"{mesh.volume / 1000:.2f} cm3")
+        R.check(sc, "one body", mesh.body_count == 1, f"{mesh.body_count} bodies")
+        R.at_most(sc, "bbox = the rigid rest's bbox", float(np.abs(mesh.bounds - rigid.bounds).max()), 0.01,
+                  unit="mm max |diff|")
+        # tray floor: flat at TPU_FLOOR_Z wherever the insert sits on it
+        region = tp.plan.buffer(-1.0).intersection(outline.buffer(-1.5, quad_segs=C.QS))
+        if tp.pegs:
+            region = region.difference(peg_disks(0.5))
+        gx, gy = _grid(region, 4.0)
+        keep = surf.top_z(gx, gy) > z_f + 0.3
+        gx, gy = gx[keep], gy[keep]
+        _, top = _z_span(mesh, gx, gy)
+        dev = np.abs(top - z_f)
+        R.at_most(sc, f"tray floor flat at TPU_FLOOR_Z {z_f:g} ({len(gx)} rays, max dev)",
+                  None if not len(dev) or np.isnan(dev).any() else float(dev.max()), TOL)
+        # floor over the underside recesses below the insert
+        fl = []
+        for (bx, by) in lay.bumpers:
+            if Point(bx, by).buffer(cfg.BUMPER_D / 2.0).intersects(tp.inside):
+                hh = hits(mesh, bx, by)
+                fl.append(hh[1] - hh[0] if len(hh) >= 2 else -1.0)
+        if fl:
+            R.at_least(sc, f"floor over the {len(fl)} bumper recesses under the insert (min)", min(fl), cfg.MIN_FLOOR)
+        eng = lay.engrave
+        if cfg.ENGRAVE_TEXT and eng["face"] == "bottom" and eng["geom"].intersects(tp.inside):
+            under = eng["geom"].intersection(tp.inside.buffer(-0.5))
+            if tp.pegs:
+                under = under.difference(peg_disks(1.0))
+            pts = []
+            for p in C.poly_parts(under):
+                q = p.buffer(-0.2)
+                pts.append((q if not q.is_empty else p).representative_point())
+            fl = [(hh[1] - hh[0]) if len(hh) >= 2 else -1.0 for hh in (hits(mesh, pt.x, pt.y) for pt in pts)]
+            R.at_least(sc, f"floor over the bottom engraving under the insert ({len(fl)} rays, min)",
+                       min(fl) if fl else None, cfg.MIN_FLOOR)
+        # locating pegs on the tray floor
+        if tp.pegs:
+            sec = section(mesh, z_f + h / 2.0)
+            small = [p for p in C.poly_parts(sec) if p.area < 4.0 * math.pi * r * r] if sec is not None else []
+            off = [min((p.centroid.distance(Point(px, py)) for p in small), default=99.0) for px, py in tp.pegs]
+            R.check(sc, f"{len(tp.pegs)} pegs on the tray floor at TPU_PEGS", len(small) == len(tp.pegs)
+                    and max(off) <= 0.05, f"{len(small)} found in the z {z_f + h / 2:.2f} slice, max offset "
+                                          f"{max(off):.3f} mm")
+            tops = [first_down(mesh, px, py) for px, py in tp.pegs]
+            R.at_most(sc, f"peg tops at TPU_FLOOR_Z + TPU_PEG_H = {z_f + h:g} (max dev)",
+                      max(abs(t - (z_f + h)) if t is not None else 99.0 for t in tops), 0.02)
+            dia = []
+            for px, py in tp.pegs:
+                near = min(small, key=lambda p: p.centroid.distance(Point(px, py))) if small else None
+                dia.append(2.0 * math.sqrt(near.area / math.pi) if near is not None else 99.0)
+            R.at_most(sc, f"peg diameter TPU_PEG_D {tp.peg_d:g} (max dev, equivalent circle)",
+                      max(abs(d - tp.peg_d) for d in dia), 0.05)
+        # rigid wall between the insert and the ballast pockets
+        if lay.ballast:
+            holes = [hp for hp in holes_of(section(mesh, 1.0)) if hp.area > 300]
+            foot = section(insert, z_f + bch + 0.05)   # above the bed chamfer: the seam itself
+            ds = []
+            for bp in lay.ballast:
+                c = Point((bp["x0"] + bp["x1"]) / 2, (bp["y0"] + bp["y1"]) / 2)
+                mine = [hp for hp in holes if hp.contains(c)]
+                ds.append(mine[0].distance(foot) if mine and foot is not None else None)
+            R.at_least(sc, f"rigid wall insert -> ballast pockets (plan, min of {len(ds)})",
+                       None if None in ds else min(ds), cfg.TPU_BALLAST_GAP - 0.01)
+        da, dr = _down_area(mesh), _down_area(rigid)
+        R.at_most(sc, "no new overhang (downward area off the bed vs the rigid rest)", abs(da - dr), 0.01,
+                  unit=f"cm2 diff ({da:.3f} vs {dr:.3f})")
+
+    # ---- the insert ----------------------------------------------------------
+    sc = f"tpu-insert ({isrc})"
+    if imb is not None:
+        R.at_most(sc, "STL size", imb, cfg.STL_MAX_MB, unit="MB")
+    R.check(sc, "watertight", insert.is_watertight)
+    R.check(sc, "winding consistent", insert.is_winding_consistent)
+    R.check(sc, "positive volume", insert.volume > 0, f"{insert.volume / 1000:.2f} cm3")
+    R.check(sc, "one body", insert.body_count == 1, f"{insert.body_count} bodies")
+    lo, hi = insert.bounds
+    R.near(sc, "flat underside at TPU_FLOOR_Z (bbox min z)", float(lo[2]), z_f, TOL)
+    # REST_HEIGHT where the insert reaches the flat island; a short insert
+    # (TPU_INSERT_DEPTH) ends lower on the crown: the rest's top over its plan
+    gx, gy = _grid(tp.inside, 0.5)
+    bxy = np.asarray(tp.inside.exterior.segmentize(0.1).coords)
+    top_want = min(H, float(surf.top_z(np.concatenate([gx, bxy[:, 0]]), np.concatenate([gy, bxy[:, 1]])).max()))
+    R.near(sc, f"top = the rest's top over the insert{' (REST_HEIGHT)' if top_want >= H - 1e-9 else ''} "
+               f"(bbox max z)", float(hi[2]), top_want, TOL)
+    R.at_most(sc, f"back edge at the insert depth (bbox max y, depth {tp.depth:.2f})", float(hi[1]), tp.depth + TOL)
+    vp = shapely.points(insert.vertices[:, 0], insert.vertices[:, 1])
+    R.at_least(sc, "clear of the trackpad pocket (plan, TPU_POCKET_COLLAR)",
+               float(shapely.distance(vp, lay.opening).min()), tp.collar - TOL)
+    if tp.text_keepout:
+        R.at_least(sc, "clear of the top engraving (plan, TPU_TEXT_KEEPOUT)",
+                   float(shapely.distance(vp, lay.engrave["geom"]).min()), cfg.TPU_TEXT_KEEPOUT - TOL)
+    a_max = float(surf.edge_a.max())
+    region = tp.plan.buffer(-1.0).intersection(outline.buffer(-(a_max + 0.5), quad_segs=C.QS))
+    if tp.pegs:
+        region = region.difference(hole_disks(0.5))
+    gx, gy = _grid(region, 2.0)
+    zlo, zhi = _z_span(insert, gx, gy)
+    t = zhi - zlo
+    if len(t) and not np.isnan(t).any():
+        i = int(np.argmin(t))
+        R.at_least(sc, f"TPU thickness inside the edge round-overs ({len(t)} rays, min)", float(t[i]),
+                   cfg.TPU_MIN_T, unit=f"mm at ({gx[i]:.1f},{gy[i]:.1f})")
+    else:
+        R.check(sc, "TPU thickness inside the edge round-overs", False, f"{len(t)} rays, some missed the insert")
+    nose = float(cfg.REST_FRONT_NOSE_R)
+    for name, x in (("wing", tp.wing_x[0]), ("centre", lay.tp_cx)):
+        if not tp.inside.contains(Point(x, nose)) or any(math.hypot(x - px, nose - py) < r_h + bch + 0.5
+                                                         for px, py in tp.pegs):
+            continue
+        hh = hits(insert, x, nose)
+        R.at_least(sc, f"TPU at the nose crest (y {nose:g}, {name} x {x:.1f})",
+                   hh[-1] - hh[0] if len(hh) >= 2 else None, cfg.TPU_MIN_T)
+    R.at_least(sc, "front edge angle where the floor plane cuts the nose / ends (analytic)", tp.edge_angle_min,
+               cfg.TPU_MIN_EDGE_ANGLE, unit="deg")
+    n, c, fa = insert.face_normals, insert.triangles_center, insert.area_faces
+    bed = (n[:, 2] < -0.999) & (np.abs(c[:, 2] - z_f) < 1e-3)
+    adj = insert.face_adjacency
+    sel = bed[adj[:, 0]] != bed[adj[:, 1]]
+    wedge = float((180.0 - np.degrees(insert.face_adjacency_angles[sel])).min()) if sel.any() else None
+    R.at_least(sc, "front edge angle on the mesh (min wedge at the bed face's rim, facet tol 5 deg)", wedge,
+               cfg.TPU_MIN_EDGE_ANGLE - 5.0, unit="deg")
+    # prints alone, flat side down, without supports: the only downward faces
+    # are the bed face, the 45 deg bed chamfers (z_f .. z_f + TPU_BED_CHAMFER) and
+    # the peg-hole roofs (Ø hole - 2 ch bridges + 45 deg chamfers)
+    down = n[:, 2] < -0.05
+    hole = np.zeros(len(n), dtype=bool)
+    for px, py in tp.pegs:
+        hole |= (np.hypot(c[:, 0] - px, c[:, 1] - py) <= r_h + 0.01) & (c[:, 2] <= z_f + h_h + 1e-3)
+    bevel = (c[:, 2] <= z_f + bch + 1e-3) & (n[:, 2] >= -math.sqrt(0.5) - 0.002)
+    other = down & ~(np.abs(c[:, 2] - z_f) < 1e-3) & ~hole & ~bevel
+    R.at_most(sc, "prints alone without supports (downward area besides the bed face, the 45 deg bed chamfers "
+                  "and the peg-hole roofs)", float(fa[other].sum()) / 100.0, 0.001, unit="cm2")
+    if bch > 0:
+        # 45 deg chamfer on the underside edge: d mm in from the seam the
+        # insert's underside is TPU_BED_CHAMFER - d above the floor
+        d = min(0.1, bch / 2.0)
+        pts = [(np.asarray(p, dtype=float) - d * np.asarray(u, dtype=float)) for lst in
+               _tpu_seams(tp, lay, W).values() for p, u in lst]
+        pts += [np.array([px + r_h + d, py]) for px, py in tp.pegs]
+        dev = []
+        for q in pts:
+            hh = hits(insert, *q)
+            dev.append(abs(hh[0] - (z_f + bch - d)) if hh else 99.0)
+        R.at_most(sc, f"bed chamfer TPU_BED_CHAMFER {bch:g} along the seams and round the hole mouths "
+                      f"({len(pts)} rays, max dev)", max(dev), 0.03)
+    if tp.pegs:
+        roof = down & hole & (n[:, 2] < -0.999)
+        span = 0.0
+        for px, py in tp.pegs:
+            m = roof & (np.hypot(c[:, 0] - px, c[:, 1] - py) <= r_h + 0.01)
+            vv = insert.vertices[insert.faces[m]].reshape(-1, 3)
+            span = max(span, 2.0 * float(np.hypot(vv[:, 0] - px, vv[:, 1] - py).max()) if len(vv) else 99.0)
+        R.at_most(sc, "peg-hole roof bridges (max span, hole Ø - 2 x TPU_PEG_CHAMFER)", span,
+                  tp.hole_d - 2 * ch + 0.01)
+        sec = section(insert, z_f + bch + 0.5 * (h_h - ch - bch))
+        small = [hp for hp in holes_of(sec) if hp.area < 4.0 * math.pi * r_h * r_h] if sec is not None else []
+        dia = []
+        for px, py in tp.pegs:
+            near = min(small, key=lambda q: q.centroid.distance(Point(px, py))) if small else None
+            ok = near is not None and near.centroid.distance(Point(px, py)) <= 0.05
+            dia.append(2.0 * math.sqrt(near.area / math.pi) if ok else 99.0)
+        R.at_most(sc, f"peg-hole Ø = TPU_PEG_D + 2 x TPU_PEG_CLEARANCE = {tp.hole_d:g} (max dev, equivalent "
+                      f"circle)", max(abs(dd - tp.hole_d) for dd in dia), 0.05)
+        depths, covers = [], []
+        rr = r_h - ch - 0.05
+        for px, py in tp.pegs:
+            hh = hits(insert, px, py)
+            depths.append(hh[0] - z_f if hh else 99.0)
+            cv = []
+            for ang in np.linspace(0.0, 2.0 * math.pi, 8, endpoint=False):
+                hh2 = hits(insert, px + rr * math.cos(ang), py + rr * math.sin(ang))
+                cv.append(hh2[-1] - hh2[0] if len(hh2) >= 2 else -1.0)
+            cv.append(hh[-1] - hh[0] if len(hh) >= 2 else -1.0)
+            covers.append(min(cv))
+        R.at_most(sc, f"peg-hole depth = TPU_PEG_H + TPU_PEG_HEADROOM = {h_h:g} (max dev)",
+                  max(abs(dd - h_h) for dd in depths), 0.02)
+        R.at_least(sc, "TPU over the peg holes (min)", min(covers), cfg.TPU_PEG_MIN_COVER)
+
+    # ---- base + insert == the rigid rest minus the designed relief -----------
+    try:
+        Mi = C.from_trimesh(insert)
+    except RuntimeError as e:
+        Mi, err = None, str(e)
+    bed_a = float(fa[bed].sum()) / 100.0
+    seams = _tpu_seams(tp, lay, W)
+    # the relief, from the config alone: a 45 deg bed-chamfer strip (legs bch)
+    # along the seam lines on the bed, plus per peg the hole beyond the peg and
+    # the countersink round its mouth (48-gon areas)
+    fp = section(insert, z_f + bch + 0.02)
+    L = float(tp.plan.boundary.intersection(fp.buffer(0.05)).length) if (fp is not None and bch > 0) else 0.0
+    k = 48.0 * math.sin(2.0 * math.pi / 48.0) / (2.0 * math.pi)
+
+    def v_solid(R_, H_):                # peg_solid volume above the floor
+        return k * math.pi * (R_ * R_ * (H_ - ch) + ch / 3.0 * (R_ * R_ + R_ * (R_ - ch) + (R_ - ch) ** 2))
+    n_p = len(tp.pegs)
+    v_exp = (0.5 * bch * bch * L + n_p * (v_solid(r_h, h_h) - v_solid(r, h)
+                                          + k * math.pi * bch * bch * (r_h + bch / 3.0))) / 1000.0
+    a_loss = (bch * L + n_p * k * math.pi * ((r_h + bch) ** 2 - r * r)) / 100.0
+    env = []
+    if bch > 0:
+        env.append(C.prism(tp.plan.boundary.buffer(bch + 0.05), z_f - 0.01, z_f + bch + 0.01))
+    env += [C.cylinder(px, py, r_h + bch + 0.05, z_f - 0.01, z_f + h_h + 0.01) for px, py in tp.pegs]
+    E = C.union_all(env) if env else None
+    for v in vids:
+        mesh = bases[v][0]
+        sc = f"rest-{v}-tpu + tpu-insert"
+        try:
+            Mb, Mr = C.from_trimesh(mesh), C.from_trimesh(rests[v])
+        except RuntimeError as e:
+            Mb, err = None, str(e)
+        if Mi is None or Mb is None:
+            R.check(sc, "meshes load as manifolds", False, err)
+            continue
+        vol = lambda m: m.volume() / 1000.0  # noqa: E731
+        R.at_most(sc, "overlap base & insert", abs(vol(Mb ^ Mi)), 0.001, unit="cm3")
+        U = Mb + Mi
+        miss = Mr - U
+        R.at_most(sc, f"(base + insert) - the rigid rest-{v}: nothing added", vol(U - Mr), 0.002, unit="cm3")
+        R.at_most(sc, f"the rigid rest-{v} - (base + insert): only in the bed-chamfer strip and the peg holes",
+                  vol(miss - E) if E is not None else vol(miss), 0.002,
+                  unit=f"cm3 outside them (relief {vol(miss):.4f} cm3)")
+        R.near(sc, "relief volume = the designed bed chamfers + peg holes", vol(miss), v_exp,
+               0.1 * v_exp + 0.003, unit="cm3")
+        nb, cb = mesh.face_normals, mesh.triangles_center[:, 2]
+        floor_a = float(mesh.area_faces[(nb[:, 2] > 0.999) & (np.abs(cb - z_f) < 1e-3)].sum()) / 100.0
+        R.at_most(sc, "insert bed face = tray floor - the bed-chamfer strips and hole mouths",
+                  abs((floor_a - bed_a) - a_loss) / max(floor_a, 1e-9) * 100.0, 0.5,
+                  unit=f"% diff ({bed_a:.2f} vs {floor_a:.2f} - {a_loss:.2f} cm2)")
+        for name, pts in seams.items():
+            steps = [_seam_step(insert, mesh, p, u) for p, u in pts]
+            R.at_most(sc, f"flush {name} (max step)", None if None in steps else max(steps), 0.02)
+
+
+def _tpu_manifest_checks(R, sc, cfg, man, ids):
+    """build/manifest.json: the Top axis, the TPU parts and the tpu block."""
+    from geometry import tpu
+    labels = cfg.TPU_TOP_LABELS
+    want_tops = [{"id": "rigid", "label": labels["rigid"]}, {"id": "tpu", "label": labels["tpu"]}]
+    R.check(sc, "tops = rigid + tpu (TPU_TOP_LABELS)", man.get("tops") == want_tops,
+            ", ".join(str(t.get("id")) for t in man.get("tops") or []))
+    vids = list(cfg.VARIANTS)
+    R.check(sc, "rigid rests tagged top 'rigid'", all((ids.get(f"rest-{v}") or {}).get("top") == "rigid"
+                                                      for v in vids))
+    want = {f"rest-{v}-tpu": ("rest", v) for v in vids}
+    want["tpu-insert"] = ("insert", None)
+    eye = C.mat4_to_list(np.eye(4))
+    bad = [pid for pid, (role, var) in want.items()
+           if not (pid in ids and ids[pid].get("role") == role and ids[pid].get("variant") == var
+                   and ids[pid].get("top") == "tpu" and ids[pid].get("connector") is None
+                   and ids[pid].get("moves_with") is None and np.allclose(ids[pid].get("matrix"), eye))]
+    R.check(sc, "TPU parts listed (top 'tpu', no connector, identity matrix)", not bad,
+            ("bad / missing: " if bad else "") + ", ".join(bad or want))
+    miss = [pid for pid in want if pid not in ids or not os.path.exists(os.path.join(ROOT, ids[pid]["stl"]))]
+    R.check(sc, "TPU STLs exist", not miss, ", ".join(ids[p]["stl"] if p in ids else p for p in (miss or want)))
+    tp = tpu.params(cfg, *rest.plan(cfg, cfg.VARIANTS[vids[0]]))
+    t = man.get("tpu") or {}
+    try:
+        d = max(abs(t["floor_z"] - tp.floor_z), abs(t["insert_depth"] - tp.depth), abs(t["collar"] - tp.collar),
+                abs(t["hole_d"] - tp.hole_d), abs(t["hole_depth"] - tp.hole_h),
+                abs(t["bed_chamfer"] - tp.bed_chamfer))
+        got = np.asarray(t["pegs"], dtype=float).reshape(-1, 2)
+        exp = np.asarray(tp.pegs, dtype=float).reshape(-1, 2)
+        d = max(d, float(np.abs(got - exp).max()) if len(exp) else 0.0) if got.shape == exp.shape else 99.0
+    except (KeyError, TypeError, ValueError):
+        d = None
+    R.at_most(sc, "tpu block = tpu.params (floor, depth, collar, pegs, holes, bed chamfer)", d, 1e-3,
+              unit="max |diff|")
+
+
+# ---------------------------------------------------------------------------
 # assembly (build/manifest.json)
 # ---------------------------------------------------------------------------
 
@@ -1171,7 +1573,7 @@ def _hardware_shape_ok(hw):
     return not bad, bad
 
 
-def verify_assembly(R, cfg, conns):
+def verify_assembly(R, cfg, conns, tpu_skip=None):
     """Cross-part checks on build/manifest.json: connector variants, parts,
     placement matrices, connector faces, hardware, cable routes."""
     from geometry import connectors as CN
@@ -1186,14 +1588,18 @@ def verify_assembly(R, cfg, conns):
         man = json.load(f)
     mc = man.get("config", {})
 
-    def same(n):
-        v = getattr(cfg, n)
+    def plain(v):                     # as the manifest's JSON holds it
         if isinstance(v, (tuple, list)):
-            return list(mc[n]) == list(v)
-        return mc[n] == (round(v, 6) if isinstance(v, float) else v)
+            return [plain(x) for x in v]
+        return round(v, 6) if isinstance(v, float) else v
+
+    def same(n):
+        return mc[n] == plain(getattr(cfg, n))
     stale = [n for n in ("REST_WIDTH", "REST_DEPTH", "REST_HEIGHT", "GLASS_T", "KEYBOARD_HEIGHT",
                          "TP_BACK_MARGIN", "DOCK_ENABLED", "DOCK_BODY_D", "CONNECTORS", "USBC_WELL_DEPTH",
-                         "USBC_CONN_Z", "USBC_DOCK_D") if n in mc and not same(n)]
+                         "USBC_CONN_Z", "USBC_DOCK_D", "TPU_ENABLED", "TPU_FLOOR_Z", "TPU_INSERT_DEPTH",
+                         "TPU_POCKET_COLLAR", "TPU_PEGS", "TPU_PEG_HEADROOM", "TPU_PEG_CLEARANCE",
+                         "TPU_BED_CHAMFER") if n in mc and not same(n)]
     R.check(sc, "manifest built with the same config", not stale,
             ("differs: " + ", ".join(f"{n}={mc[n]!r}" for n in stale)) if stale else "")
     want_c = [{"id": CN.cid(cfg, c), "type": c, "label": CN.label(cfg, c)} for c in cfg.CONNECTORS]
@@ -1304,6 +1710,11 @@ def verify_assembly(R, cfg, conns):
                        unit="mm (advisory: static while powered, ATI at power-up)", warn=True)
     R.at_most(sc, "rest back edge level with the switchplate", abs(cfg.REST_BACK_HEIGHT - cfg.KEYBOARD_HEIGHT),
               0.5, unit="mm (advisory)", warn=True)
+    if cfg.TPU_ENABLED and tpu_skip is None:
+        _tpu_manifest_checks(R, sc, cfg, man, ids)
+    elif tpu_skip is not None:
+        R.check(sc, "TPU top skipped: no Top axis and no TPU parts", "tops" not in man
+                and not any(p.get("top") == "tpu" for p in man.get("parts", [])))
 
 
 def main(argv=None):
@@ -1315,10 +1726,19 @@ def main(argv=None):
     add_cli_args(p)
     a = p.parse_args(argv)
     cfg = load_config(overrides_from_args(a))
+    tpu_skip = None
     try:
-        rest.plan(cfg, list(cfg.VARIANTS.values())[0])
+        lay0, surf0 = rest.plan(cfg, list(cfg.VARIANTS.values())[0])
     except ValueError as e:          # same config errors generate.py refuses
         raise SystemExit(f"config error: {e}")
+    if cfg.TPU_ENABLED:
+        from geometry import tpu
+        try:
+            tpu.params(cfg, lay0, surf0)
+        except ValueError as e:      # generate.py: config error with a TPU_* override, else skip
+            if tpu.overridden(cfg):
+                raise SystemExit(f"config error: {e}")
+            tpu_skip = str(e)
     R = Report(a.verbose)
     print("ithalat verify" + (f" (overrides: {cfg._overrides})" if cfg._overrides else "")
           + f" - connectors: {', '.join(cfg.CONNECTORS)}")
@@ -1334,6 +1754,11 @@ def main(argv=None):
             mesh, source = C.to_trimesh(man), "in-memory build"
         verify_rest(R, cfg, vid, glass_t, mesh, source)
         rests[vid] = mesh
+    if cfg.TPU_ENABLED and tpu_skip is None:
+        verify_tpu(R, cfg, rests, a.rebuild)
+    elif tpu_skip is not None:
+        R.check("tpu top (config)", "TPU top built (skipped: a rest override leaves no room; set TPU_* to "
+                                    "adjust it)", False, tpu_skip, warn=True)
     conns = {}
     for ctype in cfg.CONNECTORS:
         cc = CN.for_connector(cfg, ctype)
@@ -1356,7 +1781,7 @@ def main(argv=None):
         if cfg.DOCK_ENABLED:
             entry["build"] = verify_dock(R, cc, cid, os.path.join(ROOT, "stl", f"ithalat-dock-{cid}.stl"))
     if not a.rebuild:   # --rebuild checks the in-memory geometry only
-        verify_assembly(R, cfg, conns)
+        verify_assembly(R, cfg, conns, tpu_skip)
     ok = R.print()
     sys.exit(0 if ok else 1)
 

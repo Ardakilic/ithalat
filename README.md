@@ -9,6 +9,7 @@ A 3D-printed wrist rest with a built-in trackpad for the [Yakamoz](https://githu
 - **What it is:** a parametric, 3D-printed wrist rest with an Azoteq TPS65 I2C trackpad (65 x 49 mm) in its middle. It sits flush against the front of Yakamoz.
 - **Two rest variants:** glass (for the 1.1 mm glass overlay) or bare.
 - **Two connectors:** a 5-pin magnetic pogo pair, or a cheap USB-C breakout pair.
+- **Optional soft top:** a PETG base plus a soft TPU insert over the front, where your wrists rest. Print the insert on its own and press it on, or print both in one job on a two-nozzle printer ([Smooth top](#smooth-top-tpu-insert)).
 - **Pluggable:** the rest is not fixed to the keyboard. The firmware picks the pad up again when you plug it back in, and the OLED keeps working.
 - **One config file:** every dimension comes from [`config.py`](config.py). Nothing is modelled by hand.
 - **Open source:** [MIT License](LICENSE). The firmware in `firmware/` stays GPL-2.0-or-later.
@@ -16,13 +17,13 @@ A 3D-printed wrist rest with a built-in trackpad for the [Yakamoz](https://githu
 > [!IMPORTANT]
 > **Status: design stage.**
 >
-> - **Checked so far:** the generated parts pass 365 automated geometry checks. The firmware compiles and passes simulated tests.
+> - **Checked so far:** the generated parts pass 434 automated geometry checks. The firmware compiles and passes simulated tests.
 > - **Not yet done:** no complete ithalat build on a real Yakamoz (printed, wired and used) is documented.
 > - **So:** print one dock first as a fit test before you order everything.
 
 **Jump to:**
 
-- **Build one:** [What you need](#what-you-need) · [Pick your connector](#pick-your-connector) · [What to print](#what-to-print) · [Quick start](#quick-start)
+- **Build one:** [What you need](#what-you-need) · [Pick your connector](#pick-your-connector) · [What to print](#what-to-print) · [Smooth top (TPU)](#smooth-top-tpu-insert) · [Quick start](#quick-start)
 - **Wire and flash:** [Wiring](#wiring-and-where-to-buy) · [Firmware](#firmware) · [Safety](#safety-notes)
 - **Change the design:** [Building from source](#building-from-source) · [How the online preview is built](#how-the-online-preview-is-built)
 - **About:** [Live preview](#live-preview) · [The name](#what-ithalat-means) · [Yakamoz](#built-for-yakamoz) · [Features](#features) · [Docs](#documentation) · [Credits](#credits) · [License](#license)
@@ -35,6 +36,7 @@ A 3D-printed wrist rest with a built-in trackpad for the [Yakamoz](https://githu
 
 - **Online:** <https://ardakilic.github.io/ithalat/>. GitHub Actions rebuilds it from source on every push, so it always matches the code in this repository.
 - **All four combinations:** glass or bare rest, with the magnetic pogo or the USB-C connector.
+- **Top:** *Rigid* or *TPU insert*. The TPU pick shows the base, the soft insert and their print notes.
 - **Views:** x-ray, explode, section cut and the underside.
 - **Info:** filament colours, dimensions, the parts with their masses, the pinout and the print notes.
 - **Download:** the *Download STLs* block lists just the files your pick needs. Get them one by one, or all at once as a .zip.
@@ -69,6 +71,7 @@ What this means for you:
 - **Low wrists:** the front drops to 6.5 mm.
 - **Trackpad pocket:** the TPS65 drops in from the top onto a flat ledge, with its surface 0.15 mm below the rim. No glue, no screws. Two holes from below push it out again.
 - **Glass or bare:** one rest STL per variant. One is for the 1.1 mm glass overlay, the other for the bare module (or a thin film).
+- **Optional TPU insert:** a soft TPU part replaces the front 30 mm, the nose and the ends. It is 5.2–8.8 mm thick and adds no height: base + insert has exactly the rigid rest's shape ([Smooth top](#smooth-top-tpu-insert)).
 - **No case modification:** the dock clips into the two empty switch cut-outs and can be removed again.
 - **Hidden cable:** a short pigtail runs from the trackpad through an internal channel. It leaves through a notch in the back-top edge, right below the dock, so it is never pinched between the rest and the keyboard.
 - **Optional ballast and bumpers:** pockets for two steel bars (about 122 g) keep the light rest from sliding. Six recesses take silicone bumpers.
@@ -82,7 +85,7 @@ What this means for you:
 ### Build system
 
 - **Parametric:** one source of truth, [`config.py`](config.py), for every dimension. You can override any constant from the command line, and the parts regenerate in seconds.
-- **Self-checking:** `make verify` measures the generated meshes. The default build passes 365 checks, with 5 advisory warnings.
+- **Self-checking:** `make verify` measures the generated meshes. The default build passes 434 checks, with 5 advisory warnings.
 - **Reproducible:** everything runs in a pinned Docker image. The STLs reproduce byte for byte on the same CPU architecture.
 
 ## What you need
@@ -99,7 +102,7 @@ The full list, with part numbers, alternatives and costs, is in [docs/bom.md](do
 - [ ] **Tools:** a fine-tip soldering iron, a multimeter, flush cutters and a wire stripper.
 
 > [!IMPORTANT]
-> **Filament must be non-conductive:** no carbon-fibre or metal fill near the trackpad.
+> **Filament must be non-conductive:** no carbon-fibre or metal fill near the trackpad. That includes TPU: no carbon, CF, ESD or conductive TPU.
 
 - **Buying in Turkey:** no Turkish shop that was checked sells the TPS65, its glass or M2 self-tapping screws ([where to buy](docs/where-to-buy.md#shared-parts-both-connectors)).
 
@@ -117,6 +120,7 @@ The full list, with part numbers, alternatives and costs, is in [docs/bom.md](do
 
 - [ ] **Ballast:** two 78 x 20 x 5 mm steel bars.
 - [ ] **Bumpers:** six Ø10 mm silicone bumpers, 0.6 mm taller than the keyboard's own.
+- [ ] **TPU filament, for the soft top only:** 95A–98A, non-conductive, a dark or mid colour. The insert uses about 30 g ([Smooth top](#smooth-top-tpu-insert)).
 
 ## Pick your connector
 
@@ -152,7 +156,7 @@ The rest links to the keyboard through one of two connectors.
 | Parts list | [bom.md, 2a](docs/bom.md#2a-magnetic-pogo-connector) | [bom.md, 2b](docs/bom.md#2b-usb-c-connector) |
 | Wiring | [Step 1](wiring.md#step-1-keyboard-side-both-connectors), [2a](wiring.md#step-2a-magnetic-pogo-dock), [3](wiring.md#step-3-rest-side-trackpad-pigtail), [4](wiring.md#step-4-test-before-power-up) | [Step 1](wiring.md#step-1-keyboard-side-both-connectors), [2b](wiring.md#step-2b-usb-c-dock), [3](wiring.md#step-3-rest-side-trackpad-pigtail), [4](wiring.md#step-4-test-before-power-up) |
 
-The rest is `stl/ithalat-glass.stl` or `stl/ithalat-bare.stl`, whichever matches your trackpad, for either connector.
+The rest is `stl/ithalat-glass.stl` or `stl/ithalat-bare.stl`, whichever matches your trackpad, for either connector. For the soft top, print the TPU base and insert instead ([Smooth top](#smooth-top-tpu-insert)).
 
 <details>
 <summary>Full comparison, row by row</summary>
@@ -232,16 +236,20 @@ The rest is `stl/ithalat-glass.stl` or `stl/ithalat-bare.stl`, whichever matches
 
 ## What to print
 
-The STLs in [`stl/`](stl/) are committed and always match the default configuration. They are already in their print orientation.
+The STLs in [`stl/`](stl/) are committed and always match the default configuration. They are already in their print orientation. The one exception is the TPU insert: it is saved where it sits on the base, and your slicer drops it onto its flat underside.
 
 | STL | Pogo | USB-C | What it is |
 |---|:---:|:---:|---|
 | [`ithalat-glass.stl`](stl/ithalat-glass.stl) **or** [`ithalat-bare.stl`](stl/ithalat-bare.stl) | yes | yes | the rest, for the TPS65 with or without the glass overlay |
+| [`ithalat-glass-tpu-base.stl`](stl/ithalat-glass-tpu-base.stl) **or** [`ithalat-bare-tpu-base.stl`](stl/ithalat-bare-tpu-base.stl), **plus** [`ithalat-tpu-insert.stl`](stl/ithalat-tpu-insert.stl) | or | or | soft top, *instead of* the rest above: a PETG base and a TPU insert ([Smooth top](#smooth-top-tpu-insert)) |
 | [`ithalat-dock-pogo.stl`](stl/ithalat-dock-pogo.stl) | yes | | keyboard dock that holds the pogo receptacle |
 | [`ithalat-dock-usbc.stl`](stl/ithalat-dock-usbc.stl) | | yes | keyboard dock that holds the female USB-C board |
 | [`ithalat-usbc-retainer.stl`](stl/ithalat-usbc-retainer.stl) | | yes | holds the female board down and locks the dock's clips (2 x M2x4) |
 | [`ithalat-usbc-grip-top.stl`](stl/ithalat-usbc-grip-top.stl) | | yes | upper half of the grip around the male board |
 | [`ithalat-usbc-grip-bottom.stl`](stl/ithalat-usbc-grip-bottom.stl) | | yes | lower half of the grip (2 x M2x4) |
+
+- **Rest: pick one.** Print the rigid rest, *or* the TPU base plus the insert. Never both.
+- **One insert for both variants:** glass and bare bases take the same insert.
 
 ### Screws and epoxy
 
@@ -257,14 +265,83 @@ The STLs in [`stl/`](stl/) are committed and always match the default configurat
 - **PETG for the docks:** their snap blades bend across the layer lines.
 - **Fit test:** print one dock first.
 
-The full table is in [docs/reference.md, Printing](docs/reference.md#printing).
+**Soft top (TPU):**
+
+- **Base:** PETG or PLA, as exported, with the same settings as the rest.
+- **Insert:** TPU 95A–98A, dried first. Flat side down, no supports.
+- **Insert settings:** 10 % gyroid, 2–3 walls, top ≥ 1.2 mm, 20–40 mm/s, elephant-foot compensation about 0.15 mm.
+- **Layers, printed separately:** 0.1 mm on the base *and* the insert. Then the seams meet on a layer line and sit flush.
+- **Fit:** press it onto the base's 4 pegs. Glue is optional.
+
+The full tables are in [docs/reference.md, Printing](docs/reference.md#printing) and [Printing the TPU top](docs/reference.md#printing-the-tpu-top).
+
+## Smooth top: TPU insert
+
+Will the rest feel smooth under your wrists? The short answer, and the optional soft top.
+
+- **Any FDM top shows layer lines** on the gentle crown. The flatter the slope, the wider the steps: about 3.4 mm wide at a 2° slope with 0.12 mm layers.
+- **Rigid top:** 0.12 mm or variable layers (or OrcaSlicer's Z contouring) make it noticeably smoother. It still feels like hard plastic.
+- **Rigid top, smoother still:** sand it along the curve, 400 → 800 → 1500 grit, wet from about 1000. This works on PETG and PLA (also on the PETG crown behind the insert), not on TPU. Keep off the pocket rim ([how](docs/reference.md#feel-and-care)).
+- **TPU insert:** a softer, slightly grippy front with a little give. The layer lines stay, but they feel softer.
+- **Optional:** the rigid rest stays the default. Nothing else changes.
+
+### What it is
+
+- **Two parts instead of one rest:** a PETG (or PLA) base and a TPU insert. Together they have exactly the rigid rest's shape: same outside, same 11.8 mm, same trackpad pocket.
+- **TPU on the front slope:** the front 30.25 mm, the nose, the front corners and the front of both ends (76 cm²). That is where your palms should land, but this is an estimate from the keyboard's geometry, not a measurement.
+- **The crown stays PETG:** the highest part, behind the insert (10.6–11.8 mm tall), is rigid.
+- **A little give, not foam:** 5.2–8.8 mm of TPU, and 3.5 mm near the foot of the nose. With 10 % gyroid inside, it gives a little under load, like a firm rubber pad. It is firmest at the nose, where the TPU is thinnest. For more give, use 2 walls.
+- **Rigid where it matters:** the trackpad pocket plus a 3 mm collar around it, everything behind the insert (ballast, cable, plug bay, back edge), and the 3 mm floor under the insert.
+- **Held by 4 pegs** (Ø5 x 2.5 mm) on the base, near the back of the insert, where the TPU over them is thickest (≥ 3.9 mm). Glue is optional.
+- **Seats flush:** the insert's peg holes are 0.4 mm deeper than the pegs, and its underside edges along the seams carry a 0.4 mm chamfer. So elephant foot or a sagging hole roof cannot lift it.
+- **Mass:** about 29 g of TPU at 10 % gyroid.
+
+<details>
+<summary>Why an insert, and not a thin TPU skin</summary>
+
+- **A thin TPU skin feels like hard rubber.** Softness needs about 4 mm or more of TPU with sparse infill.
+- **Only 95A–98A TPU was in stock** in the Turkish shops checked on 2026-11-18. So the softness has to come from thickness and infill, not from a softer filament.
+- **It prints on any printer that prints TPU:** flat side down, no supports. A thin curved skin needs a multi-material printer, or supports under its whole underside.
+- **The other options** (flat pads, a filament swap at one height, a whole TPU rest, stick-on covers) are compared in [docs/reference.md, Why an insert](docs/reference.md#why-an-insert).
+
+</details>
+
+### Two ways to print it
+
+| | Separate (any TPU printer) | One job (two-nozzle printer) |
+|---|---|---|
+| Printers | any printer that prints TPU; direct drive preferred | a second nozzle, a toolchanger or an IDEX: for example Bambu H2D (TPU on the right nozzle), Prusa XL, Snapmaker U1 or J1s |
+| How | print the insert alone, flat side down, then press it onto the pegs | load both STLs at once as one object with two parts; PETG for the base, TPU for the insert |
+| Layers | 0.1 mm on both parts, so the seams meet on a layer line | any: both parts share one layer grid |
+| Not with | (any printer works) | single-nozzle filament changers (Bambu AMS family, Prusa MMU3, Creality CFS): they cannot feed soft TPU |
+
+> [!WARNING]
+> **Non-conductive TPU only.** Never carbon, CF, ESD/antistatic, conductive, metal-filled or glitter TPU anywhere on the rest: it disturbs the trackpad.
+
+### Feel and care
+
+- **Grippier than PETG,** more so with sweaty hands. Resting is fine; sliding drags a little.
+- **Pick a dark or mid colour:** white and natural TPU turn yellow and show skin oil.
+- **Clean it** with mild soap and water, or a quick alcohol wipe. Never acetone, and never soak it.
+- **Heat:** left under a heavy object somewhere hot, TPU can keep a dent.
+- **Keep the ballast:** the grippier top pushes the rest sideways harder.
+
+### Limits
+
+- **Not printed yet:** the feel, the peg fit and the one-job bond are untested. Print a test slice first ([TPU test slice](docs/reference.md#tpu-test-slice)).
+- **The crown stays PETG.** The seam crosses both wings 30.25 mm from the front. Under load the TPU sinks a little, so you may feel the PETG edge behind it.
+- **Palm position is an estimate.** Rest a hand on a printed rigid rest first if you want to know where yours lands.
+- **Deeper cushion:** `--set BALLAST_CENTER_Y=57` gives a 44.75 mm insert, `BALLAST_CENTER_Y=70` a 57.75 mm one that reaches the crown's peak (with shorter ballast bars). Both also move the ballast in the rigid rest ([Deeper cushion](docs/reference.md#deeper-cushion-and-other-options)).
+- **Turn it off:** `--set TPU_ENABLED=False` builds only the rigid parts.
+
+Details, numbers and settings: [docs/reference.md, TPU insert](docs/reference.md#tpu-insert-optional-top). Filament shops: [docs/where-to-buy.md, TPU filament](docs/where-to-buy.md#tpu-filament-tpu-top-only).
 
 ## Quick start
 
 - [ ] **1. Pick your connector:** [magnetic pogo or USB-C](#pick-your-connector).
 - [ ] **2. Buy the parts** for that connector: [docs/bom.md](docs/bom.md). Example links are in [docs/where-to-buy.md](docs/where-to-buy.md).
 - [ ] **3. USB-C only: measure your boards** and regenerate first ([Step 2b](wiring.md#step-2b-usb-c-dock), Part A).
-- [ ] **4. Print** the rest variant that matches your trackpad, plus the parts for your connector ([What to print](#what-to-print)).
+- [ ] **4. Print** the rest variant that matches your trackpad, plus the parts for your connector ([What to print](#what-to-print)). For the soft top, print the TPU base and insert instead of the rest ([Smooth top](#smooth-top-tpu-insert)).
 - [ ] **5. Wire it:** keyboard side, connector half and dock, then the pigtail in the rest. Follow [wiring.md](wiring.md). The short version is the [assembly order](docs/reference.md#assembly-order).
 - [ ] **6. Beep-test before you power anything** ([Step 4: Test before power-up](wiring.md#step-4-test-before-power-up)).
 - [ ] **7. Flash the firmware:** the `ithalat` QMK keymap ([Firmware](#firmware)).
@@ -398,6 +475,8 @@ make generate verify GEN_ARGS="--engrave-face top --no-ballast"
 make generate verify GEN_ARGS="--set KEYBOARD_HEIGHT=12.2"   # re-measured keyboard: REST_HEIGHT and the dock follow
 make generate verify GEN_ARGS="--connector pogo5 --connector jst_sh4"   # pogo dock + Qwiic / JST-SH dock
 make generate verify GEN_ARGS="--set 'REST_PROFILE=[(0,11.8),(30,11.8),(85,6.0)]'"
+make generate verify GEN_ARGS="--set TPU_ENABLED=False"     # rigid rest only: no TPU base or insert
+make generate verify GEN_ARGS="--set BALLAST_CENTER_Y=57"   # deeper TPU insert (44.75 mm); also moves the ballast in the rigid rest
 make preview                                             # refresh the preview for the new build
 ```
 
@@ -442,8 +521,8 @@ Derived values are recomputed after the overrides, unless you override them your
 ### Verification in short
 
 - **What it measures:** the meshes themselves, with ray casts, slices, point-in-solid tests and signed distances.
-- **What it checks:** mesh health, sizes, the trackpad pocket, the cable path, the plug clearance, the underside, every dock, the USB-C parts and the assembled positions.
-- **Result:** the default build passes 365 checks with 5 advisory warnings (the pogo plug magnets and the USB-C metal distances near the pad).
+- **What it checks:** mesh health, sizes, the trackpad pocket, the cable path, the plug clearance, the underside, every dock, the USB-C parts, the TPU base and insert, and the assembled positions.
+- **Result:** the default build passes 434 checks with 5 advisory warnings (the pogo plug magnets and the USB-C metal distances near the pad). With `--set TPU_ENABLED=False` it runs the 365 checks of the rigid build.
 - **On failure:** it exits 1.
 - **Full list of checks:** [docs/reference.md, Verification](docs/reference.md#verification).
 
@@ -466,7 +545,7 @@ Python 3.14, numpy 2.5.3, shapely 2.1.2, trimesh 5.1.0, manifold3d 3.5.3, mapbox
 - **When:** on every push to `main`, and on demand from the Actions tab.
 - **How:** the same Docker build image and `make` targets as a local build: `make image`, then `make generate verify preview site`.
 - **What it does:** regenerates the parts and `build/manifest.json`, runs the self-test, rebuilds the preview with `tools/build_preview.py` and deploys it to GitHub Pages.
-- **Job summary:** lists any regenerated file that differs from the committed copy.
+- **Job summary:** lists any regenerated file that differs from the committed copy, and any generated file that was never committed.
 
 > [!NOTE]
 > **If `tools/verify.py` fails, nothing is deployed.** The last good page stays up.
@@ -491,7 +570,7 @@ Python 3.14, numpy 2.5.3, shapely 2.1.2, trimesh 5.1.0, manifold3d 3.5.3, mapbox
 
 - **Solder with the keyboard unplugged** from USB.
 - **Beep-test the wiring** before the first power-up.
-- **Keep metal away from the pad:** no conductive or metal-filled filament, and no loose steel, magnets or coins within about 15 mm of the module. It does not damage anything, but it disturbs the capacitive sensing.
+- **Keep metal away from the pad:** no conductive or metal-filled filament (TPU included), and no loose steel, magnets or coins within about 15 mm of the module. It does not damage anything, but it disturbs the capacitive sensing.
 - **Pogo pads are exposed live contacts,** and the magnets pick up steel debris.
 - **Optional protection parts** (TVS, series resistors, a PTC fuse): see [docs/wiring-details.md, Optional protection parts](docs/wiring-details.md#optional-protection-parts) and [docs/bom.md, Optional protection parts](docs/bom.md#3-optional-protection-parts-keyboard-side-at-the-dock).
 
@@ -503,12 +582,12 @@ Python 3.14, numpy 2.5.3, shapely 2.1.2, trimesh 5.1.0, manifold3d 3.5.3, mapbox
 | [docs/wiring-details.md](docs/wiring-details.md) | the deeper wiring background behind wiring.md, such as the electrical notes |
 | [docs/wiring.svg](docs/wiring.svg), [docs/wiring-usbc.svg](docs/wiring-usbc.svg) | wiring diagrams: pogo, USB-C |
 | [docs/bom.md](docs/bom.md) | bill of materials and costs, per connector |
-| [docs/where-to-buy.md](docs/where-to-buy.md) | example shops with links, prices and stock (checked 2026-11-15), Turkish shops first |
+| [docs/where-to-buy.md](docs/where-to-buy.md) | example shops with links, prices and stock (checked 2026-11-15; TPU filament 2026-11-18), Turkish shops first |
 | [docs/reference.md](docs/reference.md) | the detailed reference (sections below) |
 | [firmware/README.md](firmware/README.md) | QMK keymap `ithalat` (stock keymap + trackpad): azoteq_iqs5xx driver, hot-plug, calibration; same for both connectors |
-| [preview/index.html](preview/index.html), [online](https://ardakilic.github.io/ithalat/) | interactive 3D preview of the assembly; switch between glass/bare and the two connectors |
+| [preview/index.html](preview/index.html), [online](https://ardakilic.github.io/ithalat/) | interactive 3D preview of the assembly; switch between glass/bare, the two connectors and the top (rigid / TPU insert) |
 
-**docs/reference.md sections:** [design rationale](docs/reference.md#design-rationale) · [outputs](docs/reference.md#outputs) · [verification](docs/reference.md#verification) · [variants](docs/reference.md#variants) · [the docks](docs/reference.md#the-docks) · [configuration reference](docs/reference.md#configuration-reference) · [printing](docs/reference.md#printing) · [assembly order](docs/reference.md#assembly-order) · [ballast and bumpers](docs/reference.md#ballast-and-bumpers) · [glass handling](docs/reference.md#glass-handling) · [troubleshooting](docs/reference.md#troubleshooting)
+**docs/reference.md sections:** [design rationale](docs/reference.md#design-rationale) · [outputs](docs/reference.md#outputs) · [verification](docs/reference.md#verification) · [variants](docs/reference.md#variants) · [TPU insert](docs/reference.md#tpu-insert-optional-top) · [the docks](docs/reference.md#the-docks) · [configuration reference](docs/reference.md#configuration-reference) · [printing](docs/reference.md#printing) · [assembly order](docs/reference.md#assembly-order) · [ballast and bumpers](docs/reference.md#ballast-and-bumpers) · [glass handling](docs/reference.md#glass-handling) · [troubleshooting](docs/reference.md#troubleshooting)
 
 ## Repository layout
 
@@ -524,6 +603,7 @@ Python 3.14, numpy 2.5.3, shapely 2.1.2, trimesh 5.1.0, manifold3d 3.5.3, mapbox
 | `geometry/plug.py` | pigtail plug envelope (housing + strain relief) and the per-variant cable route |
 | `geometry/connectors.py` | connector variants: ids, labels, per-connector config copies, pin tables, the pogo / JST hardware envelopes |
 | `geometry/usbc.py` | USB-C variant (full list below the table) |
+| `geometry/tpu.py` | optional TPU top: insert plan, pegs, config limits, and the split of each rigid rest into a base + one shared insert |
 | `geometry/common.py`, `geometry/text.py`, `geometry/cfg.py` | helpers, engraving text (matplotlib TextPath), config loading/overrides |
 | `tools/verify.py` | geometry and assembly self-test |
 | `tools/build_preview.py`, `preview/template.html` | preview builder |

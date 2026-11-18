@@ -113,8 +113,58 @@ def validate(c):
         errs.append("REMOVED_KEYS must list the (row, col) positions the dock replaces")
     if c.PLUG_BAY_DEPTH < 0 or c.PLUG_BAY_CHAMFER < 0:
         errs.append("PLUG_BAY_DEPTH / PLUG_BAY_CHAMFER must be >= 0")
+    errs += _validate_tpu(c)
     if errs:
         raise SystemExit("config error:\n  " + "\n  ".join(errs))
+
+
+def _num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _validate_tpu(c):
+    """Type-level checks of the TPU_* constants; the geometric limits (floor
+    over the recesses, edge angle, thickness, pegs) live in geometry/tpu.params."""
+    errs = []
+    labels = c.TPU_TOP_LABELS
+    if not (isinstance(labels, dict) and set(labels) == {"rigid", "tpu"}):
+        errs.append("TPU_TOP_LABELS must be a dict with exactly the keys 'rigid' and 'tpu'")
+    if not isinstance(c.TPU_ENABLED, bool):
+        errs.append("TPU_ENABLED must be True or False")
+    for n in ("TPU_FLOOR_Z", "TPU_POCKET_COLLAR", "TPU_BALLAST_GAP", "TPU_PEG_D", "TPU_PEG_H",
+              "TPU_PEG_CHAMFER", "TPU_PEG_HEADROOM", "TPU_PEG_CLEARANCE", "TPU_BED_CHAMFER",
+              "TPU_TEXT_KEEPOUT", "TPU_MIN_T", "TPU_MIN_EDGE_ANGLE", "TPU_PEG_MIN_COVER", "TPU_PEG_EDGE",
+              "TPU_DENSITY"):
+        if not _num(getattr(c, n)):
+            errs.append(f"{n} must be a number")
+    if errs:
+        return errs
+    if c.TPU_FLOOR_Z <= c.REST_BOTTOM_CHAMFER + 0.3:
+        errs.append(f"TPU_FLOOR_Z must be > REST_BOTTOM_CHAMFER + 0.3 = {c.REST_BOTTOM_CHAMFER + 0.3:g}")
+    for n in ("TPU_POCKET_COLLAR", "TPU_BALLAST_GAP", "TPU_PEG_D", "TPU_PEG_H", "TPU_DENSITY"):
+        if getattr(c, n) <= 0:
+            errs.append(f"{n} must be > 0")
+    if not (0 < c.TPU_PEG_CHAMFER < c.TPU_PEG_D / 2):
+        errs.append("TPU_PEG_CHAMFER must be > 0 and < TPU_PEG_D / 2")
+    if not (0 <= c.TPU_PEG_HEADROOM <= 1.0):
+        errs.append("TPU_PEG_HEADROOM must be within 0 .. 1 mm")
+    if not (0 <= c.TPU_PEG_CLEARANCE <= 0.5):
+        errs.append("TPU_PEG_CLEARANCE must be within 0 .. 0.5 mm")
+    if not (0 <= c.TPU_BED_CHAMFER <= 1.0):
+        errs.append("TPU_BED_CHAMFER must be within 0 .. 1 mm")
+    if c.TPU_TEXT_KEEPOUT < 0.3:
+        errs.append("TPU_TEXT_KEEPOUT must be >= 0.3 (no cutter wall next to a letter)")
+    if c.TPU_INSERT_DEPTH is not None and not (_num(c.TPU_INSERT_DEPTH) and c.TPU_INSERT_DEPTH > 0):
+        errs.append("TPU_INSERT_DEPTH must be None (auto) or a positive number")
+    pegs = c.TPU_PEGS
+    if pegs is not None and not (isinstance(pegs, (list, tuple))
+                                 and all(isinstance(p, (list, tuple)) and len(p) == 2
+                                         and all(_num(v) for v in p) for p in pegs)):
+        errs.append("TPU_PEGS must be None (auto), [] (none) or a list of (x, y) pairs")
+    infills = c.TPU_MASS_INFILLS
+    if not (isinstance(infills, (list, tuple)) and infills and all(_num(v) and 0 < v < 100 for v in infills)):
+        errs.append("TPU_MASS_INFILLS must list infill percentages between 0 and 100")
+    return errs
 
 
 def add_cli_args(p):

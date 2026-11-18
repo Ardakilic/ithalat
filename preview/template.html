@@ -468,7 +468,7 @@ table { border-collapse: collapse; width: 100%; }
 }
 .dl-get:hover { border-color: var(--accent); background: var(--accent-wash); }
 .dl-get:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.kv tr.conn-row th { color: var(--accent); }
+.kv tr.conn-row th, .kv tr[data-top="tpu"] th { color: var(--accent); } /* rows that belong to the pick */
 .fine { margin: 0; font-size: var(--fs-xs); color: var(--ink-soft); }
 .notes { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: var(--fs-sm); max-width: 65ch; }
 .notes li::marker { font: 500 var(--fs-xs) var(--font-mono); color: var(--accent); }
@@ -522,6 +522,7 @@ table { border-collapse: collapse; width: 100%; }
         <span>Part</span><span id="tb-part">ithalat wrist rest</span>
         <span>Variant</span><span id="tb-variant"><!--@VARIANT-LABEL@--></span>
         <span>Connector</span><span id="tb-connector"><!--@CONNECTOR-LABEL@--></span>
+        <span class="tb-top">Top</span><span class="tb-top" id="tb-top"><!--@TOP-LABEL@--></span>
         <span class="wide">View</span><span class="wide" id="tb-view">Hero 3/4</span>
         <span class="wide">Frame</span><span class="wide">Z up · rest front-left = 0</span>
       </div>
@@ -553,6 +554,13 @@ table { border-collapse: collapse; width: 100%; }
             <!--@CONNECTORS@-->
           </div>
         </div>
+        <div class="field" id="top-field">
+          <span class="label" id="lbl-top">Top</span>
+          <div class="seg" role="radiogroup" aria-labelledby="lbl-top" id="top-group">
+            <!--@TOPS@-->
+          </div>
+          <!--@TOP-BLURB@-->
+        </div>
         <div class="field">
           <span class="label" id="lbl-finish">Filament</span>
           <div class="swatches" role="radiogroup" aria-labelledby="lbl-finish">
@@ -560,6 +568,17 @@ table { border-collapse: collapse; width: 100%; }
             <input type="radio" name="finish" id="finish-sand" value="#cdbb97"><label for="finish-sand" style="--chip:#cdbb97">Sand</label>
             <input type="radio" name="finish" id="finish-walnut" value="#6a4630"><label for="finish-walnut" style="--chip:#6a4630">Walnut</label>
             <input type="radio" name="finish" id="finish-fog" value="#a9b3b7"><label for="finish-fog" style="--chip:#a9b3b7">Fog grey</label>
+          </div>
+        </div>
+        <!--@NOTE TPU insert colour: the colours the TPU 95A-98A listings offer (no white: it
+             yellows and shows skin oil); shown only while the TPU top is picked -->
+        <div class="field" id="insert-finish-field" data-top="tpu" hidden>
+          <span class="label" id="lbl-insert-finish">Insert (TPU)</span>
+          <div class="swatches" role="radiogroup" aria-labelledby="lbl-insert-finish">
+            <input type="radio" name="insert-finish" id="ifinish-black" value="#1d1f21"><label for="ifinish-black" style="--chip:#1d1f21">Black</label>
+            <input type="radio" name="insert-finish" id="ifinish-grey" value="#6b7075" checked><label for="ifinish-grey" style="--chip:#6b7075">Grey</label>
+            <input type="radio" name="insert-finish" id="ifinish-blue" value="#2f4f7f"><label for="ifinish-blue" style="--chip:#2f4f7f">Blue</label>
+            <input type="radio" name="insert-finish" id="ifinish-red" value="#8e2b25"><label for="ifinish-red" style="--chip:#8e2b25">Red</label>
           </div>
         </div>
         <div class="field">
@@ -632,7 +651,8 @@ function showMessage(title, body) {
   // without the 3D view, its controls do nothing: hide the overlays, disable the inputs
   for (const el of stage.querySelectorAll(".stage-bar, .triad, .hint")) el.setAttribute("hidden", ""); // attribute: the triad is SVG
   for (const id of ["explode", "section", "section-center", "show-keyboard", "show-cable", "xray",
-                    "finish-charcoal", "finish-sand", "finish-walnut", "finish-fog"]) { const el = $(id); if (el) el.disabled = true; }
+                    "finish-charcoal", "finish-sand", "finish-walnut", "finish-fog",
+                    "ifinish-black", "ifinish-grey", "ifinish-blue", "ifinish-red"]) { const el = $(id); if (el) el.disabled = true; }
   $("msg-title").textContent = title;
   $("msg-body").textContent = body;
   $("stage-msg").hidden = false;
@@ -695,35 +715,65 @@ function setConnectorUI(c) {
 }
 setConnectorUI(initialConnector());
 
-// ---- Download STLs: the files the picked variant + connector need, also without WebGL
+// ---- top UI (Rigid / TPU insert), also without WebGL ----------------------------
+// one radio per manifest top ("tops"; none when the build has no TPU insert); every
+// part, dimension row, note and control that belongs to one top carries
+// data-top="<id>" and is shown only while that top is picked. An element never
+// carries both data-top and data-connector, so the two never fight over `hidden`.
+const tops = DATA.tops || [];
+const topIds = tops.map((t) => t.id);
+for (const input of document.querySelectorAll('input[name="top"]')) {
+  if (!topIds.includes(input.value)) { input.hidden = true; input.checked = false; if (input.nextElementSibling) input.nextElementSibling.hidden = true; }
+}
+$("top-field").hidden = topIds.length < 2;
+for (const el of document.querySelectorAll(".tb-top")) el.hidden = topIds.length < 2;
+function topLabel(id) { const t = tops.find((x) => x.id === id); return t ? t.label : (id || "Rigid"); }
+function initialTop() {
+  const chk = document.querySelector('input[name="top"]:checked');
+  return chk && !chk.hidden && topIds.includes(chk.value) ? chk.value : (topIds[0] ?? "rigid");
+}
+function setTopUI(t) {
+  app.dataset.top = t;
+  $("tb-top").textContent = topLabel(t);
+  for (const el of document.querySelectorAll("[data-top]:not(#app)")) el.hidden = el.dataset.top !== t;
+  const r = document.querySelector(`input[name="top"][value="${CSS.escape(t)}"]`); if (r) r.checked = true;
+  refreshDownloads();
+}
+setTopUI(initialTop());
+
+// ---- Download STLs: the files the picked variant + connector + top need, also without WebGL
 // One row per part (tools/build_preview.py, data-dl = part id); filesFor() mirrors its
 // files_for(). On *.github.io (the Pages site, forks too) `make site` serves the STLs
 // next to this page, so the links and "Download all" use stl/<file> there; anywhere else
 // (a local copy, other hosts) the links keep the committed files on GitHub and the zip
 // fetches them from raw.githubusercontent.com (CORS-enabled).
 const PARTS = DATA.parts || [];
-function filesFor(v, c) {
+const byRole = (list) => list.filter((p) => p.role === "insert").concat(list.filter((p) => p.role !== "insert"));
+function filesFor(v, c, t) { // the rest of top t, then the parts of connector c / variant v / top t (or of none)
+  t = t || "rigid";
   const rests = PARTS.filter((p) => p.role === "rest");
-  const rest = rests.find((p) => p.variant === v && p.connector === c) || rests.find((p) => p.variant === v && !p.connector)
-    || rests.find((p) => p.variant === v) || rests[0];
-  return (rest ? [rest] : []).concat(PARTS.filter((p) => p.role !== "rest"
-    && (!p.connector || p.connector === c) && (!p.variant || p.variant === v)));
+  const ofTop = rests.filter((p) => (p.top || "rigid") === t), pool = ofTop.length ? ofTop : rests;
+  const rest = pool.find((p) => p.variant === v && p.connector === c) || pool.find((p) => p.variant === v && !p.connector)
+    || pool.find((p) => p.variant === v) || pool[0];
+  return (rest ? [rest] : []).concat(byRole(PARTS.filter((p) => p.role !== "rest"
+    && (!p.connector || p.connector === c) && (!p.variant || p.variant === v) && (!p.top || p.top === t))));
 }
 const onPages = /^https?:$/.test(location.protocol) && /(^|\.)github\.io$/i.test(location.hostname);
 if (onPages) for (const a of document.querySelectorAll("a[data-site]")) a.href = a.dataset.site;
 const fmtBytes = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${(n / 1e3).toFixed(0)} kB` : `${n} B`);
 const filesTxt = (files) => `${files.length} file${files.length === 1 ? "" : "s"}, ${fmtBytes(files.reduce((s, p) => s + (p.file_bytes || 0), 0))}`;
-const pickNow = () => ({ v: initialVariant(), c: initialConnector() }); // the checked radios
+const pickNow = () => ({ v: initialVariant(), c: initialConnector(), t: initialTop() }); // the checked radios
 const dlAll = $("dl-all"), dlStatus = $("dl-status"), dlBar = $("dl-progress");
 let dlBusy = false, dlPick = null;
 refreshDownloads = () => { // runs on every applyState(); acts only when the pick changed
-  const { v, c } = pickNow();
-  if (dlPick === `${v}|${c}`) return;
-  dlPick = `${v}|${c}`;
-  const files = filesFor(v, c), ids = new Set(files.map((p) => p.id));
+  const { v, c, t } = pickNow();
+  if (dlPick === `${v}|${c}|${t}`) return;
+  dlPick = `${v}|${c}|${t}`;
+  const files = filesFor(v, c, t), ids = new Set(files.map((p) => p.id));
   for (const li of document.querySelectorAll(".dl-row")) li.hidden = !ids.has(li.dataset.dl);
   $("dl-count").textContent = filesTxt(files);
-  $("dl-sel").textContent = [variantIds.length ? variantLabel(v) : "", connIds.length > 1 ? connLabel(c) : ""].filter(Boolean).join(" · ");
+  $("dl-sel").textContent = [variantIds.length ? variantLabel(v) : "", connIds.length > 1 ? connLabel(c) : "",
+    topIds.length > 1 ? topLabel(t) : ""].filter(Boolean).join(" · ");
   if (dlStatus && !dlBusy) { dlStatus.textContent = ""; dlStatus.classList.remove("err"); } // an old result no longer applies
 };
 refreshDownloads();
@@ -755,8 +805,8 @@ if (dlAll) {
   }
   dlAll.addEventListener("click", async () => {
     if (dlBusy) return;
-    const { v, c } = pickNow(), files = filesFor(v, c);
-    const zipName = ["ithalat", v, c].filter(Boolean).join("-") + ".zip";
+    const { v, c, t } = pickNow(), files = filesFor(v, c, t);
+    const zipName = ["ithalat", v, c, t && t !== "rigid" ? t : ""].filter(Boolean).join("-") + ".zip";
     const total = files.reduce((s, p) => s + (p.file_bytes || 0), 0) || 1;
     dlBusy = true; dlAll.setAttribute("aria-disabled", "true");
     dlBar.value = 0; dlBar.hidden = false;
@@ -795,6 +845,9 @@ document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventLi
 }));
 document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => {
   if (el.checked) setConnectorUI(el.value);
+}));
+document.querySelectorAll('input[name="top"]').forEach((el) => el.addEventListener("change", () => {
+  if (el.checked) setTopUI(el.value);
 }));
 
 if (!hasWebGL()) {
@@ -935,6 +988,72 @@ async function boot() {
     return g;
   }
 
+  // Cross-section of a closed welded mesh at x = x0: loops of [y, z]. Each crossed edge
+  // gets one point (keyed by its two vertex ids), and every triangle links the edge where
+  // it enters x >= x0 to the edge where it leaves, so the links chain into closed loops.
+  function sliceX(P, index, x0) {
+    const nv = P.length / 3, pts = new Map(), next = new Map();
+    const at = (a, b) => {
+      const k = a < b ? a * nv + b : b * nv + a;
+      if (!pts.has(k)) {
+        const da = P[3 * a] - x0, t = da / (da - (P[3 * b] - x0));
+        pts.set(k, [P[3 * a + 1] + t * (P[3 * b + 1] - P[3 * a + 1]), P[3 * a + 2] + t * (P[3 * b + 2] - P[3 * a + 2])]);
+      }
+      return k;
+    };
+    for (let t = 0; t < index.length; t += 3) {
+      let enter = -1, exit = -1;
+      for (let e = 0; e < 3; e++) {
+        const a = index[t + e], b = index[t + (e + 1) % 3];
+        const sa = P[3 * a] >= x0, sb = P[3 * b] >= x0;
+        if (sa && !sb) exit = at(a, b); else if (!sa && sb) enter = at(a, b);
+      }
+      if (enter >= 0 && exit >= 0) next.set(enter, exit);
+    }
+    const loops = [];
+    for (const start of next.keys()) {
+      if (!next.has(start)) continue; // already walked
+      const loop = [];
+      for (let k = start; next.has(k);) { const n = next.get(k); next.delete(k); loop.push(pts.get(k)); k = n; }
+      if (loop.length >= 3) loops.push(loop);
+    }
+    return loops;
+  }
+  // Flat cap at x from those loops: the outer loops (winding of the largest), each with the
+  // opposite-wound loops inside it as holes, triangulated by three's earcut.
+  function capGeometry(loops, x) {
+    const area = (L) => { let s = 0; for (let i = 0, j = L.length - 1; i < L.length; j = i++) s += (L[j][0] - L[i][0]) * (L[j][1] + L[i][1]); return s / 2; };
+    const inside = (p, L) => {
+      let c = false;
+      for (let i = 0, j = L.length - 1; i < L.length; j = i++) {
+        const [yi, zi] = L[i], [yj, zj] = L[j];
+        if ((zi > p[1]) !== (zj > p[1]) && p[0] < (yj - yi) * (p[1] - zi) / (zj - zi) + yi) c = !c;
+      }
+      return c;
+    };
+    const A = loops.map(area);
+    const big = A.reduce((m, a, i) => (Math.abs(a) > Math.abs(A[m]) ? i : m), 0);
+    const sgn = Math.sign(A[big]) || 1;
+    const outers = [];
+    loops.forEach((L, i) => { if (Math.sign(A[i]) === sgn) outers.push({ L, a: Math.abs(A[i]), holes: [] }); });
+    loops.forEach((L, i) => {
+      if (Math.sign(A[i]) === sgn) return;
+      const host = outers.filter((o) => inside(L[0], o.L)).sort((p, q) => p.a - q.a)[0];
+      if (host) host.holes.push(L);
+    });
+    const pos = [];
+    for (const o of outers) {
+      const v2 = (L) => L.map(([y, z]) => new THREE.Vector2(y, z));
+      const c = v2(o.L), hs = o.holes.map(v2);
+      const tris = THREE.ShapeUtils.triangulateShape(c, hs); // drops duplicate end points in place
+      const all = c.concat(...hs);
+      for (const t of tris) for (const i of t) pos.push(x, all[i].x, all[i].y);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    return g;
+  }
+
   // ---------------------------------------------------------------- scene --
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -986,7 +1105,10 @@ async function boot() {
   function clip(m) { m.clippingPlanes = [clipPlane]; clipMats.push(m); return m; }
   const capU = { a: { value: new THREE.Vector3() }, b: { value: new THREE.Vector3() }, on: { value: 0 } };
   // own = true: the section hatch uses the part's own colour (bought parts keep their
-  // identity in a cut: blue board, green board, silver shell), else the theme's cap tokens
+  // identity in a cut: blue board, green board, silver shell), else the theme's cap tokens;
+  // own = "srgb": the own colour as it looks on screen (the TPU insert: grey stays grey)
+  const SRGB_HATCH = "vec3 cs = pow(max(diffuseColor.rgb, vec3(0.0)), vec3(1.0 / 2.2));\n" +
+    "    gl_FragColor = vec4(mix(cs * 0.55, min(cs * 1.25 + 0.08, 1.0), h), 1.0);\n";
   function withCap(m, own) {
     m.side = THREE.DoubleSide;
     m.onBeforeCompile = (shader) => {
@@ -996,11 +1118,12 @@ async function boot() {
           "#include <dithering_fragment>\n" +
           "  if (!gl_FrontFacing && uCapOn > 0.5) {\n" +
           "    float h = step(0.62, fract((gl_FragCoord.x - gl_FragCoord.y) / 9.0));\n" +
-          (own ? "    gl_FragColor = vec4(mix(diffuseColor.rgb * 0.45, min(diffuseColor.rgb * 1.35 + 0.06, 1.0), h), 1.0);\n"
-               : "    gl_FragColor = vec4(mix(uCapB, uCapA, h), 1.0);\n") +
+          (own === "srgb" ? "    " + SRGB_HATCH
+            : own ? "    gl_FragColor = vec4(mix(diffuseColor.rgb * 0.45, min(diffuseColor.rgb * 1.35 + 0.06, 1.0), h), 1.0);\n"
+            : "    gl_FragColor = vec4(mix(uCapB, uCapA, h), 1.0);\n") +
           "  }");
     };
-    m.customProgramCacheKey = () => (own ? "ithalat-cap-own" : "ithalat-cap");
+    m.customProgramCacheKey = () => (own === "srgb" ? "ithalat-cap-srgb" : own ? "ithalat-cap-own" : "ithalat-cap");
     return m;
   }
   const std = (o) => clip(new THREE.MeshStandardMaterial(o));
@@ -1031,6 +1154,28 @@ async function boot() {
     const c = new THREE.Color(hex), hsl = {}; c.getHSL(hsl);
     const light = hsl.l > 0.45; // light filament: shadow-toned letters; dark: lighter letters
     fillU.value.copy(c).lerp(new THREE.Color(light ? 0x000000 : 0xffffff), light ? 0.42 : 0.4);
+  }
+  // TPU insert: its own colour (Insert swatches) and a soft, matte rubber look - very
+  // rough, a little less environment light than PETG, and a faint velvet sheen at grazing
+  // angles that reads as "soft". A section through it hatches in its own colour (see
+  // insertCap below). The polygon offset lets the base win where the two parts share a
+  // surface (peg in its hole, floor, seams), so a cut shows the pegs as PETG.
+  const insertMat = withCap(clip(new THREE.MeshPhysicalMaterial({
+    color: "#6b7075", roughness: 0.94, metalness: 0.0, envMapIntensity: 0.45,
+    sheen: 0.55, sheenRoughness: 0.7, sheenColor: "#9aa0a5",
+    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 2,
+  })), "srgb");
+  // the insert's section cap: its cross-section on the cut plane, same hatch as above
+  const insertCapMat = new THREE.MeshBasicMaterial({ color: "#6b7075", side: THREE.DoubleSide, toneMapped: false });
+  insertCapMat.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace("#include <dithering_fragment>",
+      "#include <dithering_fragment>\n  {\n    float h = step(0.62, fract((gl_FragCoord.x - gl_FragCoord.y) / 9.0));\n    "
+      + SRGB_HATCH + "  }");
+  };
+  insertCapMat.customProgramCacheKey = () => "ithalat-cap-plane";
+  function setInsertFinish(hex) {
+    insertMat.color.set(hex); insertCapMat.color.set(hex);
+    insertMat.sheenColor.set(hex).lerp(new THREE.Color(0xffffff), 0.3);
   }
   // aFill per triangle: floors of the engraved letters 1, their walls 0.65
   function engraveFill(geometry, faceUnit) {
@@ -1205,14 +1350,16 @@ async function boot() {
     return w;
   }
 
-  // One entry per manifest part: rests stay in place (one per variant, optionally per
-  // connector); docks, grips, retainers and locks ride in dockG / padG.
+  // One entry per manifest part: rests stay in place (one per variant and top, optionally
+  // per connector); the TPU insert sits on its base in its own group (it lifts first when
+  // exploded); docks, grips, retainers and locks ride in dockG / padG.
   const partObjs = [];
   for (const p of parts) {
     const raw = await decodeMesh(p);
     const { geometry, faceUnit } = creasedGeometry(raw.pos, raw.index, 32);
     if (p.role === "rest") engraveFill(geometry, faceUnit);
-    const m = new THREE.Mesh(geometry, p.role === "rest" ? restMat : p.role === "dock" ? dockMat : gripMat);
+    const m = new THREE.Mesh(geometry, p.role === "rest" ? restMat : p.role === "insert" ? insertMat
+      : p.role === "dock" ? dockMat : gripMat);
     m.matrixAutoUpdate = false;
     m.matrix.fromArray(p.matrix);
     m.matrixWorldNeedsUpdate = true;
@@ -1220,6 +1367,14 @@ async function boot() {
     m.userData.part = p;
     const o = { p, mesh: m, raw, faceUnit, edges: null, wrap: null };
     if (p.role === "rest") model.add(m);
+    else if (p.role === "insert") {
+      o.wrap = new THREE.Group(); o.wrap.add(m); model.add(o.wrap);
+      // section cap (sliceX on the vertices in the assembly frame), rides with the insert
+      o.wpos = raw.pos.slice();
+      new THREE.BufferAttribute(o.wpos, 3).applyMatrix4(new THREE.Matrix4().fromArray(p.matrix));
+      o.cap = new THREE.Mesh(new THREE.BufferGeometry(), insertCapMat);
+      o.cap.visible = false; o.cap.userData.x = null; o.wrap.add(o.cap);
+    }
     else {
       o.wrap = wrapFor(p.explode_offset); o.wrap.add(m);
       ((p.moves_with || (p.role === "grip" ? "pad" : "dock")) === "pad" ? padG : dockG).add(o.wrap);
@@ -1227,10 +1382,12 @@ async function boot() {
     partObjs.push(o);
   }
   const restObjs = partObjs.filter((o) => o.p.role === "rest");
-  function restFor(v, c) { // the rest for (variant, connector), else the shared one
-    return restObjs.find((o) => o.p.variant === v && o.p.connector === c)
-      || restObjs.find((o) => o.p.variant === v && !o.p.connector)
-      || restObjs.find((o) => o.p.variant === v) || restObjs[0];
+  const insertObjs = partObjs.filter((o) => o.p.role === "insert");
+  function restFor(v, c, t) { // the rest for (variant, connector, top), else the shared one; mirrors filesFor
+    const ofTop = restObjs.filter((o) => (o.p.top || "rigid") === (t || "rigid")), pool = ofTop.length ? ofTop : restObjs;
+    return pool.find((o) => o.p.variant === v && o.p.connector === c)
+      || pool.find((o) => o.p.variant === v && !o.p.connector)
+      || pool.find((o) => o.p.variant === v) || pool[0];
   }
   const restBox = new THREE.Box3();
   for (const o of restObjs) { o.mesh.updateMatrixWorld(true); restBox.union(new THREE.Box3().setFromObject(o.mesh)); }
@@ -1545,7 +1702,7 @@ async function boot() {
   }
 
   // ------------------------------------------------------------------ state --
-  const S = { variant: initialVariant(), connector: initialConnector(), explode: 0, section: 1, xray: false, keyboard: true, cable: true, view: "hero" };
+  const S = { variant: initialVariant(), connector: initialConnector(), top: initialTop(), explode: 0, section: 1, xray: false, keyboard: true, cable: true, view: "hero" };
   let needsRender = true;
   const invalidate = () => { needsRender = true; };
 
@@ -1564,13 +1721,16 @@ async function boot() {
     }
     return o.edges;
   }
-  const XRAY_OPACITY = new Map([[restMat, 0.2], [dockMat, 0.26], [gripMat, 0.26]]);
+  const XRAY_OPACITY = new Map([[restMat, 0.2], [dockMat, 0.26], [gripMat, 0.26], [insertMat, 0.3]]);
   function applyState() {
-    const v = S.variant, c = S.connector, st = seat(v), hasGlass = st.t > 0;
-    const rest = restFor(v, c);
+    const v = S.variant, c = S.connector, t = S.top, st = seat(v), hasGlass = st.t > 0;
+    const rest = restFor(v, c, t);
+    let hasInsert = false;
     for (const o of partObjs) {
-      const on = o.p.role === "rest" ? o === rest : (!o.p.connector || o.p.connector === c);
+      const on = o.p.role === "rest" ? o === rest
+        : (!o.p.connector || o.p.connector === c) && (!o.p.top || o.p.top === t);
       (o.wrap || o.mesh).visible = on;
+      if (on && o.p.role === "insert") hasInsert = true;
       o.mesh.castShadow = !S.xray;
       if (S.xray && on) edgesOf(o).visible = true;
       else if (o.edges) o.edges.visible = false;
@@ -1579,6 +1739,9 @@ async function boot() {
     const e = S.explode;
     const glassLift = 26 * ease(e / 0.45), moduleLift = 12 * ease((e - 0.18) / 0.45), dockLift = 30 * ease((e - 0.45) / 0.55);
     const late = ease((e - 0.45) / 0.55);
+    // the TPU insert lifts first and highest, so its base's flat floor and the pegs show
+    const insertLift = 22 * ease(e / 0.4);
+    for (const o of insertObjs) o.wrap.position.z = insertLift;
     moduleG.position.set(tpC[0], tpC[1], st.pcbTop + moduleLift);
     moduleG.traverse((ch) => { if (ch.userData.glassOnly) ch.visible = hasGlass; });
     glassG.visible = hasGlass;
@@ -1588,13 +1751,27 @@ async function boot() {
     padG.position.z = moduleLift;
     for (const w of explodeWraps) { const o = w.userData.explode; w.position.set(o[0] * late, o[1] * late, o[2] * late); }
     rebuildCable(v, c, moduleLift, dockLift);
-    $("explode-val").textContent = e <= 0 ? "Assembled"
-      : (hasGlass ? `glass +${(moduleLift + glassLift).toFixed(0)} · ` : "") + `pad +${moduleLift.toFixed(0)} · dock +${dockLift.toFixed(0)} mm`;
+    // the readout wraps only between its parts, the dot leading the next line (as nobreak())
+    const lifts = [hasInsert && `insert +${insertLift.toFixed(0)}`, hasGlass && `glass +${(moduleLift + glassLift).toFixed(0)}`,
+      `pad +${moduleLift.toFixed(0)}`, `dock +${dockLift.toFixed(0)} mm`].filter(Boolean);
+    $("explode-val").textContent = e <= 0 ? "Assembled" : lifts.map((s) => s.replace(/ /g, " ")).join(" · ");
     // section
     const xCut = restBox.min.x + S.section * REST_W;
     clipPlane.constant = S.section >= 1 ? 1e6 : xCut;
     $("section-val").textContent = S.section >= 1 ? "Off" : `X ${xCut.toFixed(1)} mm`;
     capU.on.value = S.section < 1 && !S.xray ? 1 : 0;
+    // the insert's own cap: the back-face hatch alone would show the base's floor, pegs and
+    // seam walls through the insert's cut (front faces inside it); a flat cross-section on
+    // the cut plane (0.02 mm inside it) covers them
+    for (const o of insertObjs) {
+      const on = capU.on.value > 0 && o.wrap.visible;
+      if (on && o.cap.userData.x !== xCut) {
+        o.cap.geometry.dispose();
+        o.cap.geometry = capGeometry(sliceX(o.wpos, o.raw.index, xCut), xCut - 0.02);
+        o.cap.userData.x = xCut;
+      }
+      o.cap.visible = on && o.cap.geometry.attributes.position.count > 0;
+    }
     // x-ray: the printed parts go glassy, so the trackpad, boards and wires inside show
     for (const [m, op] of XRAY_OPACITY) {
       if (m.transparent === S.xray) continue;
@@ -1604,6 +1781,7 @@ async function boot() {
     // labels
     setVariantUI(v);
     setConnectorUI(c);
+    setTopUI(t);
     invalidate();
   }
 
@@ -1685,8 +1863,12 @@ async function boot() {
   // ------------------------------------------------------------------- UI --
   document.querySelectorAll('input[name="variant"]').forEach((el) => el.addEventListener("change", () => { if (el.checked) { S.variant = el.value; applyState(); } }));
   document.querySelectorAll('input[name="connector"]').forEach((el) => el.addEventListener("change", () => { if (el.checked) { S.connector = el.value; applyState(); } }));
+  document.querySelectorAll('input[name="top"]').forEach((el) => el.addEventListener("change", () => { if (el.checked) { S.top = el.value; applyState(); } }));
   document.querySelectorAll('input[name="finish"]').forEach((el) => el.addEventListener("change", () => {
     if (!el.checked) return; setFinish(el.value); invalidate();
+  }));
+  document.querySelectorAll('input[name="insert-finish"]').forEach((el) => el.addEventListener("change", () => {
+    if (!el.checked) return; setInsertFinish(el.value); invalidate();
   }));
   $("explode").addEventListener("input", (e) => { S.explode = +e.target.value / 100; applyState(); });
   $("section").addEventListener("input", (e) => { S.section = +e.target.value / 1000; applyState(); });
@@ -1702,8 +1884,11 @@ async function boot() {
   // pick up states the browser restored (back/forward cache, republish)
   S.variant = initialVariant();
   S.connector = initialConnector();
+  S.top = initialTop();
   const fin =document.querySelector('input[name="finish"]:checked'); if (fin) setFinish(fin.value);
   else setFinish("#2c3034");
+  const ifin = document.querySelector('input[name="insert-finish"]:checked');
+  setInsertFinish(ifin ? ifin.value : "#6b7075");
   S.explode = +$("explode").value / 100; S.section = +$("section").value / 1000;
   S.keyboard = $("show-keyboard").checked; S.cable = $("show-cable").checked; S.xray = $("xray").checked;
   controls.autoRotate = $("autorotate").checked;
