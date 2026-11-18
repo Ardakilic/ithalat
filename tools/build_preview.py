@@ -28,6 +28,14 @@ that belongs to one connector carries data-connector="<id>".  An older
 single-connector manifest (top-level "dock"/"cable"/"connector" only) still
 works: it becomes a one-entry connector list.
 
+Tops: the manifest lists "tops" (Rigid = stl/ithalat-<variant>.stl, or a PETG
+base + the shared soft TPU insert) and tags parts with "top".  The page gets a
+Top switch after Connector; every part, dimension row and note that belongs to
+one top carries data-top="<id>" (never together with data-connector).  The
+rest is picked per (variant, connector, top); every other part must belong to
+the picked top or to none, so the shared insert never joins a Rigid pick.  A
+manifest without "tops" (TPU_ENABLED=False, older builds) shows no switch.
+
 Meshes are embedded compactly: vertices are welded on a 16-bit grid spanning
 each part's bounding box (~0.004 mm steps), re-ordered by first use, stored as
 per-axis uint16 deltas split into low/high byte planes; triangle indices are
@@ -374,6 +382,23 @@ def connectors_of(man, cfg):
     return conns, variants
 
 
+def tops_of(man):
+    """-> [{id, label}] from the manifest's "tops" (the Top switch: Rigid / TPU insert);
+    [] when the manifest has none (TPU_ENABLED=False, older manifests): no switch."""
+    out = []
+    for t in man.get("tops") or []:
+        if isinstance(t, str):
+            t = {"id": t}
+        if isinstance(t, dict) and t.get("id"):
+            out.append({"id": str(t["id"]), "label": str(t.get("label") or t["id"])})
+    return out
+
+
+def rest_top(p):
+    """The top a rest belongs to; a rest without the key is the rigid one."""
+    return p.get("top") or "rigid"
+
+
 def part_label(part, variants, conns):
     if part.get("label"):
         return str(part["label"])
@@ -382,6 +407,8 @@ def part_label(part, variants, conns):
     vlab = next((v.get("label") for v in variants if v.get("id") == var), var)
     clab = next((c["label"] for c in conns if c["id"] == part.get("connector")), None)
     pid = str(part.get("id", ""))
+    if role == "insert":
+        return "TPU insert"
     if role == "rest":
         lab = f"Wrist rest, {vlab.lower()}" if vlab else "Wrist rest"
         return lab + (f" ({clab})" if clab else "")
@@ -415,6 +442,42 @@ def plug_notes(cable):
                      + ("then turn the loose wires straight down into the bay at the back edge."
                         if plug.get("exit") == "down" else "with the cable leaving toward you."))
     return notes
+
+
+def tpu_notes(man):
+    """Notes shown only while the TPU top is picked (data-top="tpu")."""
+    tpu = man.get("tpu") or {}
+    pegs = tpu.get("pegs")
+    n = len(pegs) if isinstance(pegs, list) else 4
+    fit = (f"press it onto the base’s {n} pegs (glue is optional)" if n
+           else "glue it onto the base’s flat floor")
+    # a word joiner after each en dash keeps ranges ("2–3 walls") on one line
+    return [s.replace("–", "–⁠") for s in (
+        f"TPU top: print the insert on its own, as it loads (flat side down, no supports), then {fit}. "
+        "Or print base + insert in one job on a two-nozzle, toolchanger or IDEX printer: load both STLs "
+        "at once as one object with two parts. AMS, MMU3 and CFS-style changers can’t feed soft TPU.",
+        "Insert settings: dry TPU 95A–98A, 2–3 walls, 10 % gyroid (5 % softer, 15 % firmer), top ≥ 1.2 mm, "
+        "20–40 mm/s, elephant-foot compensation ~0.15 mm. Printed separately, use 0.1 mm layers on base and "
+        "insert alike, so the seams meet on a layer line. The base prints like the rigid rest.",
+        "TPU must be non-conductive: never carbon, CF, ESD, metal-filled or glitter TPU near the "
+        "trackpad. Dark or mid colours hide skin oil.",
+        "Feel: grippier than PETG, with a little give, like a firm rubber pad; firmest at the nose, "
+        "where the TPU is thinnest. The layer lines stay but feel softer, and the crown behind the insert "
+        "stays PETG. Clean with soap and water; never acetone.",
+    )]
+
+
+def top_blurbs(man, tops):
+    """One short line under the Top switch per top (data-top), saying what it is."""
+    tpu = man.get("tpu") or {}
+    d = tpu.get("insert_depth")
+    front = f"the front {round(float(d), 2):g} mm" if isinstance(d, (int, float)) else "the front"
+    text = {
+        "rigid": "One printed piece, PETG or PLA.",
+        "tpu": f"PETG or PLA base + a soft TPU insert on {front} (the front slope), the nose and the "
+               "ends; the crown behind it stays PETG. Same shape, height and pocket as Rigid.",
+    }
+    return [(t["id"], text[t["id"]]) for t in tops if t["id"] in text]
 
 
 def connector_notes(cv, label):
@@ -472,10 +535,56 @@ def conn_attr(cid, default, multi):
     return f' data-connector="{esc(cid)}"' + ("" if cid == default else " hidden")
 
 
-def html_dimensions(man, conns, cvars):
+def top_attr(tid, default, multi):
+    """data-top attribute (+ hidden when it is not the default top)."""
+    if not tid or not multi:
+        return ""
+    return f' data-top="{esc(tid)}"' + ("" if tid == default else " hidden")
+
+
+def tpu_infill_pick(est):
+    """The insert infill every TPU mass figure shows: 10 % if estimated, else the first
+    infill (the same rule as generate.py's 'TPU insert' row); None if none."""
+    keys = [k for k in est if str(k).rstrip("%") != "100"]
+    return "10%" if "10%" in keys else (keys[0] if keys else None)
+
+
+def tpu_mass_rows(man, variants):
+    """{general row label: (label, value)}: while the TPU top is shown, the rigid rest's
+    mass rows give way to base + insert, from the manifest's masses (first variant, as
+    the general rows)."""
+    ms = man.get("masses") or {}
+    v0 = variants[0].get("id") if variants else None
+    base = (ms.get("rest_pla_g") or {}).get(f"rest-{v0}-tpu")
+    ins = ms.get("insert_tpu_g") or {}
+    if not (isinstance(base, dict) and isinstance(ins, dict) and ins):
+        return {}
+    pct = tpu_infill_pick(ins)
+    if pct is None:
+        return {}
+    tpu_g = float(ins[pct])
+    infill = [(k, float(v)) for k, v in base.items() if str(k).rstrip("%") != "100"]
+    mass = " / ".join(f"{v:.0f} g @{k}" for k, v in infill)
+    if "100%" in base:
+        mass += f" / {float(base['100%']):.0f} g solid"
+    rows = {"Mass (PLA)": ("Mass (PLA + TPU)", f"base {mass} + insert ~{tpu_g:.0f} g TPU @{pct} gyroid "
+                                               f"({v0}, approx.)")}
+    b25 = base.get("25%")
+    if b25 is not None:
+        extra = [float(ms.get(k) or 0) for k in ("steel_g", "trackpad_g", "glass_g")]
+        rows["Total on the desk"] = ("Total on the desk",
+                                     f"~{float(b25) + tpu_g + sum(extra):.0f} g @25% incl. the TPU insert, steel, "
+                                     f"trackpad{' and glass' if extra[2] else ''}")
+    return rows
+
+
+def html_dimensions(man, conns, cvars, tops=(), variants=()):
     rows = man.get("dimensions") or []
     multi = len(conns) > 1
     default = conns[0]["id"] if conns else None
+    tmulti = len(tops) > 1
+    t0 = tops[0]["id"] if tops else None
+    swap = tpu_mass_rows(man, variants) if tmulti and any(t["id"] == "tpu" for t in tops) else {}
     out = ['<table class="kv" id="dims-table"><tbody>']
     for r in rows:  # every row, no whitelist
         if isinstance(r, dict):
@@ -489,7 +598,19 @@ def html_dimensions(man, conns, cvars):
             attr = f' data-hide-for="{esc(" ".join(over))}"' + (" hidden" if default in over else "")
         elif over:
             continue
+        # never both hide mechanisms on one row: data-top only on rows no connector replaces
+        rtop = (r.get("top") if isinstance(r, dict) else None) if not over else None
+        alt = swap.get(str(label)) if not over and not rtop else None
+        if rtop:  # a row about one top only (the TPU insert)
+            if not tmulti and rtop != (t0 or "rigid"):
+                continue  # no Top switch: only the rigid rest is offered
+            attr = top_attr(rtop, t0, tmulti)
+        elif alt:  # the rigid rest's mass row; the TPU top shows its own below it
+            attr = top_attr("rigid", t0, tmulti)
         out.append(f"<tr{attr}><th scope=\"row\">{esc(label)}</th><td>{esc(value)}</td></tr>")
+        if alt:
+            out.append(f'<tr{top_attr("tpu", t0, tmulti)}><th scope="row">{esc(alt[0])}</th>'
+                       f'<td>{esc(alt[1])}</td></tr>')
     for c in conns:
         for label, value in cvars[c["id"]]["dims"]:
             out.append(f'<tr class="conn-row"{conn_attr(c["id"], default, multi)}><th scope="row">{esc(label)}</th>'
@@ -505,8 +626,17 @@ def grams(g):
     return f"{g:.0f}" if g >= 9.95 else f"{g:.1f}"  # small printed parts keep a decimal
 
 
-def mass_txt(st):
-    """'PLA 266 g solid', plus the manifest's infill estimates when it has them."""
+def mass_txt(st, role=None):
+    """'PLA 266 g solid', plus the manifest's infill estimates when it has them; the TPU
+    insert: 'TPU 29 g at 10 % gyroid · 52 g solid' (its stats also carry a PLA figure)."""
+    if role == "insert" and (st.get("mass_g_estimate_tpu") or st.get("mass_g_solid_tpu")):
+        est = st.get("mass_g_estimate_tpu") if isinstance(st.get("mass_g_estimate_tpu"), dict) else {}
+        pick = tpu_infill_pick(est)
+        bits = [f"{grams(est[pick])} g at {str(pick).rstrip('%')} % gyroid"] if pick else []
+        solid = st.get("mass_g_solid_tpu") or est.get("100%")
+        if solid:
+            bits.append(f"{grams(solid)} g solid")
+        return "TPU " + " · ".join(bits)
     bits = []
     est = st.get("mass_g_estimate")
     if isinstance(est, dict):
@@ -544,11 +674,24 @@ def html_hardware(conns, cvars):
     return "".join(out)
 
 
-def html_parts(parts, mode, conns, cvars):
+def by_role(parts):
+    """Rests first, then the TPU insert, then the rest of the parts (manifest order inside)."""
+    rank = {"rest": 0, "insert": 1}
+    return sorted(parts, key=lambda p: rank.get(p.get("role"), 2))
+
+
+def part_top_attr(p, conns, tops):
+    """A part's data-connector or data-top (TPU parts have no connector; never both)."""
     multi = len(conns) > 1
-    default = conns[0]["id"] if conns else None
+    if p.get("connector"):
+        return conn_attr(p.get("connector"), conns[0]["id"] if conns else None, multi)
+    top = rest_top(p) if p.get("role") == "rest" else p.get("top")
+    return top_attr(top, tops[0]["id"] if tops else None, len(tops) > 1)
+
+
+def html_parts(parts, mode, conns, cvars, tops=()):
     out = ['<ul class="parts" id="parts-list">']
-    for p in parts:
+    for p in by_role(parts):
         st = p["stats"]
         cls = "part" + (f" v-{p['variant']}" if p.get("variant") else "")
         if mode == "standalone":
@@ -560,39 +703,44 @@ def html_parts(parts, mode, conns, cvars):
                          f' <span class="size">{esc(fmt_bytes(p["file_bytes"]))}</span>')
         dv = f' data-variant="{esc(p["variant"])}"' if p.get("variant") else ""
         out.append(
-            f'<li class="{cls}" data-part="{esc(p["id"])}"{dv}{conn_attr(p.get("connector"), default, multi)}>'
+            f'<li class="{cls}" data-part="{esc(p["id"])}"{dv}{part_top_attr(p, conns, tops)}>'
             f'<div class="part-head"><span class="part-name">{esc(p["label"])}</span></div>'
             f'<div class="part-file">{file_html}</div>'
             f'<div class="part-meta"><span>{esc(fmt_int(st.get("triangles", 0)))} triangles</span>'
             f'<span>{esc(bbox_txt(st.get("bbox")))}</span>'
             f'<span>{st.get("volume_cm3", 0):.1f} cm³</span></div>'
-            f'<div class="part-mass">{esc(mass_txt(st))}</div></li>')
+            f'<div class="part-mass">{esc(mass_txt(st, p.get("role")))}</div></li>')
     out.append("</ul>")
     out.append(html_hardware(conns, cvars))
+    dens = ("Masses are PLA at the configured density; the TPU insert’s are TPU."
+            if any(p.get("role") == "insert" for p in parts) else "Masses are PLA at the configured density.")
     if mode == "artifact":
         out.append(f'<p class="fine">The STL files are in the <code>stl/</code> folder of the '
                    f'{repo_link(mode, "GitHub repository")}. Download them there; this page can’t '
-                   'offer files. Masses are PLA at the configured density.</p>')
+                   f'offer files. {dens}</p>')
     else:
         out.append('<p class="fine"><a href="#h-download">Download STLs</a> above has just the files your '
-                   'pick needs; each file name here downloads one STL. Masses are PLA at the configured '
-                   'density.</p>')
+                   f'pick needs; each file name here downloads one STL. {dens}</p>')
     return "".join(out)
 
 
-def files_for(parts, v, c):
-    """The STLs one build needs: the rest for variant v (its connector-c copy if the
-    rests differ per connector), plus every other part that belongs to connector c (or
-    to none) and to variant v (or to none).  The page script mirrors this (filesFor)."""
+def files_for(parts, v, c, t="rigid"):
+    """The STLs one build needs: the rest for variant v and top t (its connector-c copy
+    if the rests differ per connector), plus every other part that belongs to connector c
+    (or to none), to variant v (or to none) and to top t (or to none), so the shared TPU
+    insert never joins a Rigid pick.  The page script mirrors this (filesFor)."""
+    t = t or "rigid"
     rests = [p for p in parts if p.get("role") == "rest"]
-    rest = (next((p for p in rests if p.get("variant") == v and p.get("connector") == c), None)
-            or next((p for p in rests if p.get("variant") == v and not p.get("connector")), None)
-            or next((p for p in rests if p.get("variant") == v), None)
-            or (rests[0] if rests else None))
-    return ([rest] if rest else []) + [
+    pool = [p for p in rests if rest_top(p) == t] or rests
+    rest = (next((p for p in pool if p.get("variant") == v and p.get("connector") == c), None)
+            or next((p for p in pool if p.get("variant") == v and not p.get("connector")), None)
+            or next((p for p in pool if p.get("variant") == v), None)
+            or (pool[0] if pool else None))
+    return ([rest] if rest else []) + by_role([
         p for p in parts if p.get("role") != "rest"
         and (not p.get("connector") or p.get("connector") == c)
-        and (not p.get("variant") or p.get("variant") == v)]
+        and (not p.get("variant") or p.get("variant") == v)
+        and (not p.get("top") or p.get("top") == t)])
 
 
 def stl_link_attrs(p):
@@ -603,17 +751,19 @@ def stl_link_attrs(p):
             f' data-fetch="{esc(p["fetch"])}"')
 
 
-def html_downloads(parts, mode, variants, conns):
+def html_downloads(parts, mode, variants, conns, tops=()):
     """The "Download STLs" block: one row per part, only the default pick's rows shown; the
     page script re-filters the rows (filesFor) and the totals when the radios change."""
     v0 = variants[0].get("id") if variants else None
     c0 = conns[0]["id"] if conns else None
-    pick = files_for(parts, v0, c0)
+    t0 = tops[0]["id"] if tops else "rigid"
+    pick = files_for(parts, v0, c0, t0)
     keep = {p["id"] for p in pick}
-    order = [p for p in parts if p.get("role") == "rest"] + [p for p in parts if p.get("role") != "rest"]
+    order = by_role(parts)
     total = sum(p["file_bytes"] for p in pick)
     sel = " · ".join(esc(x) for x in ((variants[0].get("label") or v0) if variants else None,
-                                      conns[0]["label"] if len(conns) > 1 else None) if x)
+                                      conns[0]["label"] if len(conns) > 1 else None,
+                                      tops[0]["label"] if len(tops) > 1 else None) if x)
     count = (f'<span id="dl-count">{len(pick)} file{"" if len(pick) == 1 else "s"}, '
              f'{esc(fmt_bytes(total))}</span>')
     if mode == "standalone":
@@ -713,10 +863,23 @@ def html_radios(name, items):
     return "\n            ".join(out)
 
 
-def html_notes(head, tail, conns, cvars):
+def html_top_blurbs(man, tops):
+    """The line under the Top switch: one per top, only the picked one shown."""
+    if len(tops) < 2:
+        return ""
+    t0 = tops[0]["id"]
+    return "".join(f'<p class="fine top-blurb"{top_attr(tid, t0, True)}>{esc(text)}</p>'
+                   for tid, text in top_blurbs(man, tops))
+
+
+def html_notes(head, tail, conns, cvars, tops=(), top_notes=None):
     multi = len(conns) > 1
     default = conns[0]["id"] if conns else None
     items = [f"<li>{esc(n)}</li>" for n in head]
+    if len(tops) > 1:  # {top id: [notes]}: shown only while that top is picked
+        t0 = tops[0]["id"]
+        for t in tops:
+            items += [f'<li{top_attr(t["id"], t0, True)}>{esc(n)}</li>' for n in (top_notes or {}).get(t["id"], [])]
     for c in conns:
         items += [f'<li{conn_attr(c["id"], default, multi)}>{esc(n)}</li>'
                   for n in connector_notes(cvars[c["id"]], c["label"])]
@@ -745,6 +908,7 @@ def main(argv=None):
     variants = man.get("variants") or []
     conns, cvars = connectors_of(man, cfg)
     conn_ids = [c["id"] for c in conns]
+    tops = tops_of(man)
 
     # ---- meshes ------------------------------------------------------------
     parts, tris_by_id = [], {}
@@ -768,7 +932,9 @@ def main(argv=None):
         mw = p.get("moves_with") or ("pad" if role == "grip" else "dock")
         q = {
             "id": p["id"], "variant": p.get("variant"), "role": role, "connector": conn,
-            "moves_with": mw if role != "rest" else None,
+            # rests and the TPU insert stay with the rest (the insert lifts on its own when exploded)
+            "moves_with": mw if role not in ("rest", "insert") else None,
+            "top": p.get("top"),
             "stl": p["stl"], "matrix": p.get("matrix") or [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
             "stats": st, "file_bytes": os.path.getsize(path),
         }
@@ -781,7 +947,7 @@ def main(argv=None):
         out = {}
         for p in parts:
             tris = tris_by_id[p["id"]]
-            c = cell if (cell and p.get("role") == "rest") else None
+            c = cell if (cell and p.get("role") in ("rest", "insert")) else None
             out[p["id"]] = encode(*weld(tris, c))
         return out
 
@@ -804,13 +970,14 @@ def main(argv=None):
     keep_cfg = {k: cfg[k] for k in cfg if k.startswith(("ENGRAVE_", "REST_", "TP_", "GLASS_",
                                                         "DOCK_", "CABLE_", "POCKET_", "KEY", "PLUG_",
                                                         "OLED_", "BALLAST_", "FIRST_KEY", "FRONT_ROW",
-                                                        "USBC_", "CONNECTORS"))}
-    part_keys = ("id", "variant", "role", "connector", "moves_with", "explode_offset", "stl", "matrix",
+                                                        "USBC_", "CONNECTORS", "TPU_"))}
+    part_keys = ("id", "variant", "role", "connector", "moves_with", "top", "explode_offset", "stl", "matrix",
                  "label", "stats", "file_bytes", "mesh")
     data = {
         "name": man.get("name", "ithalat"), "units": man.get("units", "mm"),
         "frame": man.get("frame", ""), "variants": variants,
         "connectors": [{k: c[k] for k in ("id", "type", "label")} for c in conns],
+        "tops": tops, "tpu": man.get("tpu") if tops else None,
         "connector_variants": {cid: {k: cv[k] for k in ("dock", "cable", "connector", "hardware")}
                                for cid, cv in cvars.items()},
         "parts": [{k: p[k] for k in part_keys if k in p} for p in parts],
@@ -840,16 +1007,19 @@ def main(argv=None):
         subs = {
             "/*@DATA@*/null": js,
             "<!--@MESHES@-->": meshes_html,
-            "<!--@DIMENSIONS@-->": html_dimensions(man, conns, cvars),
-            "<!--@PARTS@-->": html_parts(parts, mode, conns, cvars),
-            "<!--@DOWNLOADS@-->": html_downloads(parts, mode, variants, conns),
+            "<!--@DIMENSIONS@-->": html_dimensions(man, conns, cvars, tops, variants),
+            "<!--@PARTS@-->": html_parts(parts, mode, conns, cvars, tops),
+            "<!--@DOWNLOADS@-->": html_downloads(parts, mode, variants, conns, tops),
             "<!--@PINOUT@-->": html_pinout(conns, cvars),
             "<!--@WIRING-LINK@-->": html_wiring_link(mode),
-            "<!--@NOTES@-->": html_notes(head_notes, tail_notes, conns, cvars),
+            "<!--@NOTES@-->": html_notes(head_notes, tail_notes, conns, cvars, tops, {"tpu": tpu_notes(man)}),
             "<!--@VARIANTS@-->": html_radios("variant", variants),
             "<!--@VARIANT-LABEL@-->": esc((variants[0].get("label") or variants[0].get("id")) if variants else ""),
             "<!--@CONNECTORS@-->": html_radios("connector", conns),
             "<!--@CONNECTOR-LABEL@-->": esc(conns[0]["label"] if conns else ""),
+            "<!--@TOPS@-->": html_radios("top", tops),
+            "<!--@TOP-LABEL@-->": esc(tops[0]["label"] if tops else "Rigid"),
+            "<!--@TOP-BLURB@-->": html_top_blurbs(man, tops),
             "<!--@SOURCE-LINK@-->": repo_link(mode, 'Source on GitHub <span aria-hidden="true">↗</span>',
                                               "src-link"),
         }
@@ -886,6 +1056,8 @@ def main(argv=None):
 
     print("  connectors: " + ", ".join(f"{c['id']} ({c['type']}, {len(cvars[c['id']]['hardware'])} hardware)"
                                        for c in conns))
+    if tops:
+        print("  tops: " + ", ".join(f"{t['id']} ({t['label']})" for t in tops))
     for p in parts:
         m = p["mesh"]
         print(f"  {p['id']:18s} {m['nt']:8d} tris {m['nv']:8d} verts -> {m['gz_bytes'] / 1e6:.2f} MB gz")

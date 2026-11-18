@@ -60,6 +60,14 @@ jobs:
               echo "A few re-split triangles are normal when the committed files were made on an arm64 machine (this runner is x86_64)."
               echo "Bigger changes usually mean the regenerated files were not committed: run \`make all\` and commit stl/ and preview/index.html."
             fi
+            # new generated files (a new part's STL) never show in git diff
+            untracked=$(git ls-files --others --exclude-standard -- stl preview/index.html)
+            if [ -n "$untracked" ]; then
+              echo "These generated files are not committed at all (README and the preview link to them on GitHub):"
+              echo '```'
+              echo "$untracked"
+              echo '```'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Assemble the site

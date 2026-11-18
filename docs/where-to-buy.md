@@ -1,19 +1,21 @@
 # Where to buy
 
-Example shops for every ithalat part, with prices and stock checked on 2026-11-15.
+Example shops for every ithalat part, with prices and stock checked on 2026-11-15 (TPU filament: 2026-11-18).
 
 ## TL;DR
 
-- **Examples only.** Checked on 2026-11-15. Prices and stock change: check each listing before you order.
+- **Examples only.** Checked on 2026-11-15, the TPU filament on 2026-11-18. Prices and stock change: check each listing before you order.
 - **Turkish shops first,** then international ones.
 - **Measure before you buy.** Pogo pair vs `DOCK_CONN_W/H/D`; USB-C boards vs `USBC_*`.
 - **No Turkish shop** checked sells the TPS65, its glass or M2 self-tapping screws.
+- **TPU for the optional soft top:** 95A–98A is in stock in Turkey (Porima 98A is made in Turkey). The softer spools checked were out of stock.
 - **Quantities and costs** are in [bom.md](bom.md). Wiring steps are in [wiring.md](../wiring.md).
 
 **Jump to**
 
 - Connector: [USB-C parts](#usb-c-connector-parts) · [Magnetic pogo parts](#magnetic-pogo-connector-parts) · [DIY magnetic pogo parts](#diy-magnetic-pogo-parts)
 - Everyone: [Shared parts](#shared-parts-both-connectors) · [Could not be checked](#could-not-be-checked)
+- Optional: [TPU filament (soft top)](#tpu-filament-tpu-top-only)
 
 ## Before you order
 
@@ -21,7 +23,7 @@ Turkish local vendors are listed first: the project is named *ithalat* (Turkish 
 
 - **Measure first.** Pogo pair vs `DOCK_CONN_W/H/D` (20.1 × 4.2 × 4.0 mm); USB-C boards vs the `USBC_*` constants in [`config.py`](../config.py).
 - **Prices:** TL prices include KDV (VAT). Shipping is extra everywhere.
-- **Stock:** as each shop showed on 2026-11-15 (counts in brackets). Every listing was opened that day. Out-of-stock parts stay listed: they may come back.
+- **Stock:** as each shop showed on 2026-11-15, or 2026-11-18 for the TPU filament (counts in brackets). Every listing was opened on its date. Out-of-stock parts stay listed: they may come back.
 - **Full parts list,** with quantities and rough prices: [bom.md](bom.md).
 
 ## USB-C connector parts
@@ -137,6 +139,38 @@ No Turkish shop checked (direnc.net, Motorobit, Robotistan, Robo90, Samm) sells 
 
 </details>
 
+## TPU filament (TPU top only)
+
+Only for the optional [soft top](../README.md#smooth-top-tpu-insert). Checked on 2026-11-18.
+
+- **Buy:** TPU **95A–98A**, **non-conductive**, in a **dark or mid colour**.
+- **How much:** the insert needs about 30 g, so any spool below is plenty.
+- **Not:** "conductive", "ESD", "antistatic", carbon / CF, metal-filled or glitter TPU, or Bambu "TPU for AMS" (68D, nearly rigid).
+
+| Product | Shop | Shore | Price | Stock |
+|---|---|---|---|---|
+| [Porima 3D 1.75mm TPU 98A Filament - Siyah](https://www.robotistan.com/porima3d-175mm-tpu98a-filament-siyah) | Robotistan (TR) | 98A | 988.60 TL / 750 g | In stock |
+| [Porima TPU Flex 98A 1.75mm Siyah RAL9005 Filament 1 Kg](https://www.n11.com/urun/porima-tpu-flex-98a-175mm-siyah-ral9005-filament-1-kg-53031280?magaza=nova3dteknoloji) | n11, seller nova3dteknoloji (TR) | 98A | 1,096.00 TL / 1 kg (list 1,299.00) | In stock (13) |
+| [Filamix Siyah TPU 95A Esnek Filament 1.75mm 1 Kg](https://www.idefix.com/filamix-siyah-tpu-95a-esnek-filament-175mm-1-kg-p-28061698) | idefix (TR) | 95A | 1,035.12 TL in the basket (list 1,089.60) / 1 kg | In stock |
+| [Beta TPU 95A Filament White](https://3dultra.com.tr/beta-tpu-95a-filament-white) | 3D Ultra (TR) | 95A | 1,026.00 TL / 800 g | In stock (18); white, not recommended |
+| [Porima 3D 1.75mm TPU 98A Filament - Beyaz](https://www.robotistan.com/porima3d-175mm-tpu98a-filament-beyaz) | Robotistan (TR) | 98A | 988.60 TL / 750 g | In stock; white, not recommended |
+| [Esun eFlex 1.75mm (TPU-87A) Natural Filament](https://motorobit.com/esun-eflex-1-75mm-tpu-87a-natural-filament-en) | Motorobit (TR) | 87A | 1,928.16 TL / 1 kg | **Out of stock** |
+| [Bedrock Ultrafuse TPU 85A Naturel Filament 1.75mm 750 gr](https://www.robotistan.com/bedrock-ultrafuse-tpu-85a-naturel-filament-175mm-750-gr) | Robotistan (TR) | 85A | not shown | **Out of stock** |
+| [Porima TPU Flex 98A Filament](https://porima3d.com/products/porima-tpu-flex-esnek-98a-filament) | Porima, the maker (TR) | 98A | 884.16 TL / 1 kg | **Out of stock** (all 6 colours) |
+| [Porima Easy Flex Filament](https://porima3d.com/products/porima-easy-flex-filament) | Porima, the maker (TR) | not stated | 846.72 TL / 0.5 kg | **Out of stock** |
+
+<details><summary>Notes on the TPU filament</summary>
+
+- **Porima 98A, black (Robotistan):** the default pick. Porima is a Turkish maker. Hotend 220–240 °C, bed 50–70 °C. About 1,318 TL per kg. The page carries a "Tükendi" (sold out) box, but it is hidden; the listing data and the add-to-cart button say in stock.
+- **Porima 98A, 1 kg (n11):** the same maker on a 1 kg spool, and the cheapest 98A per kg.
+- **Filamix 95A (idefix):** the softest grade in stock. Nozzle 210–250 °C, bed 40–60 °C. Origin not stated.
+- **White spools (3D Ultra, Robotistan):** in stock, but white TPU turns yellow and shows skin oil, so they are not for the top. The other Beta 95A colours on 3D Ultra were sold out.
+- **Softer grades (eSUN 87A, Ultrafuse 85A):** out of stock. They feel softer, but are tackier and need a direct-drive extruder.
+- **Porima's own shop:** every TPU listing was out of stock. It describes its flexible range as Shore 94A–98A; the Easy Flex hardness is not stated. Buy Porima through the resellers above.
+- **Unsure whether a black TPU conducts?** Print a small scrap and measure it with a multimeter: it should read open (MΩ or more).
+
+</details>
+
 ## Could not be checked
 
 > [!NOTE]
@@ -146,3 +180,4 @@ No Turkish shop checked (direnc.net, Motorobit, Robotistan, Robo90, Samm) sells 
 > - **DigiKey** lists the same part as obsolete.
 > - **Tayda, Botland, supermagnete** and a few other shops also blocked the check.
 > - **AliExpress** shows prices only in a browser.
+> - **Contact cement** (optional, for a permanent TPU insert): the Koçtaş and Çiçeksepeti listings blocked the check on 2026-11-18. It is a common hardware-store item, for example Pattex or UHU Kontakt.
