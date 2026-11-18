@@ -194,7 +194,11 @@ def params(cfg, lay, surf):
             _fail(f"the TPU insert reaches the {name} (keep it >= 1 mm away: TPU_INSERT_DEPTH / "
                   f"TPU_POCKET_COLLAR)")
 
-    # 1. tray floor over every underside recess below the insert
+    # 1. tray floor above the bottom chamfer, and over every underside recess below the insert
+    lo_z = float(cfg.REST_BOTTOM_CHAMFER) + 0.3
+    if z_f <= lo_z + 1e-9:
+        _fail(f"TPU_FLOOR_Z {z_f:g} must be > REST_BOTTOM_CHAMFER + 0.3 = {lo_z:g}: the insert's floor would "
+              f"cut the bottom chamfer")
     min_floor = float(cfg.MIN_FLOOR)
     for (bx, by) in lay.bumpers:
         if Point(bx, by).buffer(cfg.BUMPER_D / 2.0, quad_segs=16).intersects(inside):

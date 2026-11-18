@@ -1274,7 +1274,7 @@ Two routes, with the same two STLs: the base for your variant and the insert.
 | Infill | 25–40 % gyroid | **10 % gyroid** (5 % softer, 15 % firmer) |
 | Speed | as the rest | 20–40 mm/s (about 3–4 mm³/s); short or no retraction; part fan on |
 | Temperatures | as the rest | follow the spool: Porima 98A 220–240 °C, bed 50–70 °C; Filamix 95A 210–250 °C, bed 40–60 °C |
-| Bed surface | as the rest | textured PEI needs no glue. On smooth PEI, use glue stick as a release layer: TPU can tear PEI |
+| Bed surface | as the rest | follow your plate maker's TPU advice. Skip the glue only on a plate that allows it (Prusa's powder-coated textured sheet needs none). On smooth or satin PEI, use glue stick as a release layer: TPU can tear PEI |
 
 - **Why 0.1 mm on both parts:** the floor (3.0 mm), the insert's height (8.8 mm) and the rim (11.8 mm) then all land on a layer line, in both prints. With 0.12 mm layers and a 0.2 mm first layer they fall between layers (3.0 lies between 2.96 and 3.08), so a seam can step by up to about 0.1 mm. 0.2 mm on both parts also lines up, but shows coarser steps on the top. Variable layer heights break the match.
 - **The tray floor** of the base is a flat top face. Ironing it is optional.
@@ -1295,7 +1295,7 @@ Two routes, with the same two STLs: the base for your variant and the insert.
 
 - Bambu Lab, [H2D soft and hard filament multi-material guide](https://wiki.bambulab.com/en/h2/manual/soft-and-hard-filament-multi-material-printing-guide) (TPU on the right nozzle, beam interlocking).
 - Bambu Lab store, [TPU 95A HF](https://us.store.bambulab.com/products/tpu-95a-hf) ("All AMS Series NOT Compatible") and [TPU for AMS](https://us.store.bambulab.com/products/tpu-for-ams); [TPU for AMS TDS](https://cdn.shopify.com/s/files/1/1339/4265/files/Bambu_TPU_for_AMS_Technical_Data_Sheet.pdf) (68D).
-- Prusa, [Flexible materials](https://help.prusa3d.com/article/flexible-materials_2057) (speed, retraction, glue stick on smooth PEI) and [Combining materials (XL)](https://help.prusa3d.com/article/combining-materials-xl_498103); [TPU on the MMU3](https://forum.prusa3d.com/forum/original-prusa-i3-mmu3-hardware-firmware-and-software-help/tpu-on-mmu3) (forum).
+- Prusa, [Flexible materials](https://help.prusa3d.com/article/flexible-materials_2057) (speed, retraction, glue stick on smooth or satin PEI, none on the powder-coated textured sheet) and [Combining materials (XL)](https://help.prusa3d.com/article/combining-materials-xl_498103); [TPU on the MMU3](https://forum.prusa3d.com/forum/original-prusa-i3-mmu3-hardware-firmware-and-software-help/tpu-on-mmu3) (forum).
 - Creality, [K2 Plus CFS FAQ](https://forum.creality.com/t/creality-k2-plus-cfs-frequently-asked-questions-you-should-know/21698).
 - Snapmaker, [U1 FAQ](https://wiki.snapmaker.com/en/FAQ/u1) and [J1 product page](https://shop.snapmaker.com/products/snapmaker-j1-independent-dual-extruder-3D-printer).
 - OrcaSlicer wiki, [Z contouring](https://www.orcaslicer.com/wiki/print_settings/quality/quality_settings_z_contouring) and [multimaterial (interlocking) settings](https://www.orcaslicer.com/wiki/print_settings/multimaterial/multimaterial_settings_advanced.html).

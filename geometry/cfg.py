@@ -5,6 +5,7 @@ GLASS_T at import time never saw --glass-t)."""
 import argparse
 import ast
 import importlib
+import math
 import os
 import sys
 import types
@@ -119,7 +120,13 @@ def validate(c):
 
 
 def _num(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    """A finite int or float, not a bool: inf / nan (e.g. --set X=1e999) fail here."""
+    if not isinstance(v, (int, float)) or isinstance(v, bool):
+        return False
+    try:
+        return math.isfinite(v)
+    except OverflowError:            # an int too large for a float
+        return False
 
 
 def _validate_tpu(c):
@@ -136,11 +143,9 @@ def _validate_tpu(c):
               "TPU_TEXT_KEEPOUT", "TPU_MIN_T", "TPU_MIN_EDGE_ANGLE", "TPU_PEG_MIN_COVER", "TPU_PEG_EDGE",
               "TPU_DENSITY"):
         if not _num(getattr(c, n)):
-            errs.append(f"{n} must be a number")
+            errs.append(f"{n} must be a finite number")
     if errs:
         return errs
-    if c.TPU_FLOOR_Z <= c.REST_BOTTOM_CHAMFER + 0.3:
-        errs.append(f"TPU_FLOOR_Z must be > REST_BOTTOM_CHAMFER + 0.3 = {c.REST_BOTTOM_CHAMFER + 0.3:g}")
     for n in ("TPU_POCKET_COLLAR", "TPU_BALLAST_GAP", "TPU_PEG_D", "TPU_PEG_H", "TPU_DENSITY"):
         if getattr(c, n) <= 0:
             errs.append(f"{n} must be > 0")

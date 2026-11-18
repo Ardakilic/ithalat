@@ -1201,6 +1201,13 @@ def _tpu_seams(tp, lay, W):
     return seams
 
 
+def tpu_stls(vids):
+    """{part id: STL path} of the TPU top: the files verify_tpu measures."""
+    out = {f"rest-{v}-tpu": f"stl/ithalat-{v}-tpu-base.stl" for v in vids}
+    out["tpu-insert"] = "stl/ithalat-tpu-insert.stl"
+    return out
+
+
 def verify_tpu(R, cfg, rests, rebuild):
     """TPU top: each base, the shared insert, and base + insert == the rigid rest
     minus only the designed relief (which carries every rigid-rest check over to
@@ -1226,9 +1233,9 @@ def verify_tpu(R, cfg, rests, rebuild):
         if os.path.exists(path) and not rebuild:
             return trimesh.load(path), "stl/" + os.path.basename(path), os.path.getsize(path) / 1e6
         return C.to_trimesh(get()), "in-memory build", None
-    bases = {v: load(os.path.join(ROOT, "stl", f"ithalat-{v}-tpu-base.stl"), lambda v=v: build()["bases"][v])
-             for v in vids}
-    insert, isrc, imb = load(os.path.join(ROOT, "stl", "ithalat-tpu-insert.stl"), lambda: build()["insert"])
+    stls = tpu_stls(vids)
+    bases = {v: load(os.path.join(ROOT, stls[f"rest-{v}-tpu"]), lambda v=v: build()["bases"][v]) for v in vids}
+    insert, isrc, imb = load(os.path.join(ROOT, stls["tpu-insert"]), lambda: build()["insert"])
     peg_disks = lambda m: shapely.union_all([Point(p).buffer(r + m, quad_segs=16) for p in tp.pegs])  # noqa: E731
     hole_disks = lambda m: shapely.union_all([Point(p).buffer(r_h + bch + m, quad_segs=16)  # noqa: E731
                                               for p in tp.pegs])
@@ -1279,11 +1286,12 @@ def verify_tpu(R, cfg, rests, rebuild):
                        min(fl) if fl else None, cfg.MIN_FLOOR)
         # locating pegs on the tray floor
         if tp.pegs:
-            sec = section(mesh, z_f + h / 2.0)
+            z_p = z_f + (h - ch) / 2.0           # mid-height of the straight part, below the chamfer
+            sec = section(mesh, z_p)
             small = [p for p in C.poly_parts(sec) if p.area < 4.0 * math.pi * r * r] if sec is not None else []
             off = [min((p.centroid.distance(Point(px, py)) for p in small), default=99.0) for px, py in tp.pegs]
             R.check(sc, f"{len(tp.pegs)} pegs on the tray floor at TPU_PEGS", len(small) == len(tp.pegs)
-                    and max(off) <= 0.05, f"{len(small)} found in the z {z_f + h / 2:.2f} slice, max offset "
+                    and max(off) <= 0.05, f"{len(small)} found in the z {z_p:.2f} slice, max offset "
                                           f"{max(off):.3f} mm")
             tops = [first_down(mesh, px, py) for px, py in tp.pegs]
             R.at_most(sc, f"peg tops at TPU_FLOOR_Z + TPU_PEG_H = {z_f + h:g} (max dev)",
@@ -1494,8 +1502,12 @@ def _tpu_manifest_checks(R, sc, cfg, man, ids):
                    and ids[pid].get("moves_with") is None and np.allclose(ids[pid].get("matrix"), eye))]
     R.check(sc, "TPU parts listed (top 'tpu', no connector, identity matrix)", not bad,
             ("bad / missing: " if bad else "") + ", ".join(bad or want))
-    miss = [pid for pid in want if pid not in ids or not os.path.exists(os.path.join(ROOT, ids[pid]["stl"]))]
-    R.check(sc, "TPU STLs exist", not miss, ", ".join(ids[p]["stl"] if p in ids else p for p in (miss or want)))
+    exp = tpu_stls(vids)               # the files verify_tpu measures
+    miss = [pid for pid in want if pid not in ids
+            or os.path.normpath(str(ids[pid].get("stl") or "")) != os.path.normpath(exp[pid])
+            or not os.path.exists(os.path.join(ROOT, exp[pid]))]
+    R.check(sc, "TPU STLs exist", not miss, ", ".join(str(ids[p].get("stl")) if p in ids else p
+                                                      for p in (miss or want)))
     tp = tpu.params(cfg, *rest.plan(cfg, cfg.VARIANTS[vids[0]]))
     t = man.get("tpu") or {}
     try:

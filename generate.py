@@ -182,6 +182,17 @@ def build_tpu(cfg, mans, plans, parts):
     (None, None) when the TPU top is skipped."""
     t0 = time.time()
     vids = list(cfg.VARIANTS)
+    # never overwrite a part or an STL: a variant id like 'glass-tpu', 'glass-tpu-base'
+    # or 'tpu-insert' gives a rigid rest the TPU top's part id or file name
+    new = [(f"rest-{v}-tpu", f"stl/ithalat-{v}-tpu-base.stl") for v in vids]
+    new.append(("tpu-insert", "stl/ithalat-tpu-insert.stl"))
+    pids, stls = set(parts), {p["stl"] for p in parts.values()}
+    for pid, stl in new:
+        if pid in pids or stl in stls:
+            raise ValueError(f"TPU part {pid!r} ({stl}) collides with an existing part or STL: rename the "
+                             f"variant in VARIANTS{tpu.SUFFIX}")
+        pids.add(pid)
+        stls.add(stl)
     try:
         tp = tpu.params(cfg, *plans[vids[0]])
     except ValueError as e:

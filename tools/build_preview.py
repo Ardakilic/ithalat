@@ -542,6 +542,13 @@ def top_attr(tid, default, multi):
     return f' data-top="{esc(tid)}"' + ("" if tid == default else " hidden")
 
 
+def tpu_infill_pick(est):
+    """The insert infill every TPU mass figure shows: 10 % if estimated, else the first
+    infill (the same rule as generate.py's 'TPU insert' row); None if none."""
+    keys = [k for k in est if str(k).rstrip("%") != "100"]
+    return "10%" if "10%" in keys else (keys[0] if keys else None)
+
+
 def tpu_mass_rows(man, variants):
     """{general row label: (label, value)}: while the TPU top is shown, the rigid rest's
     mass rows give way to base + insert, from the manifest's masses (first variant, as
@@ -552,7 +559,9 @@ def tpu_mass_rows(man, variants):
     ins = ms.get("insert_tpu_g") or {}
     if not (isinstance(base, dict) and isinstance(ins, dict) and ins):
         return {}
-    pct = "10%" if "10%" in ins else next(iter(ins))
+    pct = tpu_infill_pick(ins)
+    if pct is None:
+        return {}
     tpu_g = float(ins[pct])
     infill = [(k, float(v)) for k, v in base.items() if str(k).rstrip("%") != "100"]
     mass = " / ".join(f"{v:.0f} g @{k}" for k, v in infill)
@@ -622,8 +631,7 @@ def mass_txt(st, role=None):
     insert: 'TPU 29 g at 10 % gyroid · 52 g solid' (its stats also carry a PLA figure)."""
     if role == "insert" and (st.get("mass_g_estimate_tpu") or st.get("mass_g_solid_tpu")):
         est = st.get("mass_g_estimate_tpu") if isinstance(st.get("mass_g_estimate_tpu"), dict) else {}
-        infill = [k for k in est if str(k).rstrip("%") != "100"]
-        pick = "10%" if "10%" in infill else (infill[len(infill) // 2] if infill else None)
+        pick = tpu_infill_pick(est)
         bits = [f"{grams(est[pick])} g at {str(pick).rstrip('%')} % gyroid"] if pick else []
         solid = st.get("mass_g_solid_tpu") or est.get("100%")
         if solid:
