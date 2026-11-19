@@ -37,6 +37,7 @@ insert as one object with two parts on a two-nozzle / toolchanger printer.
 
 import math
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 
 import manifold3d
 import numpy as np
@@ -57,8 +58,10 @@ def _fail(msg):
 def overridden(cfg):
     """True when the build set any TPU_* constant: then a TPU config error stops
     the build; otherwise generate / verify skip the TPU top with a WARNING, so a
-    rigid-only override that leaves no room for a sound insert still builds."""
-    return any(str(k).startswith("TPU_") for k in (getattr(cfg, "_overrides", None) or {}))
+    rigid-only override that leaves no room for a sound insert still builds.
+    TPU_THIN_* belongs to the thin top (geometry/tpu_thin.py) and does not count."""
+    return any(str(k).startswith("TPU_") and not str(k).startswith("TPU_THIN_")
+               for k in (getattr(cfg, "_overrides", None) or {}))
 
 
 @dataclass
@@ -130,13 +133,14 @@ def floor_limit(surf, plan, min_angle, lo, hi):
 # plan + config errors
 # ---------------------------------------------------------------------------
 
-def params(cfg, lay, surf):
-    """Insert plan, pegs and the analytic limits for one rest layout. Raises
-    ValueError (the message names the knob) for configs that cannot give a sound
-    insert; generate.py / verify.py turn that into `config error: ...`."""
-    W, D, H = lay.W, lay.D, lay.H
+def insert_plan(cfg, lay, surf, fail=_fail):
+    """The insert's plan, shared by every TPU top (the TPU insert here, the thin
+    TPU insert in geometry/tpu_thin.py): depth (auto: TPU_BALLAST_GAP in front
+    of the ballast pockets), the rigid collar (+ top-text keep-out), and the
+    walls it must keep to the ballast pockets, the cable path, the plug bay and
+    the notch. `fail(msg)` raises the config error with the caller's suffix."""
+    W, D = lay.W, lay.D
     ol = surf.outline
-    z_f = float(cfg.TPU_FLOOR_Z)
     gap = float(cfg.TPU_BALLAST_GAP)
     collar = float(cfg.TPU_POCKET_COLLAR)
     notes = []
@@ -151,18 +155,18 @@ def params(cfg, lay, surf):
     if depth < min_depth - 1e-9:
         what = ("the ballast pockets (BALLAST_CENTER_Y) leave" if auto and lay.ballast
                 else "TPU_INSERT_DEPTH gives")
-        _fail(f"{what} a TPU insert only {depth:.2f} mm deep (< REST_FRONT_NOSE_R + 3 = {min_depth:g}): "
-              f"it would not reach past the nose")
+        fail(f"{what} a TPU insert only {depth:.2f} mm deep (< REST_FRONT_NOSE_R + 3 = {min_depth:g}): "
+             f"it would not reach past the nose")
     if depth > lay.open_y1 - 1.0 + 1e-9:
-        _fail(f"TPU_INSERT_DEPTH {depth:g} reaches behind the trackpad pocket (keep <= "
-              f"{lay.open_y1 - 1.0:.2f}): the back strip with the cable notch stays rigid")
+        fail(f"TPU_INSERT_DEPTH {depth:g} reaches behind the trackpad pocket (keep <= "
+             f"{lay.open_y1 - 1.0:.2f}): the back strip with the cable notch stays rigid")
 
     # rigid collar around the pocket: rim, bevel, walls, ledge stay PETG / PLA
     lo_c = float(cfg.POCKET_RIM_CHAMFER) + 1.0
     if not (lo_c - 1e-9 <= collar <= float(cfg.TP_BEZEL) + 1e-9):
-        _fail(f"TPU_POCKET_COLLAR {collar:g} must be within POCKET_RIM_CHAMFER + 1 = {lo_c:g} .. TP_BEZEL "
-              f"{cfg.TP_BEZEL:g}: the rim needs rigid material, and the seam must lie on the flat island "
-              f"around the pocket (flush at REST_HEIGHT)")
+        fail(f"TPU_POCKET_COLLAR {collar:g} must be within POCKET_RIM_CHAMFER + 1 = {lo_c:g} .. TP_BEZEL "
+             f"{cfg.TP_BEZEL:g}: the rim needs rigid material, and the seam must lie on the flat island "
+             f"around the pocket (flush at REST_HEIGHT)")
     rigid_keep = lay.opening.buffer(collar, quad_segs=C.QS)
     text_keepout = False
     eng = lay.engrave or {}
@@ -178,21 +182,47 @@ def params(cfg, lay, surf):
     inside = plan.intersection(ol.polygon)
     if plan.is_empty or plan.geom_type != "Polygon" or inside.geom_type != "Polygon":
         n = max(len(C.poly_parts(plan)), len(C.poly_parts(inside)))
-        _fail(f"the TPU insert plan falls apart into {n} pieces (TPU_POCKET_COLLAR / TPU_INSERT_DEPTH / "
-              f"top engraving)")
+        fail(f"the TPU insert plan falls apart into {n} pieces (TPU_POCKET_COLLAR / TPU_INSERT_DEPTH / "
+             f"top engraving)")
 
     # everything rigid behind / beside the insert keeps its wall
     for b in lay.ballast:
         d = shapely.box(b["x0"], b["y0"], b["x1"], b["y1"]).distance(plan)
         if d < gap - 1e-6:
-            _fail(f"TPU_INSERT_DEPTH {depth:g} runs into the {b['side']} ballast pocket (keep <= "
-                  f"{b['y0'] - gap:.2f}: TPU_BALLAST_GAP {gap:g} of rigid wall in front of it)")
+            fail(f"TPU_INSERT_DEPTH {depth:g} runs into the {b['side']} ballast pocket (keep <= "
+                 f"{b['y0'] - gap:.2f}: TPU_BALLAST_GAP {gap:g} of rigid wall in front of it)")
     notch = shapely.box(lay.notch_x - cfg.CABLE_NOTCH_W / 2.0, lay.notch_y0,
                         lay.notch_x + cfg.CABLE_NOTCH_W / 2.0, D)
     for name, g in (("cable path", lay.cable_area), ("plug bay", lay.bay), ("cable notch", notch)):
         if g is not None and g.distance(plan) < 1.0 - 1e-9:
-            _fail(f"the TPU insert reaches the {name} (keep it >= 1 mm away: TPU_INSERT_DEPTH / "
-                  f"TPU_POCKET_COLLAR)")
+            fail(f"the TPU insert reaches the {name} (keep it >= 1 mm away: TPU_INSERT_DEPTH / "
+                 f"TPU_POCKET_COLLAR)")
+
+    return SimpleNamespace(depth=depth, auto=auto, collar=collar, rigid_keep=rigid_keep,
+                           text_keepout=text_keepout, notes=notes, plan=plan, inside=inside)
+
+
+def wing_spans(cfg, lay, collar):
+    """The two wing spans [(x0, x1), (x0, x1)] left and right of the pocket
+    collar (+ 10 mm), clear of the end round-overs (+ 5 mm), and their
+    middles (wing_x): the auto peg rows and the thickness probes of every TPU top."""
+    x_lo = float(cfg.REST_END_EDGE_R) + float(cfg.REST_END_BULGE) + 5.0
+    spans = [(x_lo, lay.open_x0 - collar - 10.0), (lay.open_x1 + collar + 10.0, lay.W - x_lo)]
+    wing_x = tuple(0.5 * (a + b) for a, b in spans)
+    return spans, wing_x
+
+
+def params(cfg, lay, surf):
+    """Insert plan, pegs and the analytic limits for one rest layout. Raises
+    ValueError (the message names the knob) for configs that cannot give a sound
+    insert; generate.py / verify.py turn that into `config error: ...`."""
+    W, H = lay.W, lay.H
+    ol = surf.outline
+    z_f = float(cfg.TPU_FLOOR_Z)
+    ip = insert_plan(cfg, lay, surf)
+    depth, auto, collar, rigid_keep = ip.depth, ip.auto, ip.collar, ip.rigid_keep
+    text_keepout, notes, plan, inside = ip.text_keepout, ip.notes, ip.plan, ip.inside
+    eng = lay.engrave or {}
 
     # 1. tray floor above the bottom chamfer, and over every underside recess below the insert
     lo_z = float(cfg.REST_BOTTOM_CHAMFER) + 0.3
@@ -237,9 +267,7 @@ def params(cfg, lay, surf):
         _fail(f"TPU_FLOOR_Z {z_f:g} leaves only {tmin:.2f} mm of TPU at ({gx[i_min]:.1f}, {gy[i_min]:.1f}) "
               f"inside the edge round-overs (< TPU_MIN_T {cfg.TPU_MIN_T:g}): lower TPU_FLOOR_Z")
 
-    x_lo = float(cfg.REST_END_EDGE_R) + float(cfg.REST_END_BULGE) + 5.0
-    spans = [(x_lo, lay.open_x0 - collar - 10.0), (lay.open_x1 + collar + 10.0, W - x_lo)]
-    wing_x = tuple(0.5 * (a + b) for a, b in spans)
+    spans, wing_x = wing_spans(cfg, lay, collar)
     nose_r = float(cfg.REST_FRONT_NOSE_R)
 
     def t_at(x, y):
@@ -447,6 +475,17 @@ def insert_cutter(tp):
                           [hole_solid(tp, px, py) for px, py in tp.pegs])
 
 
+def insert_grams(cfg, vol, area):
+    """TPU mass estimate {"<p>%": g, ..., "100%": g} of an insert (mm3, mm2): a
+    MASS_SHELL_T solid shell over its whole surface + TPU_MASS_INFILLS gyroid."""
+    shell = min(vol, area * float(cfg.MASS_SHELL_T))
+    dens = float(cfg.TPU_DENSITY)
+    grams = {f"{p:g}%": round((shell + p / 100.0 * (vol - shell)) / 1000.0 * dens, 1)
+             for p in cfg.TPU_MASS_INFILLS}
+    grams["100%"] = round(vol / 1000.0 * dens, 1)
+    return grams
+
+
 def split(cfg, rests, tp):
     """rests: {variant: finished rigid rest Manifold}. Returns {"insert": Manifold
     (cut from the first variant; the pocket is rigid, so it is the same for every
@@ -465,11 +504,7 @@ def split(cfg, rests, tp):
     if n != 1:
         raise RuntimeError(f"TPU insert has {n} bodies, want 1 (a bug, not a config error)")
     vol, area = float(insert.volume()), float(insert.surface_area())
-    shell = min(vol, area * float(cfg.MASS_SHELL_T))
-    dens = float(cfg.TPU_DENSITY)
-    grams = {f"{p:g}%": round((shell + p / 100.0 * (vol - shell)) / 1000.0 * dens, 1)
-             for p in cfg.TPU_MASS_INFILLS}
-    grams["100%"] = round(vol / 1000.0 * dens, 1)
+    grams = insert_grams(cfg, vol, area)
     info = {
         "floor_z": tp.floor_z, "insert_depth": round(tp.depth, 4), "depth_auto": tp.depth_auto,
         "collar": tp.collar, "ballast_gap": float(cfg.TPU_BALLAST_GAP),

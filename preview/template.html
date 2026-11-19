@@ -468,7 +468,9 @@ table { border-collapse: collapse; width: 100%; }
 }
 .dl-get:hover { border-color: var(--accent); background: var(--accent-wash); }
 .dl-get:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.kv tr.conn-row th, .kv tr[data-top="tpu"] th { color: var(--accent); } /* rows that belong to the pick */
+/* rows that belong to the pick: a connector's rows and the rows of one TPU top (the general
+   rows a Rigid pick shows carry "rigid" in their data-top list and keep the normal ink) */
+.kv tr.conn-row th, .kv tr[data-top]:not([data-top~="rigid"]) th { color: var(--accent); }
 .fine { margin: 0; font-size: var(--fs-xs); color: var(--ink-soft); }
 .notes { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: var(--fs-sm); max-width: 65ch; }
 .notes li::marker { font: 500 var(--fs-xs) var(--font-mono); color: var(--accent); }
@@ -571,8 +573,9 @@ table { border-collapse: collapse; width: 100%; }
           </div>
         </div>
         <!--@NOTE TPU insert colour: the colours the TPU 95A-98A listings offer (no white: it
-             yellows and shows skin oil); shown only while the TPU top is picked -->
-        <div class="field" id="insert-finish-field" data-top="tpu" hidden>
+             yellows and shows skin oil); one picker for both TPU tops, shown only while one
+             of them is picked (data-top lists both) -->
+        <div class="field" id="insert-finish-field" data-top="tpu tpu-thin" hidden>
           <span class="label" id="lbl-insert-finish">Insert (TPU)</span>
           <div class="swatches" role="radiogroup" aria-labelledby="lbl-insert-finish">
             <input type="radio" name="insert-finish" id="ifinish-black" value="#1d1f21"><label for="ifinish-black" style="--chip:#1d1f21">Black</label>
@@ -715,11 +718,13 @@ function setConnectorUI(c) {
 }
 setConnectorUI(initialConnector());
 
-// ---- top UI (Rigid / TPU insert), also without WebGL ----------------------------
+// ---- top UI (Rigid / TPU insert / Thin TPU insert), also without WebGL ----------
 // one radio per manifest top ("tops"; none when the build has no TPU insert); every
 // part, dimension row, note and control that belongs to one top carries
-// data-top="<id>" and is shown only while that top is picked. An element never
-// carries both data-top and data-connector, so the two never fight over `hidden`.
+// data-top="<id>" and is shown only while that top is picked; a space-separated list
+// (data-top="tpu tpu-thin": the insert colour) shows while any of them is picked. An
+// element never carries both data-top and data-connector, so the two never fight over
+// `hidden`.
 const tops = DATA.tops || [];
 const topIds = tops.map((t) => t.id);
 for (const input of document.querySelectorAll('input[name="top"]')) {
@@ -735,7 +740,7 @@ function initialTop() {
 function setTopUI(t) {
   app.dataset.top = t;
   $("tb-top").textContent = topLabel(t);
-  for (const el of document.querySelectorAll("[data-top]:not(#app)")) el.hidden = el.dataset.top !== t;
+  for (const el of document.querySelectorAll("[data-top]:not(#app)")) el.hidden = !el.dataset.top.split(" ").includes(t);
   const r = document.querySelector(`input[name="top"][value="${CSS.escape(t)}"]`); if (r) r.checked = true;
   refreshDownloads();
 }
@@ -1155,7 +1160,7 @@ async function boot() {
     const light = hsl.l > 0.45; // light filament: shadow-toned letters; dark: lighter letters
     fillU.value.copy(c).lerp(new THREE.Color(light ? 0x000000 : 0xffffff), light ? 0.42 : 0.4);
   }
-  // TPU insert: its own colour (Insert swatches) and a soft, matte rubber look - very
+  // TPU inserts (both TPU tops): their own colour (Insert swatches) and a soft, matte rubber look - very
   // rough, a little less environment light than PETG, and a faint velvet sheen at grazing
   // angles that reads as "soft". A section through it hatches in its own colour (see
   // insertCap below). The polygon offset lets the base win where the two parts share a
@@ -1351,8 +1356,9 @@ async function boot() {
   }
 
   // One entry per manifest part: rests stay in place (one per variant and top, optionally
-  // per connector); the TPU insert sits on its base in its own group (it lifts first when
-  // exploded); docks, grips, retainers and locks ride in dockG / padG.
+  // per connector); each TPU insert sits on its base in its own group (it lifts first when
+  // exploded; the thin insert's STL is in its print pose and its matrix seats it on its
+  // base); docks, grips, retainers and locks ride in dockG / padG.
   const partObjs = [];
   for (const p of parts) {
     const raw = await decodeMesh(p);
@@ -1739,7 +1745,8 @@ async function boot() {
     const e = S.explode;
     const glassLift = 26 * ease(e / 0.45), moduleLift = 12 * ease((e - 0.18) / 0.45), dockLift = 30 * ease((e - 0.45) / 0.55);
     const late = ease((e - 0.45) / 0.55);
-    // the TPU insert lifts first and highest, so its base's flat floor and the pegs show
+    // the picked TPU insert lifts first and highest, so its base's floor (flat, or tilted
+    // for the thin insert) and the pegs show
     const insertLift = 22 * ease(e / 0.4);
     for (const o of insertObjs) o.wrap.position.z = insertLift;
     moduleG.position.set(tpC[0], tpC[1], st.pcbTop + moduleLift);

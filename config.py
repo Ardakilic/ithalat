@@ -267,7 +267,8 @@ TPU_ENABLED = True           # also write stl/ithalat-<variant>-tpu-base.stl + s
                              # If another override leaves no room for a sound insert and no TPU_*
                              # constant was set, generate / verify skip the TPU top with a WARNING
                              # (rigid parts only); with any TPU_* override it is a config error
-TPU_TOP_LABELS = {'rigid': 'Rigid', 'tpu': 'TPU insert'}   # preview "Top" switch / manifest labels
+TPU_TOP_LABELS = {'rigid': 'Rigid', 'tpu': 'TPU insert', 'tpu-thin': 'Thin TPU insert'}
+                             # preview "Top" switch / manifest labels (Top switch order)
 TPU_FLOOR_Z = 3.0            # tray floor = the insert's flat underside (z above the bed). Must leave
                              # MIN_FLOOR over every underside recess below the insert (bumpers and
                              # bottom engraving, 0.6 deep -> >= 2.6) and keep the front edge at
@@ -300,6 +301,38 @@ TPU_PEG_MIN_COVER = 2.0      # config error: min TPU above a peg-hole roof
 TPU_PEG_EDGE = 3.0           # config error: min plan distance peg edge -> insert edge
 TPU_DENSITY = 1.21           # g/cm3, TPU 95A-98A (mass estimate only)
 TPU_MASS_INFILLS = (5, 10, 15)  # % gyroid the insert mass is estimated at (10 = recommended)
+
+# ---------------------------------------------------------------------------
+# Thin TPU insert: optional third "Top" (geometry/tpu_thin.py). The same plan as
+# the TPU insert (TPU_INSERT_DEPTH, TPU_POCKET_COLLAR, TPU_BALLAST_GAP,
+# TPU_TEXT_KEEPOUT: the same covered area), but its underside is one plane
+# tilted up toward the back, so the TPU is 2-5 mm thick (TPU_THIN_T at the
+# thinnest spot) instead of 5-9: the same TPU touch with almost no cushion,
+# about 20 % less TPU and a quicker print. The tilt is solved: the smallest one
+# whose edge at the nose / ends is >= TPU_MIN_EDGE_ANGLE + TPU_THIN_EDGE_MARGIN.
+# Walls and pegs stay vertical (it presses straight down); the STL is saved
+# lying on its underside (print as it loads; the manifest matrix places it).
+# Shares TPU_PEG_D, TPU_PEG_CHAMFER, TPU_PEG_CLEARANCE, TPU_BED_CHAMFER,
+# TPU_PEG_EDGE, TPU_DENSITY and TPU_MASS_INFILLS with the TPU insert.
+# ---------------------------------------------------------------------------
+TPU_THIN_ENABLED = True      # also write stl/ithalat-<variant>-tpu-thin-base.stl +
+                             # stl/ithalat-tpu-thin-insert.stl (needs TPU_ENABLED). A thin config
+                             # problem is a config error once a TPU_THIN_* is set; otherwise
+                             # (rest or TPU-insert-only overrides) the thin top is skipped with a WARNING
+TPU_THIN_T = 2.0             # thinnest TPU (vertical) inside the edge round-overs and on the nose
+                             # crest; with the default tilt that is the back seam (from ~3.6 the
+                             # underside is flat and it is the nose crest). Sets the underside's
+                             # height (1.0 .. 6.0; below ~1.6 the pegs lose their TPU cover)
+TPU_THIN_EDGE_MARGIN = 0.5   # deg: the tilt is solved so the nose / ends edge is at least
+                             # TPU_MIN_EDGE_ANGLE + this (0 .. 5)
+TPU_THIN_PEGS = None         # pegs on the tilted tray floor [(x, y), ...]; None = auto: one row at
+                             # y = REST_FRONT_NOSE_R + 3 (thickest wing TPU, just behind the nose):
+                             # 2 per wing at 25 % / 75 % of the wing span + 2 in front of the
+                             # trackpad at 25 % / 75 % of the pocket opening (left out where they do
+                             # not fit, e.g. round a top engraving); [] = none
+TPU_THIN_PEG_H = 1.5         # peg height above the tilted floor (TPU_PEG_D wide, TPU_PEG_CHAMFER top)
+TPU_THIN_PEG_HEADROOM = 0.3  # hole deeper than the peg is tall (0 .. 1)
+TPU_THIN_PEG_MIN_COVER = 0.8  # config error: min TPU above a thin insert's peg-hole roof (>= 0.4)
 
 # ---------------------------------------------------------------------------
 # Connector variants (the builder picks one; every listed variant is generated)

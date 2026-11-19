@@ -28,13 +28,16 @@ that belongs to one connector carries data-connector="<id>".  An older
 single-connector manifest (top-level "dock"/"cable"/"connector" only) still
 works: it becomes a one-entry connector list.
 
-Tops: the manifest lists "tops" (Rigid = stl/ithalat-<variant>.stl, or a PETG
-base + the shared soft TPU insert) and tags parts with "top".  The page gets a
-Top switch after Connector; every part, dimension row and note that belongs to
-one top carries data-top="<id>" (never together with data-connector).  The
-rest is picked per (variant, connector, top); every other part must belong to
-the picked top or to none, so the shared insert never joins a Rigid pick.  A
-manifest without "tops" (TPU_ENABLED=False, older builds) shows no switch.
+Tops: the manifest lists "tops" (Rigid = stl/ithalat-<variant>.stl; TPU insert
+= a PETG base + the shared soft TPU insert; Thin TPU insert = its own base + a
+thin TPU insert, whose STL is saved in its print pose and placed on the base by
+its manifest matrix) and tags parts with "top".  The page gets a Top switch
+after Connector; every part, dimension row and note that belongs to one top
+carries data-top="<id>" (never together with data-connector).  The rest is
+picked per (variant, connector, top); every other part must belong to the
+picked top or to none, so an insert never joins a Rigid pick or the other TPU
+top's pick.  A manifest without "tops" (TPU_ENABLED=False, older builds) shows
+no switch; one with only some tops (a skipped TPU top) shows just those.
 
 Meshes are embedded compactly: vertices are welded on a 16-bit grid spanning
 each part's bounding box (~0.004 mm steps), re-ordered by first use, stored as
@@ -383,8 +386,9 @@ def connectors_of(man, cfg):
 
 
 def tops_of(man):
-    """-> [{id, label}] from the manifest's "tops" (the Top switch: Rigid / TPU insert);
-    [] when the manifest has none (TPU_ENABLED=False, older manifests): no switch."""
+    """-> [{id, label}] from the manifest's "tops" (the Top switch: Rigid / TPU insert /
+    Thin TPU insert); [] when the manifest has none (TPU_ENABLED=False, older manifests):
+    no switch."""
     out = []
     for t in man.get("tops") or []:
         if isinstance(t, str):
@@ -408,7 +412,7 @@ def part_label(part, variants, conns):
     clab = next((c["label"] for c in conns if c["id"] == part.get("connector")), None)
     pid = str(part.get("id", ""))
     if role == "insert":
-        return "TPU insert"
+        return "Thin TPU insert" if part.get("top") == "tpu-thin" else "TPU insert"
     if role == "rest":
         lab = f"Wrist rest, {vlab.lower()}" if vlab else "Wrist rest"
         return lab + (f" ({clab})" if clab else "")
@@ -467,6 +471,97 @@ def tpu_notes(man):
     )]
 
 
+def _num(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _wj(s):
+    """A word joiner after each en dash keeps ranges ("2.0–4.8 mm") on one line."""
+    return s.replace("–", "–\u2060")
+
+
+def tpu_range(block):
+    """'2.0–4.8 mm': the TPU under the palm (inside the edge round-overs) from a manifest
+    TPU block's "thickness" (min_inside .. max); None if it has none."""
+    th = (block or {}).get("thickness") or {}
+    lo, hi = th.get("min_inside"), th.get("max")
+    return f"{lo:.1f}–{hi:.1f} mm" if _num(lo) and _num(hi) else None
+
+
+def thin_is_tilted(tt):
+    """True while the thin insert's underside is tilted, i.e. the insert is really thin.
+    From TPU_THIN_T ~3.6 the solved plane is flat (tilt 0) and the insert is nearly as
+    thick as the TPU insert, so the 'less TPU, less time' wording no longer holds."""
+    tilt = (tt or {}).get("tilt_deg")
+    return not _num(tilt) or tilt > 0
+
+
+def tpu_thin_notes(man, tops=()):
+    """Notes shown only while the thin TPU top is picked (data-top="tpu-thin").  They stand
+    alone, since the TPU insert's notes are hidden then; they compare with the TPU insert
+    only while that top is offered too, and claim less TPU / less time only while the
+    underside is tilted (thin_is_tilted)."""
+    tt = man.get("tpu_thin") or {}
+    both = any(t["id"] == "tpu" for t in tops)
+    tilted = thin_is_tilted(tt)
+    pegs = tt.get("pegs")
+    n = len(pegs) if isinstance(pegs, list) else 6
+    d, h = tt.get("peg_d"), tt.get("peg_h")
+    size = f" (Ø{d:g} × {h:g} mm)" if _num(d) and _num(h) else ""
+    fit = (f"press it onto the thin base’s {n} short pegs{size}, no glue. To swap it, start at one end: lift "
+           "the outer end of a wing and peel it off slowly (not at the thin front edge), then press the new "
+           "one on" if n else "seat it on the thin base’s floor (no pegs: a dab of flexible glue holds it)")
+    routes = tt.get("routes")
+    alone = (" Print it on its own only: a one-job print would bond it to the base."
+             if isinstance(routes, list) and "multi-material" not in routes else "")
+    rng = tpu_range(tt) or "2–5 mm"
+    thick = tpu_range(man.get("tpu")) if both else None
+    if tilted:  # the tilted tray floor prints as steps; the insert's tilted layers do not meet the base's
+        base = ("print the thin base like the rigid rest, but at 0.1–0.12 mm layers (its tilted floor "
+                "prints as steps; fine steps keep the seams low)")
+        layers = ("0.2 mm layers (expect seam steps up to ~0.1–0.15 mm, an estimate; 0.12 mm on both parts "
+                  "gives flusher seams and finer ridges on the nose)")
+    else:       # a flat floor, but raised off the base's layer grid
+        base = "print the thin base like the rigid rest"
+        layers = "0.1 mm layers on base and insert alike, for the smallest seam steps"
+    notes = [
+        f"Thin TPU top: print the thin insert as it loads (the STL already lies on its "
+        f"{'tilted ' if tilted else ''}underside; no supports), then {fit}."
+        + (" It fits only the thin base, not the TPU insert’s base." if both else ""),
+        f"Thin top settings: {base}. Insert: dry TPU 95A–98A, 2 walls, 10 % gyroid, top ≥ 1.2 mm, "
+        f"bottom ≥ 0.6 mm, {layers}, 20–40 mm/s, elephant-foot compensation ~0.15 mm.{alone}",
+    ]
+    if tilted and both:
+        notes += [
+            f"Same touch, less cushion: the same matte, slightly grippy TPU with soft layer ridges, but "
+            f"{rng} of nearly solid TPU on PETG barely gives"
+            + (f" (the TPU insert has {thick} over a gyroid core)" if thick else "")
+            + ". Estimated give under a resting wrist: ~0.002 mm vs ~0.1–0.3 mm for the TPU insert. "
+            "For cushion, pick the TPU insert.",
+            "Cheaper to reprint: a slicer puts it at ~2 h and ~19 g of TPU (0.2 mm layers) vs ~4.5 h and "
+            "~23 g for the TPU insert at its 0.1 mm; at the same 0.2 mm layers, ~2 h vs ~2 h 40 m "
+            "(PrusaSlicer, default build; the generator’s mass figures above run ~20 % high).",
+        ]
+    elif tilted:  # the TPU insert is not offered (skipped): no comparison with it
+        notes += [
+            f"TPU touch, little cushion: the matte, slightly grippy TPU surface with soft layer ridges, but "
+            f"{rng} of nearly solid TPU on PETG barely gives (estimate: ~0.002 mm under a resting wrist).",
+            "Quick to reprint: a slicer puts it at ~2 h and ~19 g of TPU at 0.2 mm layers (PrusaSlicer, "
+            "default build; the generator’s mass figures above run ~20 % high).",
+        ]
+    else:
+        t = tt.get("t_back")
+        lead = f"TPU_THIN_T {t:g} makes the underside flat" if _num(t) else "The underside is flat"
+        notes.append(f"{lead}: {rng} of TPU, "
+                     + ("close to the TPU insert, so it saves little TPU or print time. " if both
+                        else "so the insert is not thin. ")
+                     + "Lower TPU_THIN_T (default 2) for a thin top.")
+    notes.append("TPU must be non-conductive: never carbon, CF, ESD, metal-filled or glitter TPU near the "
+                 "trackpad. Dark or mid colours hide skin oil. Take the insert off to wash it in lukewarm "
+                 "soapy water; never acetone.")
+    return [_wj(s) for s in notes]
+
+
 def top_blurbs(man, tops):
     """One short line under the Top switch per top (data-top), saying what it is."""
     tpu = man.get("tpu") or {}
@@ -477,6 +572,24 @@ def top_blurbs(man, tops):
         "tpu": f"PETG or PLA base + a soft TPU insert on {front} (the front slope), the nose and the "
                "ends; the crown behind it stays PETG. Same shape, height and pocket as Rigid.",
     }
+    tt = man.get("tpu_thin") or {}
+    if any(t["id"] == "tpu-thin" for t in tops):
+        td = tt.get("insert_depth")
+        tfront = f"the front {round(float(td), 2):g} mm" if _num(td) else "the front"
+        rng = tpu_range(tt) or "2–5 mm"
+        pegs = tt.get("pegs")
+        swap = ("made to peel off and swap" if not isinstance(pegs, list) or pegs
+                else "held by a dab of flexible glue (no pegs)")
+        tilted = thin_is_tilted(tt)
+        if any(t["id"] == "tpu" for t in tops):  # both TPU tops offered: say how they differ
+            s = (f"Same area as the TPU insert, but {rng} of TPU on a tilted PETG floor: same touch, less "
+                 f"cushion (almost no give). Less TPU, a quicker print; {swap}." if tilted
+                 else f"Same area as the TPU insert, {rng} of TPU on a raised flat PETG floor; {swap}.")
+        else:  # the TPU insert was skipped: describe the thin one on its own
+            s = (f"PETG or PLA base + a thin TPU insert ({rng}) on {tfront}, the nose and the ends, "
+                 + ("on a tilted floor: TPU touch, little cushion; " if tilted else "on a raised flat floor; ")
+                 + f"{swap}.")
+        text["tpu-thin"] = _wj(s)
     return [(t["id"], text[t["id"]]) for t in tops if t["id"] in text]
 
 
@@ -536,10 +649,12 @@ def conn_attr(cid, default, multi):
 
 
 def top_attr(tid, default, multi):
-    """data-top attribute (+ hidden when it is not the default top)."""
+    """data-top attribute (+ hidden when it is not the default top).  tid may be a list:
+    the element then shows while any of those tops is picked (data-top="rigid tpu")."""
     if not tid or not multi:
         return ""
-    return f' data-top="{esc(tid)}"' + ("" if tid == default else " hidden")
+    ids = [tid] if isinstance(tid, str) else [t for t in tid if t]
+    return f' data-top="{esc(" ".join(ids))}"' + ("" if default in ids else " hidden")
 
 
 def tpu_infill_pick(est):
@@ -549,14 +664,20 @@ def tpu_infill_pick(est):
     return "10%" if "10%" in keys else (keys[0] if keys else None)
 
 
-def tpu_mass_rows(man, variants):
-    """{general row label: (label, value)}: while the TPU top is shown, the rigid rest's
-    mass rows give way to base + insert, from the manifest's masses (first variant, as
-    the general rows)."""
+# per TPU top: (base part id suffix, manifest "masses" key of its insert, wording)
+TPU_TOP_MASS = {"tpu": ("-tpu", "insert_tpu_g", "TPU insert"),
+                "tpu-thin": ("-tpu-thin", "insert_tpu_thin_g", "thin TPU insert")}
+
+
+def tpu_mass_rows(man, variants, top="tpu"):
+    """{general row label: (label, value)}: while a TPU top is shown, the rigid rest's
+    mass rows give way to that top's base + insert, from the manifest's masses (first
+    variant, as the general rows)."""
     ms = man.get("masses") or {}
     v0 = variants[0].get("id") if variants else None
-    base = (ms.get("rest_pla_g") or {}).get(f"rest-{v0}-tpu")
-    ins = ms.get("insert_tpu_g") or {}
+    suffix, key, word = TPU_TOP_MASS[top]
+    base = (ms.get("rest_pla_g") or {}).get(f"rest-{v0}{suffix}")
+    ins = ms.get(key) or {}
     if not (isinstance(base, dict) and isinstance(ins, dict) and ins):
         return {}
     pct = tpu_infill_pick(ins)
@@ -573,7 +694,7 @@ def tpu_mass_rows(man, variants):
     if b25 is not None:
         extra = [float(ms.get(k) or 0) for k in ("steel_g", "trackpad_g", "glass_g")]
         rows["Total on the desk"] = ("Total on the desk",
-                                     f"~{float(b25) + tpu_g + sum(extra):.0f} g @25% incl. the TPU insert, steel, "
+                                     f"~{float(b25) + tpu_g + sum(extra):.0f} g @25% incl. the {word}, steel, "
                                      f"trackpad{' and glass' if extra[2] else ''}")
     return rows
 
@@ -584,7 +705,9 @@ def html_dimensions(man, conns, cvars, tops=(), variants=()):
     default = conns[0]["id"] if conns else None
     tmulti = len(tops) > 1
     t0 = tops[0]["id"] if tops else None
-    swap = tpu_mass_rows(man, variants) if tmulti and any(t["id"] == "tpu" for t in tops) else {}
+    # {TPU top: {general row label: (label, value)}}, in the Top switch order
+    swaps = {t["id"]: tpu_mass_rows(man, variants, t["id"]) for t in tops
+             if tmulti and t["id"] in TPU_TOP_MASS}
     out = ['<table class="kv" id="dims-table"><tbody>']
     for r in rows:  # every row, no whitelist
         if isinstance(r, dict):
@@ -600,17 +723,19 @@ def html_dimensions(man, conns, cvars, tops=(), variants=()):
             continue
         # never both hide mechanisms on one row: data-top only on rows no connector replaces
         rtop = (r.get("top") if isinstance(r, dict) else None) if not over else None
-        alt = swap.get(str(label)) if not over and not rtop else None
-        if rtop:  # a row about one top only (the TPU insert)
+        alt = ([(tid, sw[str(label)]) for tid, sw in swaps.items() if str(label) in sw]
+               if not over and not rtop else [])
+        if rtop:  # a row about one top only (a TPU insert)
             if not tmulti and rtop != (t0 or "rigid"):
                 continue  # no Top switch: only the rigid rest is offered
             attr = top_attr(rtop, t0, tmulti)
-        elif alt:  # the rigid rest's mass row; the TPU top shows its own below it
-            attr = top_attr("rigid", t0, tmulti)
+        elif alt:  # the rigid rest's mass row; each TPU top shows its own below it
+            own = {tid for tid, _ in alt}  # a TPU top without its own figures keeps this row
+            attr = top_attr([t["id"] for t in tops if t["id"] == "rigid" or t["id"] not in own], t0, tmulti)
         out.append(f"<tr{attr}><th scope=\"row\">{esc(label)}</th><td>{esc(value)}</td></tr>")
-        if alt:
-            out.append(f'<tr{top_attr("tpu", t0, tmulti)}><th scope="row">{esc(alt[0])}</th>'
-                       f'<td>{esc(alt[1])}</td></tr>')
+        for tid, (alab, aval) in alt:
+            out.append(f'<tr{top_attr(tid, t0, tmulti)}><th scope="row">{esc(alab)}</th>'
+                       f'<td>{esc(aval)}</td></tr>')
     for c in conns:
         for label, value in cvars[c["id"]]["dims"]:
             out.append(f'<tr class="conn-row"{conn_attr(c["id"], default, multi)}><th scope="row">{esc(label)}</th>'
@@ -675,7 +800,7 @@ def html_hardware(conns, cvars):
 
 
 def by_role(parts):
-    """Rests first, then the TPU insert, then the rest of the parts (manifest order inside)."""
+    """Rests first, then the TPU inserts, then the rest of the parts (manifest order inside)."""
     rank = {"rest": 0, "insert": 1}
     return sorted(parts, key=lambda p: rank.get(p.get("role"), 2))
 
@@ -712,8 +837,9 @@ def html_parts(parts, mode, conns, cvars, tops=()):
             f'<div class="part-mass">{esc(mass_txt(st, p.get("role")))}</div></li>')
     out.append("</ul>")
     out.append(html_hardware(conns, cvars))
-    dens = ("Masses are PLA at the configured density; the TPU insert’s are TPU."
-            if any(p.get("role") == "insert" for p in parts) else "Masses are PLA at the configured density.")
+    n_ins = sum(p.get("role") == "insert" for p in parts)
+    dens = "Masses are PLA at the configured density" + (
+        "; the TPU insert’s are TPU." if n_ins == 1 else "; the TPU inserts’ are TPU." if n_ins else ".")
     if mode == "artifact":
         out.append(f'<p class="fine">The STL files are in the <code>stl/</code> folder of the '
                    f'{repo_link(mode, "GitHub repository")}. Download them there; this page can’t '
@@ -932,7 +1058,7 @@ def main(argv=None):
         mw = p.get("moves_with") or ("pad" if role == "grip" else "dock")
         q = {
             "id": p["id"], "variant": p.get("variant"), "role": role, "connector": conn,
-            # rests and the TPU insert stay with the rest (the insert lifts on its own when exploded)
+            # rests and the TPU inserts stay with the rest (an insert lifts on its own when exploded)
             "moves_with": mw if role not in ("rest", "insert") else None,
             "top": p.get("top"),
             "stl": p["stl"], "matrix": p.get("matrix") or [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
@@ -978,6 +1104,7 @@ def main(argv=None):
         "frame": man.get("frame", ""), "variants": variants,
         "connectors": [{k: c[k] for k in ("id", "type", "label")} for c in conns],
         "tops": tops, "tpu": man.get("tpu") if tops else None,
+        "tpu_thin": man.get("tpu_thin") if tops else None,
         "connector_variants": {cid: {k: cv[k] for k in ("dock", "cable", "connector", "hardware")}
                                for cid, cv in cvars.items()},
         "parts": [{k: p[k] for k in part_keys if k in p} for p in parts],
@@ -1012,7 +1139,8 @@ def main(argv=None):
             "<!--@DOWNLOADS@-->": html_downloads(parts, mode, variants, conns, tops),
             "<!--@PINOUT@-->": html_pinout(conns, cvars),
             "<!--@WIRING-LINK@-->": html_wiring_link(mode),
-            "<!--@NOTES@-->": html_notes(head_notes, tail_notes, conns, cvars, tops, {"tpu": tpu_notes(man)}),
+            "<!--@NOTES@-->": html_notes(head_notes, tail_notes, conns, cvars, tops,
+                                         {"tpu": tpu_notes(man), "tpu-thin": tpu_thin_notes(man, tops)}),
             "<!--@VARIANTS@-->": html_radios("variant", variants),
             "<!--@VARIANT-LABEL@-->": esc((variants[0].get("label") or variants[0].get("id")) if variants else ""),
             "<!--@CONNECTORS@-->": html_radios("connector", conns),
@@ -1060,7 +1188,7 @@ def main(argv=None):
         print("  tops: " + ", ".join(f"{t['id']} ({t['label']})" for t in tops))
     for p in parts:
         m = p["mesh"]
-        print(f"  {p['id']:18s} {m['nt']:8d} tris {m['nv']:8d} verts -> {m['gz_bytes'] / 1e6:.2f} MB gz")
+        print(f"  {p['id']:20s} {m['nt']:8d} tris {m['nv']:8d} verts -> {m['gz_bytes'] / 1e6:.2f} MB gz")
     render("standalone", args.out_html)
     render("artifact", args.out_artifact)
     return 0

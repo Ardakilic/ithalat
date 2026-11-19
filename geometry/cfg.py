@@ -115,6 +115,7 @@ def validate(c):
     if c.PLUG_BAY_DEPTH < 0 or c.PLUG_BAY_CHAMFER < 0:
         errs.append("PLUG_BAY_DEPTH / PLUG_BAY_CHAMFER must be >= 0")
     errs += _validate_tpu(c)
+    errs += _validate_tpu_thin(c)
     if errs:
         raise SystemExit("config error:\n  " + "\n  ".join(errs))
 
@@ -134,8 +135,10 @@ def _validate_tpu(c):
     over the recesses, edge angle, thickness, pegs) live in geometry/tpu.params."""
     errs = []
     labels = c.TPU_TOP_LABELS
-    if not (isinstance(labels, dict) and set(labels) == {"rigid", "tpu"}):
-        errs.append("TPU_TOP_LABELS must be a dict with exactly the keys 'rigid' and 'tpu'")
+    if not (isinstance(labels, dict) and set(labels) == {"rigid", "tpu", "tpu-thin"}
+            and all(isinstance(v, str) and v.strip() for v in labels.values())):
+        errs.append("TPU_TOP_LABELS must be a dict with exactly the keys 'rigid', 'tpu' and 'tpu-thin' "
+                    "(non-empty text each)")
     if not isinstance(c.TPU_ENABLED, bool):
         errs.append("TPU_ENABLED must be True or False")
     for n in ("TPU_FLOOR_Z", "TPU_POCKET_COLLAR", "TPU_BALLAST_GAP", "TPU_PEG_D", "TPU_PEG_H",
@@ -169,6 +172,36 @@ def _validate_tpu(c):
     infills = c.TPU_MASS_INFILLS
     if not (isinstance(infills, (list, tuple)) and infills and all(_num(v) and 0 < v < 100 for v in infills)):
         errs.append("TPU_MASS_INFILLS must list infill percentages between 0 and 100")
+    return errs
+
+
+def _validate_tpu_thin(c):
+    """Type-level checks of the TPU_THIN_* constants; the geometric limits (tilt,
+    edge angle, floor over the recesses, pegs) live in geometry/tpu_thin.params."""
+    errs = []
+    if not isinstance(c.TPU_THIN_ENABLED, bool):
+        errs.append("TPU_THIN_ENABLED must be True or False")
+    for n in ("TPU_THIN_T", "TPU_THIN_EDGE_MARGIN", "TPU_THIN_PEG_H", "TPU_THIN_PEG_HEADROOM",
+              "TPU_THIN_PEG_MIN_COVER"):
+        if not _num(getattr(c, n)):
+            errs.append(f"{n} must be a finite number")
+    if errs:
+        return errs
+    if not (1.0 <= c.TPU_THIN_T <= 6.0):
+        errs.append("TPU_THIN_T must be within 1 .. 6 mm")
+    if not (0.0 <= c.TPU_THIN_EDGE_MARGIN <= 5.0):
+        errs.append("TPU_THIN_EDGE_MARGIN must be within 0 .. 5 deg")
+    if _num(c.TPU_PEG_CHAMFER) and not (c.TPU_THIN_PEG_H > c.TPU_PEG_CHAMFER):
+        errs.append("TPU_THIN_PEG_H must be > TPU_PEG_CHAMFER")
+    if not (0 <= c.TPU_THIN_PEG_HEADROOM <= 1.0):
+        errs.append("TPU_THIN_PEG_HEADROOM must be within 0 .. 1 mm")
+    if c.TPU_THIN_PEG_MIN_COVER < 0.4:
+        errs.append("TPU_THIN_PEG_MIN_COVER must be >= 0.4 (two layers over the hole roof)")
+    pegs = c.TPU_THIN_PEGS
+    if pegs is not None and not (isinstance(pegs, (list, tuple))
+                                 and all(isinstance(p, (list, tuple)) and len(p) == 2
+                                         and all(_num(v) for v in p) for p in pegs)):
+        errs.append("TPU_THIN_PEGS must be None (auto), [] (none) or a list of (x, y) pairs")
     return errs
 
 
