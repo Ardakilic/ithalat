@@ -10,7 +10,8 @@ Wiring steps are in [wiring.md](../wiring.md). Every dimension comes from [`conf
 - **Magnetic pogo: ≈ €40–50** plus the glass (€6.90). You need an N/S-keyed 5-pin magnetic pair (Adafruit 5413, US$6.95, or [cheaper](#7-cheaper-magnetic-options)).
 - **USB-C: ≈ €35–45** plus the glass (€6.90). You need two small 4-pad breakout boards, a Schottky diode (required), 4 M2 screws and epoxy.
 - **Shared parts:** TPS65 trackpad (€12), silicone wire, heat-shrink, Kapton, 6 bumpers and filament. Optional: glass, steel ballast, protection parts, a pin header for the TB1 socket tap.
-- **Optional soft top:** about 30 g of non-conductive TPU 95A–98A for the insert. That is ≈ 31–40 TL of a 988–1,096 TL spool in Turkey ([§4](#4-mechanical-parts)).
+- **Optional soft top:** about 29 g of non-conductive TPU 95A–98A for the insert. That is ≈ 30–38 TL of a 988–1,096 TL spool in Turkey ([§4](#4-mechanical-parts)).
+- **Optional thin soft top:** the thin insert needs about 23 g (≈ 24–31 TL). It is the cheaper one to reprint and replace.
 - **Prices** are rough late-2026 retail, without shipping. Check listings before you order.
 
 **Jump to**
@@ -39,8 +40,8 @@ Tick off what you have. Details for each part are in the sections below.
 - [ ] **Filament**, PLA or PETG, non-conductive
 - [ ] Optional: 2 × **steel bars**, 78 × 20 × 5 mm (ballast)
 - [ ] Optional: thin double-sided tape, ≤ 0.1 mm
-- [ ] Optional, soft top only: **TPU filament**, 95A–98A, non-conductive, dark or mid colour (about 30 g) – [§4](#4-mechanical-parts)
-- [ ] Optional, soft top only: contact cement or a flexible glue, for a permanent insert
+- [ ] Optional, soft top only: **TPU filament**, 95A–98A, non-conductive, dark or mid colour (about 29 g; thin insert about 23 g) – [§4](#4-mechanical-parts)
+- [ ] Optional, soft top only: contact cement or a flexible glue, for a permanent insert (the thin insert needs none)
 - [ ] Optional: **protection parts** – [§3](#3-optional-protection-parts-keyboard-side-at-the-dock)
 - [ ] Optional: 1 × **5-pin 2.54 mm straight male pin header**, only for tap A at the switchplate TB1 socket (USB-C uses four of its pins) – [§2a](#2a-magnetic-pogo-connector)
 
@@ -62,7 +63,7 @@ Tick off what you have. Details for each part are in the sections below.
 
 - **Rough retail prices** from late 2026. They exclude shipping and duties.
 - **EUR prices** come from EU shops, USD prices from US shops.
-- **Turkish prices (TL)** were checked on 2026-11-15 (TPU filament: 2026-11-18). They include KDV (VAT) and use 1 USD ≈ 50.3 TL.
+- **Turkish prices (TL)** were checked on 2026-11-15 (TPU filament: 2026-11-18; three spools rechecked on 2026-11-19, unchanged). They include KDV (VAT) and use 1 USD ≈ 50.3 TL.
 - **Check current listings** before you order.
 - **Example listings** with links, prices and stock for every connector part, the diode, the trackpad, screws and wire: [where-to-buy.md](where-to-buy.md).
 
@@ -348,10 +349,10 @@ Tick off what you have. Details for each part are in the sections below.
 | 6 | **Silicone bumpers**, self-adhesive, Ø 10 mm (`BUMPER_D`) | your keyboard's bumper height + 0.6 mm | €3–5 per sheet |
 | 2 (optional) | **Steel flat bar ballast**, 78 × 20 × 5 mm (`BALLAST_SIZE`) | mild steel, cut to 78 mm | €3–6 per metre of bar |
 | — | **Filament: PLA or PETG**, non-conductive | see the [per-part list](#filament-per-printed-part) | €20–25/kg spool, about €3–5 used |
-| (1, soft top only) | **Filament: TPU 95A–98A**, non-conductive | about 30 g for the insert, plus purge on a multi-material printer ([TPU notes](#tpu-filament-soft-top-only)) | 988.60–1,096 TL per 750 g–1 kg spool in Turkey ([where to buy](where-to-buy.md#tpu-filament-tpu-top-only)); ≈ 31–40 TL used |
-| (optional, soft top) | **Contact cement** (polychloroprene, for example Pattex or UHU Kontakt), or a flexible glue | only for a permanent insert; the pegs hold it otherwise | not checked (hardware store) |
+| (1, soft top only) | **Filament: TPU 95A–98A**, non-conductive | about 29 g for the insert, plus purge on a multi-material printer; the thin insert about 23 g ([TPU notes](#tpu-filament-soft-top-only)) | 988.60–1,096 TL per 750 g–1 kg spool in Turkey ([where to buy](where-to-buy.md#tpu-filament-tpu-top-only)); ≈ 30–38 TL used (thin insert: ≈ 24–31 TL, [per spool](where-to-buy.md#cost-per-insert)) |
+| (optional, soft top) | **Contact cement** (polychloroprene, for example Pattex or UHU Kontakt), or a flexible glue | only for a permanent TPU insert; the pegs hold it otherwise. The thin insert is meant to stay glue-free | not checked (hardware store) |
 | 0 | **Screws, nuts, inserts:** none for the rest and the pogo dock | — | €0 |
-| (1) | Thin double-sided tape, ≤ 0.1 mm | any; for the pocket ledge (not under the TPU insert: it would leave a step at the seams) | €2 |
+| (1) | Thin double-sided tape, ≤ 0.1 mm | any; for the pocket ledge (not under either TPU insert: it would leave a step at the seams) | €2 |
 
 **Bumpers**
 
@@ -397,8 +398,9 @@ Tick off what you have. Details for each part are in the sections below.
 
 <a id="tpu-filament-soft-top-only"></a>**TPU filament (soft top only)**
 
-- **What it is for:** the optional TPU insert ([README, Smooth top](../README.md#smooth-top-tpu-insert)).
-- **Hardness:** 95A–98A. Softer grades feel nicer, but the 85A and 87A spools checked in Turkey were out of stock on 2026-11-18. The insert's thickness and 10 % gyroid give the cushion.
+- **What it is for:** the optional TPU insert or the thin TPU insert ([README, Smooth top](../README.md#smooth-top-tpu-insert)).
+- **How much:** about 29 g per TPU insert, about 23 g per thin insert. Any spool listed is plenty for many inserts.
+- **Hardness:** 95A–98A. Softer grades feel nicer, but the 85A and 87A spools checked in Turkey were out of stock on 2026-11-18. The insert's thickness and 10 % gyroid give the cushion. The thin insert gives the same touch with almost no cushion.
 - **Non-conductive only:** never carbon, CF, ESD/antistatic, conductive, metal-filled or glitter TPU. Bambu "TPU for AMS" (68D) is nearly rigid, so it gives no cushion.
 - **Colour:** dark or mid. White and natural TPU turn yellow and show skin oil.
 - **Type:** polyether TPU resists sweat (hydrolysis) better than polyester TPU over years. The Turkish listings do not say which they are.
@@ -427,6 +429,8 @@ Tick off what you have. Details for each part are in the sections below.
 | Rest | `stl/ithalat-glass.stl` or `stl/ithalat-bare.stl` | both | 100–160 g | 15–40 % gyroid infill, 4 perimeters |
 | Rest base, soft top (instead of the rest) | `stl/ithalat-glass-tpu-base.stl` or `stl/ithalat-bare-tpu-base.stl` | both | 100–135 g PETG/PLA | as the rest |
 | TPU insert, soft top | `stl/ithalat-tpu-insert.stl` | both | ≈ 29 g TPU (28–30 g at 5–15 % gyroid) | 10 % gyroid, 2–3 walls, top ≥ 1.2 mm, flat side down; 0.1 mm layers on base and insert |
+| Rest base, thin soft top (instead of the rest) | `stl/ithalat-glass-tpu-thin-base.stl` or `stl/ithalat-bare-tpu-thin-base.stl` | both | 105–125 g PETG/PLA | as the rest, at 0.1–0.12 mm layers |
+| Thin TPU insert, thin soft top | `stl/ithalat-tpu-thin-insert.stl` | both | ≈ 23 g TPU | as loaded (already lying on its underside), 0.2 mm layers (0.12 mm on base and insert for flusher seams), 2 walls, 10 % gyroid, top ≥ 1.2 mm |
 | Pogo dock | `stl/ithalat-dock-pogo.stl` | pogo | ≈ 5 g | PETG recommended for its snap blades |
 | USB-C dock | `stl/ithalat-dock-usbc.stl` | USB-C | ≈ 6.5 g | PETG recommended |
 | USB-C grip, top and bottom | `stl/ithalat-usbc-grip-top.stl`, `stl/ithalat-usbc-grip-bottom.stl` | USB-C | ≈ 1.3 g | 100 % infill |
@@ -457,7 +461,7 @@ Tick off what you have. Details for each part are in the sections below.
 | Bumpers | €3–5 | €3–5 |
 | Steel ballast (optional) | €3–6 | €3–6 |
 | Filament used | €3–5 | €3–5 |
-| TPU for the soft top (optional, not in the total) | ≈ 31–40 TL used (a spool: 988.60–1,096 TL) | ≈ 31–40 TL used (a spool: 988.60–1,096 TL) |
+| TPU for the soft top (optional, not in the total) | ≈ 30–38 TL (TPU insert) or ≈ 24–31 TL (thin insert) used; a spool: 988.60–1,096 TL | ≈ 30–38 TL (TPU insert) or ≈ 24–31 TL (thin insert) used; a spool: 988.60–1,096 TL |
 | **Total** | **≈ €40–50** plus the glass (€6.90), excluding shipping | **≈ €35–45** plus the glass (€6.90), excluding shipping |
 
 ## 7. Cheaper magnetic options

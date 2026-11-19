@@ -16,6 +16,7 @@
 #   make generate verify GEN_ARGS="--glass-t 0.7"
 #   make all GEN_ARGS="--set REST_DEPTH=90 --engrave-face top"
 #   make all GEN_ARGS="--height 13 --connector pogo5"   # at 13 mm the USB-C grip no longer clears the rest
+#   make generate verify GEN_ARGS="--set TPU_THIN_ENABLED=False"   # no thin TPU top
 # Connector variants (CONNECTORS in config.py; default: pogo + USB-C):
 #   make generate verify GEN_ARGS="--connector usbc"
 #   make generate verify GEN_ARGS="--set \"CONNECTORS=('pogo5','usbc','jst_sh4')\""

@@ -1,6 +1,6 @@
 # Where to buy
 
-Example shops for every ithalat part, with prices and stock checked on 2026-11-15 (TPU filament: 2026-11-18).
+Example shops for every ithalat part, with prices and stock checked on 2026-11-15 (TPU filament: 2026-11-18, three spools rechecked on 2026-11-19).
 
 ## TL;DR
 
@@ -9,6 +9,7 @@ Example shops for every ithalat part, with prices and stock checked on 2026-11-1
 - **Measure before you buy.** Pogo pair vs `DOCK_CONN_W/H/D`; USB-C boards vs `USBC_*`.
 - **No Turkish shop** checked sells the TPS65, its glass or M2 self-tapping screws.
 - **TPU for the optional soft top:** 95A–98A is in stock in Turkey (Porima 98A is made in Turkey). The softer spools checked were out of stock.
+- **TPU per insert:** about 29 g for the TPU insert (≈ 30–38 TL), about 23 g for the thin insert (≈ 24–31 TL) ([cost per insert](#cost-per-insert)).
 - **Quantities and costs** are in [bom.md](bom.md). Wiring steps are in [wiring.md](../wiring.md).
 
 **Jump to**
@@ -23,7 +24,7 @@ Turkish local vendors are listed first: the project is named *ithalat* (Turkish 
 
 - **Measure first.** Pogo pair vs `DOCK_CONN_W/H/D` (20.1 × 4.2 × 4.0 mm); USB-C boards vs the `USBC_*` constants in [`config.py`](../config.py).
 - **Prices:** TL prices include KDV (VAT). Shipping is extra everywhere.
-- **Stock:** as each shop showed on 2026-11-15, or 2026-11-18 for the TPU filament (counts in brackets). Every listing was opened on its date. Out-of-stock parts stay listed: they may come back.
+- **Stock:** as each shop showed on 2026-11-15, or 2026-11-18 for the TPU filament (counts in brackets; three spools rechecked on 2026-11-19). Every listing was opened on its date. Out-of-stock parts stay listed: they may come back.
 - **Full parts list,** with quantities and rough prices: [bom.md](bom.md).
 
 ## USB-C connector parts
@@ -141,10 +142,11 @@ No Turkish shop checked (direnc.net, Motorobit, Robotistan, Robo90, Samm) sells 
 
 ## TPU filament (TPU top only)
 
-Only for the optional [soft top](../README.md#smooth-top-tpu-insert). Checked on 2026-11-18.
+Only for the optional [soft top](../README.md#smooth-top-tpu-insert) or [thin TPU insert](../README.md#thin-tpu-insert).
 
+- **Checked on 2026-11-18.** Rechecked on 2026-11-19: Porima 98A black (Robotistan), Filamix 95A (idefix) and Beta 95A (3D Ultra), with prices and stock unchanged. n11 blocked the recheck (HTTP 403). The other rows are from 2026-11-18.
 - **Buy:** TPU **95A–98A**, **non-conductive**, in a **dark or mid colour**.
-- **How much:** the insert needs about 30 g, so any spool below is plenty.
+- **How much:** the TPU insert needs about 29 g, the thin insert about 23 g (a slicer says about 23 g and 19 g). Any spool below is plenty.
 - **Not:** "conductive", "ESD", "antistatic", carbon / CF, metal-filled or glitter TPU, or Bambu "TPU for AMS" (68D, nearly rigid).
 
 | Product | Shop | Shore | Price | Stock |
@@ -158,6 +160,20 @@ Only for the optional [soft top](../README.md#smooth-top-tpu-insert). Checked on
 | [Bedrock Ultrafuse TPU 85A Naturel Filament 1.75mm 750 gr](https://www.robotistan.com/bedrock-ultrafuse-tpu-85a-naturel-filament-175mm-750-gr) | Robotistan (TR) | 85A | not shown | **Out of stock** |
 | [Porima TPU Flex 98A Filament](https://porima3d.com/products/porima-tpu-flex-esnek-98a-filament) | Porima, the maker (TR) | 98A | 884.16 TL / 1 kg | **Out of stock** (all 6 colours) |
 | [Porima Easy Flex Filament](https://porima3d.com/products/porima-easy-flex-filament) | Porima, the maker (TR) | not stated | 846.72 TL / 0.5 kg | **Out of stock** |
+
+### Cost per insert
+
+The generator's TPU estimate at 10 % gyroid, times the price per gram of the black spools in stock (KDV included).
+
+| Spool (price date) | TL/g | TPU insert (≈ 29 g) | Thin TPU insert (≈ 23 g) |
+|---|---|---|---|
+| Porima 98A, Robotistan, 988.60 TL / 750 g (2026-11-19) | 1.32 | ≈ 38 TL | ≈ 31 TL |
+| Porima 98A 1 kg, n11, 1,096 TL (2026-11-18; recheck blocked) | 1.10 | ≈ 32 TL | ≈ 26 TL |
+| Filamix 95A 1 kg, idefix, 1,035.12 TL (2026-11-19) | 1.04 | ≈ 30 TL | ≈ 24 TL |
+
+- **A slicer gives about 20 % less for both:** 23.4 g (≈ 24–31 TL) for the TPU insert, 18.6 g (≈ 19–24 TL) for the thin insert (PrusaSlicer 2.9.2, 10 % gyroid).
+- **The thin insert saves about 5–7 TL per insert,** and print time: about 2 h vs 4.5 h at each one's recommended layers, or −22 % (2 h vs 2 h 40 m) at the same 0.2 mm.
+- **Purge is extra** on a multi-material printer (TPU insert only: the thin insert prints separately).
 
 <details><summary>Notes on the TPU filament</summary>
 
