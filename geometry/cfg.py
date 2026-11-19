@@ -191,8 +191,6 @@ def _validate_tpu_thin(c):
         errs.append("TPU_THIN_T must be within 1 .. 6 mm")
     if not (0.0 <= c.TPU_THIN_EDGE_MARGIN <= 5.0):
         errs.append("TPU_THIN_EDGE_MARGIN must be within 0 .. 5 deg")
-    if _num(c.TPU_PEG_CHAMFER) and not (c.TPU_THIN_PEG_H > c.TPU_PEG_CHAMFER):
-        errs.append("TPU_THIN_PEG_H must be > TPU_PEG_CHAMFER")
     if not (0 <= c.TPU_THIN_PEG_HEADROOM <= 1.0):
         errs.append("TPU_THIN_PEG_HEADROOM must be within 0 .. 1 mm")
     if c.TPU_THIN_PEG_MIN_COVER < 0.4:

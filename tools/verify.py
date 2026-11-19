@@ -1915,8 +1915,12 @@ def _tpu_thin_manifest_checks(R, sc, cfg, man, ids, tp=None):
               unit="max |diff|")
     st = man.get("stats") or {}
     pairs = [("tpu-thin-insert", "tpu_thin")] + ([("tpu-insert", "tpu")] if "tpu-insert" in ids else [])
-    ok = all((st.get(pid) or {}).get("mass_g_estimate_tpu") == (man.get(blk) or {}).get("insert_tpu_g")
-             for pid, blk in pairs)
+
+    def same_est(pid, blk):          # both present, non-empty mappings, and equal
+        a = (st.get(pid) or {}).get("mass_g_estimate_tpu")
+        b = (man.get(blk) or {}).get("insert_tpu_g")
+        return isinstance(a, dict) and isinstance(b, dict) and bool(a) and a == b
+    ok = all(same_est(pid, blk) for pid, blk in pairs)
     R.check(sc, "each insert carries its own TPU mass estimate", ok, ", ".join(p for p, _ in pairs))
 
 
