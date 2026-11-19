@@ -1110,7 +1110,7 @@ Optional third "Top" (`geometry/tpu_thin.py`). The TPU insert's area, with the u
 | `TPU_THIN_T` | `2.0` | 1.0–6.0 mm | thinnest TPU (vertical) inside the edge round-overs and on the nose crest. With the default tilt that is the back seam; from about 3.6 the underside is flat and it is the nose crest. Sets the underside's height. Builds from 1.6 to 5.0 by default: below 1.6 the pegs lose their TPU cover |
 | `TPU_THIN_EDGE_MARGIN` | `0.5` | 0–5° | the tilt is solved so the nose / ends edge is at least `TPU_MIN_EDGE_ANGLE` + this |
 | `TPU_THIN_PEGS` | `None` | None, `[]` or a list of (x, y) pairs | pegs on the tilted tray floor. None = auto: one row at y = `REST_FRONT_NOSE_R` + 3 (12), just behind the nose: 2 per wing at 25 % / 75 % of the wing span (the thickest wing TPU), plus 2 in front of the trackpad at 25 % / 75 % of the pocket opening (left out where they do not fit, for example round a top engraving). `[]` = none |
-| `TPU_THIN_PEG_H` | `1.5` | > `TPU_PEG_CHAMFER` | peg height above the tilted floor (`TPU_PEG_D` wide, `TPU_PEG_CHAMFER` top) |
+| `TPU_THIN_PEG_H` | `1.5` | > `TPU_PEG_CHAMFER` (with pegs) | peg height above the tilted floor (`TPU_PEG_D` wide, `TPU_PEG_CHAMFER` top) |
 | `TPU_THIN_PEG_HEADROOM` | `0.3` | 0–1 mm | hole deeper than the peg is tall |
 | `TPU_THIN_PEG_MIN_COVER` | `0.8` | ≥ 0.4 | config error: min TPU above a thin insert's peg-hole roof |
 

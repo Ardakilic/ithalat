@@ -304,8 +304,6 @@ def params(cfg, lay, surf):
     # 4. pegs on the tilted floor: inside with TPU_PEG_EDGE to spare, TPU over the hole roofs
     r, h, ch = float(cfg.TPU_PEG_D) / 2.0, float(cfg.TPU_THIN_PEG_H), float(cfg.TPU_PEG_CHAMFER)
     head, clr, bch = float(cfg.TPU_THIN_PEG_HEADROOM), float(cfg.TPU_PEG_CLEARANCE), float(cfg.TPU_BED_CHAMFER)
-    if not h > ch:
-        _fail(f"TPU_THIN_PEG_H {h:g} must be > TPU_PEG_CHAMFER {ch:g}")
     r_h = r + clr
     allowed = inside.buffer(-float(cfg.TPU_PEG_EDGE), quad_segs=C.QS)
     fits = lambda q: allowed.contains(Point(q).buffer(r, quad_segs=16))  # noqa: E731
@@ -320,6 +318,8 @@ def params(cfg, lay, surf):
             pegs = sorted(pegs + mid)
     else:
         pegs = [(float(x), float(y)) for x, y in cfg.TPU_THIN_PEGS]
+    if pegs and not h > ch:
+        _fail(f"TPU_THIN_PEG_H {h:g} must be > TPU_PEG_CHAMFER {ch:g}")
     if pegs and bch > h - ch - 1e-9:
         _fail(f"TPU_BED_CHAMFER {bch:g} must stay below the straight part of the thin insert's pegs "
               f"(TPU_THIN_PEG_H - TPU_PEG_CHAMFER = {h - ch:g})")
